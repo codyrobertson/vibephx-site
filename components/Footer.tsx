@@ -90,9 +90,14 @@ export default function Footer() {
         {/* Final CTA */}
         <div className="mt-12 p-6 bg-gradient-to-r from-orange-600/10 to-red-600/10 rounded-lg border border-orange-500/30 text-center">
           <p className="text-lg font-semibold mb-3">Ready to build?</p>
-          <button className="px-8 py-3 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg font-bold hover:scale-105 transition-transform">
+          <a 
+            href="https://luma.com/cvlfi81t"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block px-8 py-3 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg font-bold hover:scale-105 transition-transform"
+          >
             Secure Your Spot → $99
-          </button>
+          </a>
         </div>
       </div>
     </footer>

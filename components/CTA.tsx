@@ -25,9 +25,14 @@ export default function CTA() {
 
         {/* Main CTA */}
         <div className="mb-6">
-          <button className="w-full md:w-auto px-12 py-5 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg font-bold text-xl hover:scale-105 transition-transform glow">
+          <a 
+            href="https://luma.com/cvlfi81t"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block w-full md:w-auto px-12 py-5 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg font-bold text-xl hover:scale-105 transition-transform glow text-center"
+          >
             Reserve My Spot → $99
-          </button>
+          </a>
         </div>
         
         <p className="text-sm text-gray-500 mb-8">
@@ -40,9 +45,14 @@ export default function CTA() {
             <h3 className="text-lg font-semibold mb-2">🎯 Solo Builder</h3>
             <p className="text-3xl font-bold text-orange-400 mb-2">$99</p>
             <p className="text-sm text-gray-400 mb-4">Full day + templates + community</p>
-            <button className="w-full px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg font-semibold transition-colors">
+            <a 
+              href="https://luma.com/cvlfi81t"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block w-full px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg font-semibold transition-colors text-center"
+            >
               Reserve Your Seat
-            </button>
+            </a>
           </div>
           <div className="p-6 border border-orange-500 rounded-lg bg-orange-950/20 relative">
             <div className="absolute -top-3 left-4 px-3 py-1 bg-orange-500 text-black text-xs font-bold rounded-full">
@@ -51,9 +61,14 @@ export default function CTA() {
             <h3 className="text-lg font-semibold mb-2">👥 2-Pack (Bring a Friend)</h3>
             <p className="text-3xl font-bold text-orange-400 mb-2">$169 <span className="text-lg text-gray-400 line-through">$198</span></p>
             <p className="text-sm text-gray-400 mb-4">Save $29 + accountability partnership</p>
-            <button className="w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 text-black rounded-lg font-semibold transition-colors">
+            <a 
+              href="https://luma.com/cvlfi81t"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 text-black rounded-lg font-semibold transition-colors text-center"
+            >
               Grab Both Spots
-            </button>
+            </a>
           </div>
         </div>
 

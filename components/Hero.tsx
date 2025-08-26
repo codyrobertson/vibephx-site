@@ -98,9 +98,14 @@ export default function Hero() {
 
         {/* CTA Button */}
         <div className={`flex justify-center ${mounted ? 'animate-slide-up' : 'opacity-0'}`} style={{ animationDelay: '0.3s' }}>
-          <button className="px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg font-bold text-lg hover:scale-105 transition-transform glow">
+          <a 
+            href="https://luma.com/cvlfi81t"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg font-bold text-lg hover:scale-105 transition-transform glow"
+          >
             Reserve Your Spot — $99
-          </button>
+          </a>
         </div>
 
         {/* Trust Indicators */}
