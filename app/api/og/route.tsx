@@ -1,17 +1,9 @@
 import { ImageResponse } from 'next/og'
-import { NextRequest } from 'next/server'
 
 export const runtime = 'edge'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url)
-    
-    // Extract parameters with defaults
-    const title = searchParams.get('title') || 'Ship a live AI-built app in one day'
-    const subtitle = searchParams.get('subtitle') || 'Sept 13, 2025 • Phoenix, AZ • $99'
-    const type = searchParams.get('type') || 'workshop'
-
     return new ImageResponse(
       (
         <div
@@ -23,7 +15,7 @@ export async function GET(request: NextRequest) {
             alignItems: 'center',
             justifyContent: 'center',
             background: 'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)',
-            position: 'relative',
+            fontFamily: 'system-ui',
           }}
         >
           {/* Background Pattern */}
@@ -63,132 +55,43 @@ export async function GET(request: NextRequest) {
           {/* Main Title */}
           <div
             style={{
-              fontSize: '72px',
+              fontSize: '64px',
               fontWeight: 'bold',
               color: 'white',
               textAlign: 'center',
               lineHeight: 1.1,
-              maxWidth: '1000px',
+              maxWidth: '900px',
               marginBottom: '30px',
             }}
           >
-            {title}
+            Ship a live AI-built app in one day
           </div>
 
           {/* Subtitle */}
           <div
             style={{
-              fontSize: '32px',
+              fontSize: '28px',
               color: '#d1d5db',
               textAlign: 'center',
               marginBottom: '40px',
             }}
           >
-            {subtitle}
+            Sept 13, 2025 • Phoenix, AZ • $99
           </div>
 
-          {/* Feature Pills */}
+          {/* Simple badge */}
           <div
             style={{
-              display: 'flex',
-              gap: '20px',
-              marginBottom: '60px',
+              padding: '15px 30px',
+              background: '#f97316',
+              color: 'black',
+              fontSize: '20px',
+              fontWeight: 'bold',
+              borderRadius: '10px',
             }}
           >
-            <div
-              style={{
-                padding: '12px 24px',
-                background: 'rgba(249, 115, 22, 0.2)',
-                border: '2px solid #f97316',
-                borderRadius: '50px',
-                color: '#f97316',
-                fontSize: '20px',
-                fontWeight: '600',
-              }}
-            >
-              Working URL by 5pm
-            </div>
-            <div
-              style={{
-                padding: '12px 24px',
-                background: 'rgba(220, 38, 38, 0.2)',
-                border: '2px solid #dc2626',
-                borderRadius: '50px',
-                color: '#dc2626',
-                fontSize: '20px',
-                fontWeight: '600',
-              }}
-            >
-              AI Workflow + Cost Controls
-            </div>
+            VibePHX Workshop
           </div>
-
-          {/* Mentor Badge */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '15px',
-              padding: '20px 30px',
-              background: 'rgba(31, 41, 55, 0.8)',
-              borderRadius: '15px',
-              border: '1px solid #374151',
-            }}
-          >
-            <div
-              style={{
-                width: '60px',
-                height: '60px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #f97316 0%, #dc2626 100%)',
-              }}
-            />
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <div
-                style={{
-                  fontSize: '24px',
-                  fontWeight: 'bold',
-                  color: 'white',
-                  marginBottom: '5px',
-                }}
-              >
-                Cody Robertson
-              </div>
-              <div
-                style={{
-                  fontSize: '16px',
-                  color: '#9ca3af',
-                }}
-              >
-                10+ yrs shipping products to 100K+ users
-              </div>
-            </div>
-            <div
-              style={{
-                padding: '6px 12px',
-                background: '#f97316',
-                color: 'black',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                borderRadius: '20px',
-                marginLeft: '15px',
-              }}
-            >
-              YOUR MENTOR
-            </div>
-          </div>
-
-          {/* Bottom decoration */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: '6px',
-              background: 'linear-gradient(90deg, #f97316 0%, #dc2626 100%)',
-            }}
-          />
         </div>
       ),
       {
