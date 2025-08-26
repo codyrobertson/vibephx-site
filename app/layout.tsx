@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     description: 'Sept 13 | Phoenix | $99 | Deploy-first methodology with AI guardrails. Turn your Claude/Cursor skills into shipped products.',
     siteName: 'VibePHX',
     images: [{
-      url: '/og-image.jpg',
+      url: '/api/og',
       width: 1200,
       height: 630,
       alt: 'VibePHX - One day AI coding workshop in Phoenix'
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     creator: '@degendrape',
     title: 'VibePHX - Ship a live AI-built app in one day',
     description: 'Sept 13 | Phoenix | $99 | Deploy-first methodology with AI guardrails. Turn your Claude/Cursor skills into shipped products.',
-    images: ['/og-image.jpg'],
+    images: ['/api/og'],
   },
   other: {
     'event-date': '2025-09-13',
