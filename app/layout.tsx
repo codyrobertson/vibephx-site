@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Geist } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+const geist = Geist({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.vibecodephx.com'),
@@ -152,7 +152,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} bg-black text-white`}>{children}</body>
+      <body className={`${geist.className} bg-black text-white`}>{children}</body>
     </html>
   )
 }
