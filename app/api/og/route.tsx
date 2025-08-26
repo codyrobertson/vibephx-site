@@ -15,7 +15,7 @@ export async function GET() {
             alignItems: 'center',
             justifyContent: 'center',
             background: 'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)',
-            fontFamily: 'system-ui',
+            fontFamily: 'Geist',
           }}
         >
           {/* Background Pattern */}
@@ -97,6 +97,22 @@ export async function GET() {
       {
         width: 1200,
         height: 630,
+        fonts: [
+          {
+            name: 'Geist',
+            data: await fetch('https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyeMZhrib2Bg-4.woff2')
+              .then((res) => res.arrayBuffer()),
+            weight: 400,
+            style: 'normal',
+          },
+          {
+            name: 'Geist',
+            data: await fetch('https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfMZhrib2Bg-4.woff2')
+              .then((res) => res.arrayBuffer()),
+            weight: 700,
+            style: 'normal',
+          },
+        ],
       }
     )
   } catch (e: any) {
