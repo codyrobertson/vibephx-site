@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     'rapid prototyping',
     'tech meetup phoenix'
   ],
-  authors: [{ name: 'Cody Robertson', url: 'https://twitter.com/degendrape' }],
+  authors: [{ name: 'Cody Robertson', url: 'https://twitter.com/mackody_' }],
   creator: 'Cody Robertson',
   publisher: 'VibePHX',
   robots: {
@@ -73,8 +73,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@degendrape',
-    creator: '@degendrape',
+    site: '@mackody_',
+    creator: '@mackody_',
     title: 'VibePHX - Ship a live AI-built app in one day',
     description: 'Sept 13, 2025 | Phoenix | $99 | One-day workshop for AI-curious builders. Working URL by 5pm guaranteed.',
     images: [{
@@ -133,7 +133,7 @@ export default function RootLayout({
               "organizer": {
                 "@type": "Person",
                 "name": "Cody Robertson",
-                "url": "https://twitter.com/degendrape"
+                "url": "https://twitter.com/mackody_"
               },
               "offers": {
                 "@type": "Offer",
