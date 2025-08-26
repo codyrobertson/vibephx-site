@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { CrossCircledIcon, LoopIcon, ExclamationTriangleIcon, RocketIcon, TargetIcon, MixerHorizontalIcon, CheckIcon } from '@radix-ui/react-icons'
 
 export default function Features() {
   const [isVisible, setIsVisible] = useState(false)
@@ -25,7 +26,7 @@ export default function Features() {
 
   const problemsWithTweets = [
     {
-      icon: '🚫',
+      icon: CrossCircledIcon,
       title: 'Claude/Cursor but Can\'t Deploy',
       description: "You've got AI tools but hit a wall going from code to live app",
       realTweet: 'https://x.com/JulianGoldieSEO/status/1899798247885217901',
@@ -38,7 +39,7 @@ export default function Features() {
       }
     },
     {
-      icon: '🔄',
+      icon: LoopIcon,
       title: 'Tutorial Hell Strikes Again',
       description: "Following tutorials perfectly, but can't build your own ideas",
       realTweet: 'https://x.com/dailydotdev/status/1940442930118058357',
@@ -51,7 +52,7 @@ export default function Features() {
       }
     },
     {
-      icon: '🐛',
+      icon: ExclamationTriangleIcon,
       title: 'AI Writes Buggy Code',
       description: "Your AI-generated code breaks and you don't know how to fix it",
       realTweet: 'https://x.com/TheZvi/status/1862145448871448925',
@@ -67,7 +68,7 @@ export default function Features() {
 
   const solutionsWithTweets = [
     {
-      icon: '🚀',
+      icon: RocketIcon,
       title: 'Deploy to Production TODAY',
       description: 'Learn the exact deployment workflow that works every time',
       realTweet: 'https://x.com/claytonlz/status/1923496587063591191',
@@ -80,7 +81,7 @@ export default function Features() {
       }
     },
     {
-      icon: '🎯',
+      icon: TargetIcon,
       title: 'AI Workflow Mastery',
       description: 'Build a repeatable system for turning ideas into apps',
       realTweet: 'https://x.com/Jacobsklug/status/1948736493457211849',
@@ -93,7 +94,7 @@ export default function Features() {
       }
     },
     {
-      icon: '🔧',
+      icon: MixerHorizontalIcon,
       title: 'Debug Like a Pro',
       description: 'Know when AI is wrong and how to fix it fast',
       realTweet: 'https://x.com/RayFernando1337/status/1958342445361672592',
@@ -109,28 +110,28 @@ export default function Features() {
 
   const benefits = [
     {
-      icon: '✅',
+      icon: CheckIcon,
       title: 'Your MVP',
       description: 'Working prototype same day',
       highlight: true
     },
     {
-      icon: '✅',
+      icon: CheckIcon,
       title: 'Validation',
       description: 'Real peer & user feedback'
     },
     {
-      icon: '✅',
+      icon: CheckIcon,
       title: 'AI & No-Code Skills',
       description: 'Hands-on tool training'
     },
     {
-      icon: '✅',
+      icon: CheckIcon,
       title: '30-Day Playbook',
       description: 'Clear next steps'
     },
     {
-      icon: '✅',
+      icon: CheckIcon,
       title: 'Community',
       description: 'Accountability buddy + founder network'
     }
@@ -157,7 +158,9 @@ export default function Features() {
               >
                 {/* Main card content */}
                 <div className="p-6">
-                  <div className="text-4xl mb-4">{problem.icon}</div>
+                  <div className="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center mb-4">
+                    <problem.icon className="w-8 h-8 text-red-400" />
+                  </div>
                   <h3 className="text-xl font-semibold mb-2 text-red-300">{problem.title}</h3>
                   <p className="text-gray-400 mb-6">{problem.description}</p>
                 </div>
@@ -215,7 +218,9 @@ export default function Features() {
               >
                 {/* Main card content */}
                 <div className="p-6">
-                  <div className="text-4xl mb-4">{solution.icon}</div>
+                  <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center mb-4">
+                    <solution.icon className="w-8 h-8 text-green-400" />
+                  </div>
                   <h3 className="text-xl font-semibold mb-2 text-green-300">{solution.title}</h3>
                   <p className="text-gray-400 mb-6">{solution.description}</p>
                 </div>
@@ -272,7 +277,9 @@ export default function Features() {
                 style={{ animationDelay: `${0.7 + i * 0.1}s` }}
               >
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl">{benefit.icon}</span>
+                  <div className="w-6 h-6 bg-green-500/20 rounded flex items-center justify-center flex-shrink-0 mt-1">
+                    <benefit.icon className="w-4 h-4 text-green-400" />
+                  </div>
                   <div>
                     <h3 className="font-semibold mb-1">{benefit.title}</h3>
                     <p className="text-sm text-gray-400">{benefit.description}</p>

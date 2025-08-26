@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { GlobeIcon, TargetIcon, PersonIcon, BarChartIcon } from '@radix-ui/react-icons'
 
 export default function CorePrinciples() {
   const [isVisible, setIsVisible] = useState(false)
@@ -27,22 +28,22 @@ export default function CorePrinciples() {
     {
       title: 'Deploy Early, Deploy Often',
       description: 'Your app should be live from commit #1',
-      icon: '🌐'
+      icon: GlobeIcon
     },
     {
       title: 'AI as Copilot, Not Autopilot', 
       description: 'You drive the vision, AI handles the implementation',
-      icon: '🎯'
+      icon: TargetIcon
     },
     {
       title: 'Real Users, Real Feedback',
       description: 'Build for actual people, not tutorial scenarios',
-      icon: '👥'
+      icon: PersonIcon
     },
     {
       title: 'Progress Over Perfection',
       description: 'Ship working software, iterate based on usage',
-      icon: '📈'
+      icon: BarChartIcon
     }
   ]
 
@@ -69,7 +70,9 @@ export default function CorePrinciples() {
                 className="flex items-start gap-4 p-6 border border-gray-800 rounded-lg hover:border-orange-500/50 transition-all"
                 style={{ animationDelay: `${0.3 + index * 0.1}s` }}
               >
-                <span className="text-3xl flex-shrink-0">{principle.icon}</span>
+                <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <principle.icon className="w-8 h-8 text-orange-400" />
+                </div>
                 <div>
                   <h3 className="font-semibold mb-2 text-lg">{principle.title}</h3>
                   <p className="text-gray-400">{principle.description}</p>
