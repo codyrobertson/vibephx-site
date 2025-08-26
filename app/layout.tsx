@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Geist } from 'next/font/google'
+import Navbar from '@/components/Navbar'
 import './globals.css'
 
 const geist = Geist({ subsets: ['latin'] })
@@ -152,7 +153,9 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${geist.className} bg-black text-white`}>{children}</body>
+      <body className={`${geist.className} bg-black text-white`}>
+        {children}
+      </body>
     </html>
   )
 }
