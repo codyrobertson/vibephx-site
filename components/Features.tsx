@@ -140,26 +140,6 @@ export default function Features() {
     <section ref={sectionRef} className="py-20 px-6 md:px-8 lg:px-12">
       <div className="max-w-6xl mx-auto">
         
-        {/* Social Proof Section - Moved to top */}
-        <div className={`mb-20 text-center ${isVisible ? 'animate-fade-in' : 'opacity-0'}`}>
-          <p className="text-gray-400 mb-6">Join Phoenix's AI-powered builder movement</p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <div className="flex -space-x-2">
-              {[...Array(8)].map((_, i) => (
-                <div
-                  key={i}
-                  className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 border-2 border-black flex items-center justify-center text-white text-xs font-bold"
-                >
-                  {String.fromCharCode(65 + i)}
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-orange-400 font-semibold">+142 builders</span>
-              <span className="text-gray-400">shipped real apps with AI</span>
-            </div>
-          </div>
-        </div>
         
         {/* Problem Section */}
         <div className={`mb-20 ${isVisible ? 'animate-slide-up' : 'opacity-0'}`}>

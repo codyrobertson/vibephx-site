@@ -16,14 +16,14 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-black">
       <Hero />
-      <CorePrinciples />
       <Features />
       <BuildTracks />
-      <Schedule />
+      <CorePrinciples />
       <Methodology />
+      <Schedule />
       <ValueProp />
-      <CTA />
       <Instructor />
+      <CTA />
       <FAQ />
       <Footer />
     </main>
