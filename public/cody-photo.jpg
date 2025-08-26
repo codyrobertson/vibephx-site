@@ -1,0 +1,4 @@
+# Photo placeholder - replace with actual image
+# To add your photo:
+# 1. Save your black and white photo as "cody-photo.jpg" in the public folder
+# 2. Or update the src in Instructor.tsx to point to your image URL
