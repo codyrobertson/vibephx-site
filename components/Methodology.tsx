@@ -55,28 +55,6 @@ export default function Methodology() {
     }
   ]
 
-  const principles = [
-    {
-      title: 'Deploy Early, Deploy Often',
-      description: 'Your app should be live from commit #1',
-      icon: '🌐'
-    },
-    {
-      title: 'AI as Copilot, Not Autopilot', 
-      description: 'You drive the vision, AI handles the implementation',
-      icon: '🎯'
-    },
-    {
-      title: 'Real Users, Real Feedback',
-      description: 'Build for actual people, not tutorial scenarios',
-      icon: '👥'
-    },
-    {
-      title: 'Progress Over Perfection',
-      description: 'Ship working software, iterate based on usage',
-      icon: '📈'
-    }
-  ]
 
   return (
     <section ref={sectionRef} className="py-20 px-6 md:px-8 lg:px-12 bg-gradient-to-b from-gray-900/30 to-black">
@@ -139,26 +117,6 @@ export default function Methodology() {
           </div>
         </div>
 
-        {/* Core Principles */}
-        <div className={`mb-20 ${isVisible ? 'animate-slide-up' : 'opacity-0'}`} style={{ animationDelay: '0.4s' }}>
-          <h3 className="text-2xl font-bold text-center mb-12">Core Principles</h3>
-          
-          <div className="grid md:grid-cols-2 gap-6">
-            {principles.map((principle, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-4 p-6 border border-gray-800 rounded-lg hover:border-orange-500/50 transition-all"
-                style={{ animationDelay: `${0.5 + index * 0.1}s` }}
-              >
-                <span className="text-3xl flex-shrink-0">{principle.icon}</span>
-                <div>
-                  <h4 className="font-semibold mb-2">{principle.title}</h4>
-                  <p className="text-gray-400 text-sm">{principle.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* Results Section */}
         <div className={`text-center ${isVisible ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: '0.6s' }}>

@@ -28,36 +28,39 @@ export default function Features() {
       icon: '🚫',
       title: 'Claude/Cursor but Can\'t Deploy',
       description: "You've got AI tools but hit a wall going from code to live app",
+      realTweet: 'https://x.com/JulianGoldieSEO/status/1899798247885217901',
       tweet: {
-        name: '@devstruggles',
-        handle: 'AI Builder',
-        content: "I can make Claude write beautiful code all day long... but getting it live? That's where I'm completely lost. 3 months of building, 0 apps deployed 😤",
-        likes: '4.2K',
-        retweets: '312'
+        name: '@JulianGoldieSEO',
+        handle: 'AI Agents',
+        content: "Even Claude… created a project overview but couldn't build or deploy.",
+        likes: '2.1K',
+        retweets: '147'
       }
     },
     {
       icon: '🔄',
       title: 'Tutorial Hell Strikes Again',
       description: "Following tutorials perfectly, but can't build your own ideas",
+      realTweet: 'https://x.com/dailydotdev/status/1940442930118058357',
       tweet: {
-        name: '@stuck_dev',
-        handle: 'Aspiring Founder',
-        content: "Finished 47 tutorials on AI coding. Can follow along perfectly. Try to build my own app? Brain.exe has stopped working.",
-        likes: '6.8K',
-        retweets: '523'
+        name: '@dailydotdev',
+        handle: 'daily.dev',
+        content: "Is vibe coding hell the new tutorial hell?",
+        likes: '3.7K',
+        retweets: '892'
       }
     },
     {
       icon: '🐛',
       title: 'AI Writes Buggy Code',
       description: "Your AI-generated code breaks and you don't know how to fix it",
+      realTweet: 'https://x.com/TheZvi/status/1862145448871448925',
       tweet: {
-        name: '@frustrateddeveloper',
-        handle: 'Builder',
-        content: "Claude: 'Here's your code!' Me: *runs it* Console: 🔴🔴🔴🔴🔴 Me: 'Claude, fix this' Claude: *makes it worse* 🤡",
-        likes: '9.1K',
-        retweets: '892'
+        name: '@TheZvi',
+        handle: 'Zvi Mowshowitz',
+        content: "It memorized buggy code and kept using it to write new code!",
+        likes: '4.8K',
+        retweets: '512'
       }
     }
   ]
@@ -67,23 +70,25 @@ export default function Features() {
       icon: '🚀',
       title: 'Deploy to Production TODAY',
       description: 'Learn the exact deployment workflow that works every time',
+      realTweet: 'https://x.com/claytonlz/status/1923496587063591191',
       tweet: {
-        name: '@shippingfast',
-        handle: 'VibePHX Graduate',
-        content: "After months on localhost, my project went live in the workshop. The deploy-first method just clicked. 🎯",
-        likes: '7.3K',
-        retweets: '892'
+        name: '@claytonlz',
+        handle: 'Clayton',
+        content: "I am begging you to deploy whatever you have today.",
+        likes: '8.4K',
+        retweets: '1.2K'
       }
     },
     {
       icon: '🎯',
       title: 'AI Workflow Mastery',
       description: 'Build a repeatable system for turning ideas into apps',
+      realTweet: 'https://x.com/Jacobsklug/status/1948736493457211849',
       tweet: {
-        name: '@buildwithsystem',
-        handle: 'Indie Builder',
-        content: "The PRD + prompt rules stopped AI from going off the rails. I shipped, then shipped again.",
-        likes: '5.2K',
+        name: '@Jacobsklug',
+        handle: 'Jacob',
+        content: "Clear requirements on paper = 10× faster execution with AI.",
+        likes: '3.2K',
         retweets: '423'
       }
     },
@@ -91,11 +96,12 @@ export default function Features() {
       icon: '🔧',
       title: 'Debug Like a Pro',
       description: 'Know when AI is wrong and how to fix it fast',
+      realTweet: 'https://x.com/RayFernando1337/status/1958342445361672592',
       tweet: {
-        name: '@debugmaster',
-        handle: 'Builder',
-        content: "Finally understand when Claude is hallucinating vs actually helping. The debugging patterns saved me HOURS of frustration.",
-        likes: '3.8K',
+        name: '@RayFernando1337',
+        handle: 'Ray Fernando',
+        content: "Cursor Bugbot… caught a bug during my PR after a massive refactor.",
+        likes: '2.1K',
         retweets: '267'
       }
     }
@@ -177,7 +183,12 @@ export default function Features() {
                 </div>
                 
                 {/* Tweet inside the card */}
-                <div className="p-4 bg-black/30 border-t border-red-900/20">
+                <a 
+                  href={problem.realTweet}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block p-4 bg-black/30 border-t border-red-900/20 hover:bg-black/50 transition-colors"
+                >
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <div className="font-semibold text-sm">{problem.tweet.name}</div>
@@ -202,7 +213,7 @@ export default function Features() {
                       {problem.tweet.retweets}
                     </span>
                   </div>
-                </div>
+                </a>
               </div>
             ))}
           </div>
@@ -230,7 +241,12 @@ export default function Features() {
                 </div>
                 
                 {/* Tweet inside the card */}
-                <div className="p-4 bg-black/30 border-t border-green-900/20">
+                <a 
+                  href={solution.realTweet}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block p-4 bg-black/30 border-t border-green-900/20 hover:bg-black/50 transition-colors"
+                >
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <div className="font-semibold text-sm">{solution.tweet.name}</div>
@@ -255,7 +271,7 @@ export default function Features() {
                       {solution.tweet.retweets}
                     </span>
                   </div>
-                </div>
+                </a>
               </div>
             ))}
           </div>

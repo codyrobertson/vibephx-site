@@ -5,30 +5,18 @@ export default function ValueProp() {
     <section id="valueprop" className="py-20 px-6 md:px-8 lg:px-12">
       <div className="max-w-6xl mx-auto">
         
-        {/* Social Proof Stats */}
+        {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Join the builders who stopped talking and started deploying
+            What you'll get for <span className="text-gradient">$99</span>
           </h2>
-          <div className="grid md:grid-cols-3 gap-8 max-w-3xl mx-auto mb-12">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-orange-400 mb-2">87%</div>
-              <div className="text-gray-400">Deploy successfully same day</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-orange-400 mb-2">156+</div>
-              <div className="text-gray-400">Live apps shipped</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-orange-400 mb-2">92%</div>
-              <div className="text-gray-400">Continue building after</div>
-            </div>
-          </div>
+          <p className="text-xl text-gray-300">
+            Everything you need to ship your first AI-built app
+          </p>
         </div>
 
         {/* What You Get */}
         <div className="bg-gray-950/50 border border-gray-800 rounded-lg p-8 mb-16">
-          <h3 className="text-2xl font-bold text-center mb-8">What you'll get for $99</h3>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="flex items-start gap-3">
               <span className="text-2xl">🔗</span>
