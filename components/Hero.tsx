@@ -82,7 +82,7 @@ export default function Hero() {
             <img 
               src="/cody-photo.png" 
               alt="Cody Robertson" 
-              className="w-12 h-12 rounded-full object-cover"
+              className="w-16 h-16 rounded-full object-cover flex-shrink-0"
             />
             <div className="text-left">
               <div className="flex items-center gap-2 mb-1">

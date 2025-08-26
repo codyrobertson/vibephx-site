@@ -109,7 +109,7 @@ export default function Instructor() {
             {/* Social links */}
             <div className="flex gap-4 pt-4">
               <a 
-                href="https://twitter.com/degendrape" 
+                href="https://twitter.com/mackody_" 
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-3 border border-gray-800 rounded-lg hover:border-orange-500 transition-colors"
