@@ -76,7 +76,7 @@ export async function GET() {
               marginBottom: '40px',
             }}
           >
-            Sept 13, 2025 • Phoenix, AZ • $99
+            Oct 4, 2025 • Phoenix, AZ • $99
           </div>
 
           {/* Simple badge */}

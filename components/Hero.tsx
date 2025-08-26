@@ -35,7 +35,7 @@ export default function Hero() {
       <div className="relative z-10 max-w-6xl mx-auto text-center">
         {/* Date Badge */}
         <div className={`inline-flex items-center px-4 py-2 mb-8 border border-orange-500/30 rounded-full bg-orange-500/10 ${mounted ? 'animate-fade-in' : 'opacity-0'}`}>
-          <span className="text-orange-400 font-semibold">Sept 13, 2025</span>
+          <span className="text-orange-400 font-semibold">Oct 4, 2025</span>
           <span className="mx-2 text-gray-500">•</span>
           <span className="text-gray-300">Phoenix, AZ</span>
           <span className="mx-2 text-gray-500">•</span>

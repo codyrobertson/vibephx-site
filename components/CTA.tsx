@@ -20,7 +20,7 @@ export default function CTA() {
           Ready to Ship for Real?
         </h2>
         <p className="text-xl text-gray-300 mb-8">
-          September 13th could be the day everything changes.
+          October 4th could be the day everything changes.
         </p>
 
         {/* Main CTA */}

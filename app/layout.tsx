@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     default: 'VibePHX - Ship a live AI-built app in one day | Phoenix',
     template: '%s | VibePHX'
   },
-  description: 'Sept 13, 2025 | Phoenix | $99 | One-day workshop for AI-curious builders. Turn your Claude/Cursor skills into deployed products. Working URL by 5pm guaranteed.',
+  description: 'Oct 4, 2025 | Phoenix | $99 | One-day workshop for AI-curious builders. Turn your Claude/Cursor skills into deployed products. Working URL by 5pm guaranteed.',
   keywords: [
     'AI development workshop',
     'Phoenix tech events',
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: 'https://www.vibecodephx.com',
     title: 'VibePHX - Ship a live AI-built app in one day',
-    description: 'Sept 13, 2025 | Phoenix | $99 | One-day workshop for AI-curious builders. Working URL by 5pm guaranteed.',
+    description: 'Oct 4, 2025 | Phoenix | $99 | One-day workshop for AI-curious builders. Working URL by 5pm guaranteed.',
     siteName: 'VibePHX',
     images: [{
       url: '/api/og',
@@ -76,14 +76,14 @@ export const metadata: Metadata = {
     site: '@mackody_',
     creator: '@mackody_',
     title: 'VibePHX - Ship a live AI-built app in one day',
-    description: 'Sept 13, 2025 | Phoenix | $99 | One-day workshop for AI-curious builders. Working URL by 5pm guaranteed.',
+    description: 'Oct 4, 2025 | Phoenix | $99 | One-day workshop for AI-curious builders. Working URL by 5pm guaranteed.',
     images: [{
       url: '/api/og',
       alt: 'VibePHX - One day AI coding workshop in Phoenix'
     }],
   },
   other: {
-    'event-date': '2025-09-13',
+    'event-date': '2025-10-04',
     'event-location': 'Phoenix, AZ',
     'event-price': '$99',
   },
@@ -115,8 +115,8 @@ export default function RootLayout({
               "@type": "Event",
               "name": "VibePHX - Ship a live AI-built app in one day",
               "description": "One-day workshop for AI-curious builders who use Claude/Cursor but struggle with deployment. Learn to ship live MVPs with AI tools and cost controls.",
-              "startDate": "2025-09-13T09:00:00-07:00",
-              "endDate": "2025-09-13T17:00:00-07:00",
+              "startDate": "2025-10-04T09:00:00-07:00",
+              "endDate": "2025-10-04T17:00:00-07:00",
               "eventStatus": "https://schema.org/EventScheduled",
               "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
               "location": {
