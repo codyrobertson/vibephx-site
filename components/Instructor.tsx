@@ -71,6 +71,47 @@ export default function Instructor() {
               My mission: help you break through from localhost to live product.
             </p>
 
+            {/* Media Features */}
+            <div className="py-6 border-t border-b border-gray-800">
+              <div className="flex items-center gap-6 flex-wrap">
+                <span className="text-sm text-gray-400">Featured in:</span>
+                <div className="flex items-center gap-6 flex-wrap">
+                  <img 
+                    src="https://img.logo.dev/venturebeat.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=80&format=png" 
+                    alt="VentureBeat"
+                    className="h-6 opacity-60 hover:opacity-100 transition-opacity"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+                  <img 
+                    src="https://img.logo.dev/techcrunch.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=80&format=png" 
+                    alt="TechCrunch"
+                    className="h-6 opacity-60 hover:opacity-100 transition-opacity"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+                  <img 
+                    src="https://img.logo.dev/news.ycombinator.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=80&format=png" 
+                    alt="Hacker News"
+                    className="h-6 opacity-60 hover:opacity-100 transition-opacity"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+                  <img 
+                    src="https://img.logo.dev/techstars.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=80&format=png" 
+                    alt="Techstars"
+                    className="h-6 opacity-60 hover:opacity-100 transition-opacity"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-orange-400">Built with AI:</h3>
               <div className="grid gap-4">
