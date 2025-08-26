@@ -1,144 +1,51 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 
 export default function BuildTracks() {
   const [selectedTrack, setSelectedTrack] = useState(0)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const [filter, setFilter] = useState('all')
 
-  const tracks = [
+  const allTracks = [
     {
-      title: 'Case-Study Scraper → Publisher',
-      hook: 'Turn any public webpage into a branded case study in minutes.',
-      description: 'Paste URL → extract key points → auto-summarize → export PDF + shareable URL.',
-      icon: '📊',
-      persona: 'Content marketers, agencies, growth teams',
+      title: 'AI Lead Scorer & Responder',
+      hook: 'Stop drowning—AI scores and routes inbound leads.',
+      description: 'Upload CSV → LLM tags + scores → "Respond" button drafts reply.',
+      icon: '🎯',
+      persona: 'SMBs, freelancers, agencies',
+      category: 'productivity',
       tech: [
-        { name: 'v0.dev', logo: 'v0.dev' },
         { name: 'Next.js', logo: 'nextjs.org' },
         { name: 'Vercel', logo: 'vercel.com' },
         { name: 'Claude API', logo: 'anthropic.com' },
         { name: 'Supabase', logo: 'supabase.com' }
       ],
       difficulty: 'Beginner-friendly',
-      shipsToday: ['Live scraper URL', 'PDF export', 'Shareable case studies', 'Mobile responsive']
+      shipsToday: ['Lead scoring dashboard', 'AI draft replies', 'CSV import', 'Priority routing']
     },
     {
-      title: 'CRM-Connected Booking',
+      title: 'CRM-Connected Booking System',
       hook: 'One booking link that writes to your CRM.',
       description: 'Public booking page → confirm email → write contact + meeting to CRM.',
       icon: '📅',
       persona: 'Consultants, local services, solo agencies',
+      category: 'business',
       tech: [
         { name: 'Next.js', logo: 'nextjs.org' },
         { name: 'Vercel', logo: 'vercel.com' },
         { name: 'HubSpot API', logo: 'hubspot.com' },
-        { name: 'Resend', logo: 'resend.com' },
         { name: 'Supabase', logo: 'supabase.com' }
       ],
       difficulty: 'Intermediate',
       shipsToday: ['Booking page live', 'CRM integration', 'Email confirmations', 'Calendar sync']
     },
     {
-      title: 'Lead Triage + Scoring Inbox',
-      hook: 'Stop drowning—AI scores and routes inbound leads.',
-      description: 'Upload CSV → LLM tags + scores → "Respond" button drafts reply.',
-      icon: '🎯',
-      persona: 'SMBs, freelancers, agencies',
-      tech: [
-        { name: 'Next.js', logo: 'nextjs.org' },
-        { name: 'Vercel', logo: 'vercel.com' },
-        { name: 'Claude API', logo: 'anthropic.com' },
-        { name: 'Supabase', logo: 'supabase.com' },
-        { name: 'Papa Parse', logo: 'papaparse.com' }
-      ],
-      difficulty: 'Intermediate',
-      shipsToday: ['Lead scoring dashboard', 'AI draft replies', 'CSV import', 'Priority routing']
-    },
-    {
-      title: 'Paste Profile → Personalize Email',
-      hook: 'Drop LinkedIn text → get clean, on-brand outreach email.',
-      description: 'Text box for target info + your value props → 3 email variants + CTAs.',
-      icon: '✉️',
-      persona: 'Biz dev, creators, sales teams',
-      tech: [
-        { name: 'Next.js', logo: 'nextjs.org' },
-        { name: 'Vercel', logo: 'vercel.com' },
-        { name: 'Claude API', logo: 'anthropic.com' },
-        { name: 'Handlebars', logo: 'handlebarsjs.com' }
-      ],
-      difficulty: 'Beginner-friendly',
-      shipsToday: ['Email generator', '3 tone variants', 'Copy-paste ready', 'Template library']
-    },
-    {
-      title: 'Review Reply Studio',
-      hook: 'AI drafts perfect replies for Google/Yelp reviews.',
-      description: 'Paste reviews → suggested replies → approve → email batch.',
-      icon: '⭐',
-      persona: 'Restaurants, spas, home services',
-      tech: [
-        { name: 'Next.js', logo: 'nextjs.org' },
-        { name: 'Vercel', logo: 'vercel.com' },
-        { name: 'Claude API', logo: 'anthropic.com' },
-        { name: 'Resend', logo: 'resend.com' },
-        { name: 'Supabase', logo: 'supabase.com' }
-      ],
-      difficulty: 'Beginner-friendly',
-      shipsToday: ['Bulk reply generator', 'Tone customization', 'Email batching', 'Brand voice']
-    },
-    {
-      title: 'Data → Deck Report Builder',
-      hook: 'Turn a CSV into a polished 5-slide deck.',
-      description: 'Upload CSV → select template → auto charts + takeaways → export PDF.',
-      icon: '📈',
-      persona: 'Analysts, founders, consultants',
-      tech: [
-        { name: 'Next.js', logo: 'nextjs.org' },
-        { name: 'Vercel', logo: 'vercel.com' },
-        { name: 'Chart.js', logo: 'chartjs.org' },
-        { name: 'Claude API', logo: 'anthropic.com' },
-        { name: 'jsPDF', logo: 'github.com' }
-      ],
-      difficulty: 'Advanced',
-      shipsToday: ['Auto chart generation', 'PDF export', 'Template themes', 'Data insights']
-    },
-    {
-      title: 'Creator Collab Tracker',
-      hook: 'Track pitches, collabs, deliverables—without Salesforce.',
-      description: 'Deals kanban → contact notes → status updates → link tracking.',
-      icon: '🤝',
-      persona: 'Creators, micro-agencies',
-      tech: [
-        { name: 'Next.js', logo: 'nextjs.org' },
-        { name: 'Vercel', logo: 'vercel.com' },
-        { name: 'Supabase', logo: 'supabase.com' },
-        { name: 'Short.io', logo: 'short.io' }
-      ],
-      difficulty: 'Intermediate',
-      shipsToday: ['Kanban board', 'Contact CRM', 'Link tracking', 'Click analytics']
-    },
-    {
-      title: 'FAQ to Chat Mini-Bot',
-      hook: 'Drop your doc; get an embeddable Q&A widget.',
-      description: 'Upload text/FAQ → embed script → answers cite chunks.',
-      icon: '💬',
-      persona: 'Course sellers, small SaaS, local biz',
-      tech: [
-        { name: 'Next.js', logo: 'nextjs.org' },
-        { name: 'Vercel', logo: 'vercel.com' },
-        { name: 'Supabase', logo: 'supabase.com' },
-        { name: 'Claude API', logo: 'anthropic.com' },
-        { name: 'React', logo: 'reactjs.org' }
-      ],
-      difficulty: 'Advanced',
-      shipsToday: ['Embeddable widget', 'Document citations', 'Q&A interface', 'Analytics']
-    },
-    {
-      title: 'Waitlist + Viral Referral',
+      title: 'Viral Waitlist Builder',
       hook: 'Spin up a waitlist with unique codes and share rewards.',
       description: 'Email capture → unique referral link → counter + leaderboard.',
       icon: '🚀',
       persona: 'App launches, restaurants, events',
+      category: 'marketing',
       tech: [
         { name: 'Next.js', logo: 'nextjs.org' },
         { name: 'Vercel', logo: 'vercel.com' },
@@ -149,63 +56,29 @@ export default function BuildTracks() {
       shipsToday: ['Referral system', 'Leaderboard', 'Email capture', 'Real-time counters']
     },
     {
-      title: 'Ops Auto-Docs',
-      hook: 'Turn messy SOP bullets into clean, versioned runbooks.',
-      description: 'Paste SOP notes → sectioned doc → share link + PDF export.',
-      icon: '📋',
-      persona: 'Agencies, ops teams, restaurants',
-      tech: [
-        { name: 'Next.js', logo: 'nextjs.org' },
-        { name: 'Vercel', logo: 'vercel.com' },
-        { name: 'Claude API', logo: 'anthropic.com' },
-        { name: 'jsPDF', logo: 'github.com' },
-        { name: 'Supabase', logo: 'supabase.com' }
-      ],
-      difficulty: 'Intermediate',
-      shipsToday: ['Structured runbooks', 'PDF export', 'Shareable links', 'Version control']
-    },
-    {
-      title: 'Small Biz Quote Builder',
+      title: 'Smart Quote Generator',
       hook: 'Instant branded quotes from a form; email to customer.',
       description: 'Choose services → auto price calc → generate PDF → email/send link.',
       icon: '💰',
-      persona: 'Contractors, freelancers',
+      persona: 'Contractors, freelancers, service providers',
+      category: 'business',
       tech: [
         { name: 'Next.js', logo: 'nextjs.org' },
         { name: 'Vercel', logo: 'vercel.com' },
         { name: 'jsPDF', logo: 'github.com' },
-        { name: 'Resend', logo: 'resend.com' },
-        { name: 'Supabase', logo: 'supabase.com' }
+        { name: 'Resend', logo: 'resend.com' }
       ],
       difficulty: 'Beginner-friendly',
       shipsToday: ['Quote generator', 'PDF quotes', 'Email delivery', 'Pricing calculator']
     }
   ]
 
-  // Duplicate tracks for infinite scroll effect
-  const infiniteTracks = [...tracks, ...tracks, ...tracks]
-
-  // Auto-scroll effect
-  useEffect(() => {
-    const scrollContainer = scrollRef.current
-    if (!scrollContainer) return
-
-    let scrollAmount = 0
-    const trackWidth = 320 // Approximate width of each track card
-    const gap = 24 // Gap between cards
-    const cardTotalWidth = trackWidth + gap
-    
-    const scroll = () => {
-      scrollAmount += 0.5
-      if (scrollAmount >= cardTotalWidth * tracks.length) {
-        scrollAmount = 0
-      }
-      scrollContainer.scrollLeft = scrollAmount
-    }
-
-    const interval = setInterval(scroll, 50)
-    return () => clearInterval(interval)
-  }, [tracks.length])
+  // Filter logic
+  const filteredTracks = filter === 'all' 
+    ? allTracks 
+    : allTracks.filter(track => track.category === filter)
+  
+  const tracks = filteredTracks
 
   return (
     <section id="projects" className="py-20 px-6 md:px-8 lg:px-12">
@@ -214,36 +87,54 @@ export default function BuildTracks() {
         {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            What you'll build <span className="text-gradient">(choose a track)</span>
+            What you'll build <span className="text-gradient">(4 proven tracks)</span>
           </h2>
-          <p className="text-xl text-gray-300 mb-2">
+          <p className="text-xl text-gray-300 mb-6">
             Pick a proven template or bring your own idea—same workflow, same outcome.
           </p>
+          
+          {/* Filter Buttons */}
+          <div className="flex flex-wrap justify-center gap-3 mb-6">
+            {[
+              { key: 'all', label: 'All Tracks', count: allTracks.length },
+              { key: 'productivity', label: 'AI & Productivity', count: allTracks.filter(t => t.category === 'productivity').length },
+              { key: 'business', label: 'Business Tools', count: allTracks.filter(t => t.category === 'business').length },
+              { key: 'marketing', label: 'Marketing', count: allTracks.filter(t => t.category === 'marketing').length }
+            ].map(filterOption => (
+              <button
+                key={filterOption.key}
+                onClick={() => {
+                  setFilter(filterOption.key)
+                  setSelectedTrack(0)
+                }}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  filter === filterOption.key
+                    ? 'bg-orange-500 text-black'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                {filterOption.label} ({filterOption.count})
+              </button>
+            ))}
+          </div>
+          
           <div className="text-sm text-gray-500">
             Each project includes: Working MVP • Live URL • Source code • Deployment pipeline
           </div>
         </div>
 
-        {/* Infinite Scrolling Carousel */}
+        {/* Track Grid */}
         <div className="mb-12">
-          <div 
-            ref={scrollRef}
-            className="flex gap-6 overflow-x-hidden pb-4"
-            style={{
-              scrollBehavior: 'smooth',
-              maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)',
-              WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)'
-            }}
-          >
-            {infiniteTracks.map((track, index) => (
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {tracks.map((track, index) => (
               <div
-                key={`${track.title}-${index}`}
-                className={`flex-shrink-0 w-80 p-6 border rounded-lg transition-all cursor-pointer ${
-                  selectedTrack === (index % tracks.length)
+                key={track.title}
+                className={`p-6 border rounded-lg transition-all cursor-pointer ${
+                  selectedTrack === index
                     ? 'border-orange-500 bg-orange-950/20' 
                     : 'border-gray-800 hover:border-orange-500/50'
                 }`}
-                onClick={() => setSelectedTrack(index % tracks.length)}
+                onClick={() => setSelectedTrack(index)}
               >
                 <div className="flex items-start justify-between mb-4">
                   <span className="text-4xl">{track.icon}</span>
@@ -261,7 +152,7 @@ export default function BuildTracks() {
                 <p className="text-gray-500 text-xs mb-3">{track.persona}</p>
                 
                 <div className="flex flex-wrap gap-2">
-                  {track.tech.slice(0, 3).map((tech, techIndex) => (
+                  {track.tech.slice(0, 2).map((tech, techIndex) => (
                     <div key={techIndex} className="flex items-center gap-1">
                       <img 
                         src={`https://img.logo.dev/${tech.logo}?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=16`}
@@ -274,8 +165,8 @@ export default function BuildTracks() {
                       <span className="text-xs text-gray-400">{tech.name}</span>
                     </div>
                   ))}
-                  {track.tech.length > 3 && (
-                    <span className="text-xs text-gray-500">+{track.tech.length - 3} more</span>
+                  {track.tech.length > 2 && (
+                    <span className="text-xs text-gray-500">+{track.tech.length - 2} more</span>
                   )}
                 </div>
               </div>
