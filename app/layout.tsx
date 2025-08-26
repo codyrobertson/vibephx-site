@@ -5,7 +5,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://vibephx.com'),
+  metadataBase: new URL('https://www.vibecodephx.com'),
   title: {
     default: 'VibePHX - Ship a live AI-built app in one day | Phoenix',
     template: '%s | VibePHX'
@@ -50,14 +50,14 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: 'https://vibephx.com',
+    canonical: 'https://www.vibecodephx.com',
   },
   category: 'Technology',
   classification: 'Educational Event',
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://vibephx.com',
+    url: 'https://www.vibecodephx.com',
     title: 'VibePHX - Ship a live AI-built app in one day',
     description: 'Sept 13, 2025 | Phoenix | $99 | One-day workshop for AI-curious builders. Working URL by 5pm guaranteed.',
     siteName: 'VibePHX',
@@ -129,7 +129,7 @@ export default function RootLayout({
                   "addressCountry": "US"
                 }
               },
-              "image": "https://vibephx.com/api/og",
+              "image": "https://www.vibecodephx.com/api/og",
               "organizer": {
                 "@type": "Person",
                 "name": "Cody Robertson",
@@ -137,7 +137,7 @@ export default function RootLayout({
               },
               "offers": {
                 "@type": "Offer",
-                "url": "https://vibephx.com",
+                "url": "https://www.vibecodephx.com",
                 "price": "99",
                 "priceCurrency": "USD",
                 "availability": "https://schema.org/InStock",
