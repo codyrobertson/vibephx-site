@@ -103,8 +103,10 @@ export default function FAQ() {
               hello@vibephx.com
             </a>
             <a
-              href="#"
+              href="https://discord.gg/Vmk3eFyj"
               className="px-6 py-2 border border-gray-700 rounded-lg hover:border-orange-500 transition-colors"
+              target="_blank"
+              rel="noopener noreferrer"
             >
               Join Discord
             </a>

@@ -34,7 +34,7 @@ export default function WhatYouBuild() {
     'Spreadsheet export',
     'Calendar invites',
     'Short URL',
-    'Slack/Discord post',
+    'Slack/Discord community post',
     'Public dashboard',
     'Chart/PNG export',
   ]
