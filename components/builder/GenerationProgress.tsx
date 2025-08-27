@@ -205,10 +205,18 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
     setStuckSteps(new Set())
     setCanForceComplete(false)
 
-    // Generate documents sequentially for better UX
+    // Generate documents sequentially with casual queue
+    console.log('🎬 Starting casual document generation queue...')
     for (let i = 0; i < GENERATION_STEPS.length; i++) {
       const step = GENERATION_STEPS[i]
       setCurrentStep(i)
+      console.log(`📄 Queue position ${i + 1}/${GENERATION_STEPS.length}: ${step.name}`)
+      
+      // Add small delay between requests to be nice to the API
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 2000))
+      }
+      
       await generateDocument(step.id, i)
     }
     
@@ -223,9 +231,9 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
     const abortController = new AbortController()
     activeConnections.current.set(documentType, abortController)
 
-    // Set up timeout to detect stuck generation (45 seconds)
+    // Set up timeout to detect stuck generation (60 seconds - generous for API calls)
     const timeoutId = setTimeout(() => {
-      console.warn(`Document ${documentType} seems stuck, marking as stuck`)
+      console.warn(`⏰ Document ${documentType} taking too long (60s), marking as stuck`)
       setStuckSteps(prev => new Set([...prev, documentType]))
       setStreamingContent(prev => ({
         ...prev,
@@ -236,7 +244,7 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
         }
       }))
       abortController.abort()
-    }, 45000)
+    }, 60000)
     
     stepTimers.current.set(documentType, timeoutId)
 
@@ -281,6 +289,7 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
           if (buffer.trim()) {
             processLine(buffer.trim())
           }
+          console.log(`✅ Stream completed for ${documentType}`)
           break
         }
 
@@ -526,6 +535,9 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
         </div>
         <p className="text-sm text-gray-500">
           {completedSteps.size} of {GENERATION_STEPS.length} documents generated ({Math.round(granularProgress())}%)
+          {currentStep < GENERATION_STEPS.length && (
+            <> • Queue: {GENERATION_STEPS[currentStep]?.name}</>
+          )}
         </p>
       </div>
 
