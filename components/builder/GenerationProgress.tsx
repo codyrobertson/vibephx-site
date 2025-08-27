@@ -3,7 +3,103 @@
 import { useState, useEffect, useRef } from 'react'
 import { CheckIcon, ReloadIcon, FileTextIcon, CodeIcon, ImageIcon, TableIcon, ListBulletIcon, SpeakerLoudIcon, MagicWandIcon, GearIcon, ChevronDownIcon, ChevronUpIcon } from '@radix-ui/react-icons'
 import { Card } from '@/components/ui/Card'
+import { highlightCode } from '@/lib/shiki-highlighter'
 import type { ProjectData } from './BuilderWizard'
+
+// Streaming content display with auto-scroll and syntax highlighting
+function StreamingContentDisplay({ content, isGenerating, documentType }: {
+  content: string
+  isGenerating: boolean
+  documentType: string
+}) {
+  const [highlightedHTML, setHighlightedHTML] = useState<string>('')
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [lastLength, setLastLength] = useState(0)
+
+  // Auto-scroll to bottom when content updates
+  useEffect(() => {
+    if (contentRef.current && content.length > lastLength) {
+      contentRef.current.scrollTop = contentRef.current.scrollHeight
+      setLastLength(content.length)
+    }
+  }, [content, lastLength])
+
+  // Highlight code blocks in markdown content
+  useEffect(() => {
+    if (!content) return
+
+    const highlightCodeBlocks = async () => {
+      let processedContent = content
+
+      // Find code blocks and highlight them
+      const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g
+      const promises: Promise<void>[] = []
+      const replacements: { original: string; replacement: string }[] = []
+
+      let match
+      while ((match = codeBlockRegex.exec(content)) !== null) {
+        const [fullMatch, lang = 'text', code] = match
+        
+        promises.push(
+          highlightCode(code.trim(), lang).then(highlighted => {
+            replacements.push({
+              original: fullMatch,
+              replacement: highlighted
+            })
+          }).catch(() => {
+            // Fallback to plain pre tag
+            replacements.push({
+              original: fullMatch,
+              replacement: `<pre class="bg-gray-800 p-3 rounded text-gray-300 overflow-x-auto"><code>${code.trim()}</code></pre>`
+            })
+          })
+        )
+      }
+
+      await Promise.all(promises)
+
+      // Apply all replacements
+      for (const { original, replacement } of replacements) {
+        processedContent = processedContent.replace(original, replacement)
+      }
+
+      // Convert markdown-style formatting
+      processedContent = processedContent
+        .replace(/^# (.*$)/gim, '<h1 class="text-xl font-bold text-white mb-3">$1</h1>')
+        .replace(/^## (.*$)/gim, '<h2 class="text-lg font-semibold text-white mb-2">$1</h2>')
+        .replace(/^### (.*$)/gim, '<h3 class="text-base font-medium text-white mb-2">$1</h3>')
+        .replace(/^\* (.*$)/gim, '<li class="ml-4 mb-1">• $1</li>')
+        .replace(/^\- (.*$)/gim, '<li class="ml-4 mb-1">• $1</li>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-white">$1</strong>')
+        .replace(/`([^`]+)`/g, '<code class="bg-gray-800 px-1 py-0.5 rounded text-orange-300 font-mono text-xs">$1</code>')
+        .replace(/\n\n/g, '</p><p class="mb-3">')
+        .replace(/\n/g, '<br/>')
+
+      processedContent = `<p class="mb-3">${processedContent}</p>`
+
+      setHighlightedHTML(processedContent)
+    }
+
+    highlightCodeBlocks()
+  }, [content])
+
+  return (
+    <div 
+      ref={contentRef}
+      className="whitespace-pre-wrap break-words font-mono text-sm"
+      style={{ maxHeight: '384px', overflowY: 'auto' }}
+    >
+      {highlightedHTML ? (
+        <div dangerouslySetInnerHTML={{ __html: highlightedHTML }} />
+      ) : (
+        <div>{content}</div>
+      )}
+      {isGenerating && (
+        <span className="inline-block w-2 h-4 bg-orange-500 animate-pulse ml-1" />
+      )}
+    </div>
+  )
+}
 
 const GENERATION_STEPS = [
   {
@@ -70,6 +166,7 @@ interface StreamingContent {
     isGenerating: boolean
     isComplete: boolean
     isFromCache: boolean
+    highlightedHTML?: string
   }
 }
 
@@ -159,9 +256,12 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
         buffer = lines.pop() || ''
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
+          if (line.trim().startsWith('data: ')) {
+            const jsonString = line.slice(6).trim()
+            if (!jsonString) continue
+            
             try {
-              const data = JSON.parse(line.slice(6))
+              const data = JSON.parse(jsonString)
               
               switch (data.type) {
                 case 'cache':
@@ -277,6 +377,24 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
 
   const totalEstimatedTime = GENERATION_STEPS.reduce((sum, step) => sum + step.estimatedTime, 0)
   const progress = completedSteps.size / GENERATION_STEPS.length * 100
+  
+  // Calculate more granular progress including current step
+  const granularProgress = () => {
+    const baseProgress = (completedSteps.size / GENERATION_STEPS.length) * 100
+    
+    // Add partial progress for current generating step
+    if (currentStep < GENERATION_STEPS.length) {
+      const currentContent = streamingContent[GENERATION_STEPS[currentStep]?.id]
+      if (currentContent?.content) {
+        // Estimate progress based on content length (assume ~2000 chars per document)
+        const estimatedLength = 2000
+        const currentProgress = Math.min(currentContent.content.length / estimatedLength, 1) * (100 / GENERATION_STEPS.length)
+        return Math.min(baseProgress + currentProgress, 100)
+      }
+    }
+    
+    return baseProgress
+  }
 
   return (
     <div className="space-y-8">
@@ -295,17 +413,17 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
         {/* Progress Bar */}
         <div className="w-full bg-gray-800 rounded-full h-2 mb-4">
           <div 
-            className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full transition-all duration-1000"
-            style={{ width: `${progress}%` }}
+            className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${granularProgress()}%` }}
           />
         </div>
         <p className="text-sm text-gray-500">
-          {completedSteps.size} of {GENERATION_STEPS.length} documents generated ({Math.round(progress)}%)
+          {completedSteps.size} of {GENERATION_STEPS.length} documents generated ({Math.round(granularProgress())}%)
         </p>
       </div>
 
-      {/* Streaming Generation Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Current Streaming Document */}
+      <div className="max-w-4xl mx-auto">
         {GENERATION_STEPS.map((step, index) => {
           const IconComponent = step.icon
           const stepContent = streamingContent[step.id]
@@ -315,6 +433,9 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
           const isPending = index > currentStep
           const isExpanded = expandedCards.has(step.id)
           const hasContent = stepContent?.content && stepContent.content.length > 0
+
+          // Only show current step, completed steps briefly, or if expanded
+          if (!isCurrent && !isCompleted && !isExpanded) return null
 
           return (
             <Card
@@ -396,15 +517,14 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
                 <div className="space-y-3">
                   <div className={`
                     overflow-hidden transition-all duration-300
-                    ${isExpanded ? 'max-h-96' : 'max-h-24'}
+                    ${isCurrent ? 'max-h-96' : isExpanded ? 'max-h-96' : 'max-h-24'}
                   `}>
-                    <div className="text-sm text-gray-300 font-mono leading-relaxed p-4 bg-gray-900/50 rounded-lg overflow-y-auto">
-                      <div className="whitespace-pre-wrap break-words">
-                        {stepContent.content}
-                        {isGenerating && (
-                          <span className="inline-block w-2 h-4 bg-orange-500 animate-pulse ml-1" />
-                        )}
-                      </div>
+                    <div className="text-sm text-gray-300 leading-relaxed p-4 bg-gray-900/50 rounded-lg overflow-y-auto max-h-96">
+                      <StreamingContentDisplay 
+                        content={stepContent.content}
+                        isGenerating={isGenerating}
+                        documentType={step.id}
+                      />
                     </div>
                   </div>
 
@@ -430,6 +550,35 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
             </Card>
           )
         })}
+        
+        {/* Completed Documents Summary */}
+        {completedSteps.size > 0 && (
+          <div className="mt-8 p-6 bg-gray-900/30 rounded-lg border border-gray-800">
+            <h3 className="text-lg font-semibold text-white mb-4">✅ Completed Documents ({completedSteps.size})</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {GENERATION_STEPS.filter((_, idx) => idx < currentStep || completedSteps.has(GENERATION_STEPS[idx].id)).map(step => {
+                const isCompleted = completedSteps.has(step.id)
+                const IconComponent = step.icon
+                return (
+                  <button
+                    key={`completed-${step.id}`}
+                    onClick={() => toggleCardExpanded(step.id)}
+                    className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors text-left"
+                  >
+                    <div className={`w-6 h-6 rounded flex items-center justify-center ${isCompleted ? 'bg-green-500' : 'bg-gray-700'}`}>
+                      {isCompleted ? (
+                        <CheckIcon className="w-3 h-3 text-black" />
+                      ) : (
+                        <IconComponent className="w-3 h-3 text-gray-400" />
+                      )}
+                    </div>
+                    <span className="text-sm text-gray-300 truncate">{step.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Error State */}
