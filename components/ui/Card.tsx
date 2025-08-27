@@ -489,7 +489,7 @@ export interface CardProps extends VariantProps<typeof cardVariants> {
   className?: string
   
   // Background options
-  codeSnippet?: string | CodeSnippet
+  codeSnippet?: string
   backgroundImage?: string
   gradientFrom?: string
   gradientTo?: string
@@ -553,9 +553,12 @@ export function Card({
       if (typeof node === 'number') return node.toString()
       if (React.isValidElement(node)) {
         let text = ''
-        React.Children.forEach(node.props.children, (child) => {
-          text += extractAllText(child)
-        })
+        const props = node.props as any
+        if (props && props.children) {
+          React.Children.forEach(props.children, (child) => {
+            text += extractAllText(child)
+          })
+        }
         return text
       }
       if (Array.isArray(node)) {

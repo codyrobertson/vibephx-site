@@ -557,7 +557,7 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
                   'border-gray-800 hover:border-gray-700'
                 }
               `}
-              padding="xl"
+              size="xl"
             >
               {/* Card Header */}
               <div className="flex items-center gap-4 mb-6">

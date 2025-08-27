@@ -33,37 +33,53 @@ const FALLBACK_TECH_STACKS = {
       id: 'nextjs', 
       name: 'Next.js', 
       description: 'React framework with SSR', 
-      difficulty: 'Intermediate', 
+      difficulty: 'Intermediate' as const, 
       popular: true,
       logo: 'https://img.logo.dev/nextjs.org?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
-      fallbackIcon: ComponentInstanceIcon
+      fallbackIcon: ComponentInstanceIcon,
+      templateRelevance: {},
+      tags: ['react', 'ssr', 'fullstack'],
+      timeComplexity: 8,
+      learnCurve: 2
     },
     { 
       id: 'react', 
       name: 'React + Vite', 
       description: 'Modern React with fast bundling', 
-      difficulty: 'Beginner', 
+      difficulty: 'Beginner' as const, 
       popular: true,
       logo: 'https://img.logo.dev/react.dev?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
-      fallbackIcon: ComponentInstanceIcon
+      fallbackIcon: ComponentInstanceIcon,
+      templateRelevance: {},
+      tags: ['react', 'spa'],
+      timeComplexity: 5,
+      learnCurve: 1
     },
     { 
       id: 'vue', 
       name: 'Vue.js', 
       description: 'Progressive JavaScript framework', 
-      difficulty: 'Beginner', 
+      difficulty: 'Beginner' as const, 
       popular: false,
       logo: 'https://img.logo.dev/vuejs.org?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
-      fallbackIcon: ComponentInstanceIcon
+      fallbackIcon: ComponentInstanceIcon,
+      templateRelevance: {},
+      tags: ['vue', 'spa'],
+      timeComplexity: 6,
+      learnCurve: 1
     },
     { 
       id: 'vanilla', 
       name: 'Vanilla JS', 
       description: 'Pure JavaScript, no frameworks', 
-      difficulty: 'Beginner', 
+      difficulty: 'Beginner' as const, 
       popular: false,
       logo: 'https://img.logo.dev/javascript.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
-      fallbackIcon: ComponentInstanceIcon
+      fallbackIcon: ComponentInstanceIcon,
+      templateRelevance: {},
+      tags: ['vanilla', 'javascript'],
+      timeComplexity: 3,
+      learnCurve: 1
     }
   ],
   backend: [
@@ -71,37 +87,53 @@ const FALLBACK_TECH_STACKS = {
       id: 'nodejs', 
       name: 'Node.js', 
       description: 'JavaScript runtime for servers', 
-      difficulty: 'Beginner', 
+      difficulty: 'Beginner' as const, 
       popular: true,
       logo: 'https://img.logo.dev/nodejs.org?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
-      fallbackIcon: LightningBoltIcon
+      fallbackIcon: LightningBoltIcon,
+      templateRelevance: {},
+      tags: ['nodejs', 'javascript'],
+      timeComplexity: 5,
+      learnCurve: 1
     },
     { 
       id: 'nextjs-api', 
       name: 'Next.js API Routes', 
       description: 'Built-in API with Next.js', 
-      difficulty: 'Beginner', 
+      difficulty: 'Beginner' as const, 
       popular: true,
       logo: 'https://img.logo.dev/nextjs.org?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
-      fallbackIcon: LightningBoltIcon
+      fallbackIcon: LightningBoltIcon,
+      templateRelevance: {},
+      tags: ['nextjs', 'api'],
+      timeComplexity: 3,
+      learnCurve: 1
     },
     { 
       id: 'python', 
       name: 'Python (FastAPI)', 
       description: 'Modern Python web framework', 
-      difficulty: 'Intermediate', 
+      difficulty: 'Intermediate' as const, 
       popular: false,
       logo: 'https://img.logo.dev/python.org?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
-      fallbackIcon: LightningBoltIcon
+      fallbackIcon: LightningBoltIcon,
+      templateRelevance: {},
+      tags: ['python', 'fastapi'],
+      timeComplexity: 8,
+      learnCurve: 2
     },
     { 
       id: 'serverless', 
       name: 'Serverless Functions', 
       description: 'Simple cloud functions (Vercel/Netlify)', 
-      difficulty: 'Beginner', 
+      difficulty: 'Beginner' as const, 
       popular: true,
       logo: 'https://img.logo.dev/vercel.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
-      fallbackIcon: LightningBoltIcon
+      fallbackIcon: LightningBoltIcon,
+      templateRelevance: {},
+      tags: ['serverless', 'functions'],
+      timeComplexity: 2,
+      learnCurve: 1
     }
   ],
   database: [
@@ -109,37 +141,53 @@ const FALLBACK_TECH_STACKS = {
       id: 'supabase', 
       name: 'Supabase', 
       description: 'PostgreSQL with instant APIs', 
-      difficulty: 'Beginner', 
+      difficulty: 'Beginner' as const, 
       popular: true,
       logo: 'https://img.logo.dev/supabase.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
-      fallbackIcon: TableIcon
+      fallbackIcon: TableIcon,
+      templateRelevance: {},
+      tags: ['postgresql', 'realtime'],
+      timeComplexity: 4,
+      learnCurve: 1
     },
     { 
       id: 'firebase', 
       name: 'Firebase', 
       description: 'NoSQL with real-time sync', 
-      difficulty: 'Beginner', 
+      difficulty: 'Beginner' as const, 
       popular: true,
       logo: 'https://img.logo.dev/firebase.google.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
-      fallbackIcon: TableIcon
+      fallbackIcon: TableIcon,
+      templateRelevance: {},
+      tags: ['nosql', 'realtime'],
+      timeComplexity: 5,
+      learnCurve: 1
     },
     { 
       id: 'planetscale', 
       name: 'PlanetScale', 
       description: 'Serverless MySQL platform', 
-      difficulty: 'Intermediate', 
+      difficulty: 'Intermediate' as const, 
       popular: false,
       logo: 'https://img.logo.dev/planetscale.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
-      fallbackIcon: TableIcon
+      fallbackIcon: TableIcon,
+      templateRelevance: {},
+      tags: ['mysql', 'serverless'],
+      timeComplexity: 6,
+      learnCurve: 2
     },
     { 
       id: 'local', 
       name: 'Local SQLite', 
       description: 'Simple file-based database', 
-      difficulty: 'Beginner', 
+      difficulty: 'Beginner' as const, 
       popular: false,
       logo: 'https://img.logo.dev/sqlite.org?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
-      fallbackIcon: TableIcon
+      fallbackIcon: TableIcon,
+      templateRelevance: {},
+      tags: ['sqlite', 'local'],
+      timeComplexity: 2,
+      learnCurve: 1
     }
   ],
   aiService: [
@@ -147,37 +195,53 @@ const FALLBACK_TECH_STACKS = {
       id: 'openai', 
       name: 'OpenAI GPT', 
       description: 'Most capable AI models', 
-      difficulty: 'Beginner', 
+      difficulty: 'Beginner' as const, 
       popular: true,
       logo: 'https://img.logo.dev/openai.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
-      fallbackIcon: GlobeIcon
+      fallbackIcon: GlobeIcon,
+      templateRelevance: {},
+      tags: ['ai', 'gpt'],
+      timeComplexity: 6,
+      learnCurve: 1
     },
     { 
       id: 'anthropic', 
       name: 'Anthropic Claude', 
       description: 'Excellent for analysis & reasoning', 
-      difficulty: 'Beginner', 
+      difficulty: 'Beginner' as const, 
       popular: true,
       logo: 'https://img.logo.dev/anthropic.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
-      fallbackIcon: GlobeIcon
+      fallbackIcon: GlobeIcon,
+      templateRelevance: {},
+      tags: ['ai', 'claude'],
+      timeComplexity: 6,
+      learnCurve: 1
     },
     { 
       id: 'openrouter', 
       name: 'OpenRouter', 
       description: 'Access to multiple AI models', 
-      difficulty: 'Intermediate', 
+      difficulty: 'Intermediate' as const, 
       popular: false,
       logo: 'https://img.logo.dev/openrouter.ai?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
-      fallbackIcon: GlobeIcon
+      fallbackIcon: GlobeIcon,
+      templateRelevance: {},
+      tags: ['ai', 'multi-model'],
+      timeComplexity: 8,
+      learnCurve: 2
     },
     { 
       id: 'none', 
       name: 'No AI Features', 
       description: 'Traditional app without AI', 
-      difficulty: 'Beginner', 
+      difficulty: 'Beginner' as const, 
       popular: false,
       logo: '',
-      fallbackIcon: GlobeIcon
+      fallbackIcon: GlobeIcon,
+      templateRelevance: {},
+      tags: ['traditional'],
+      timeComplexity: 0,
+      learnCurve: 1
     }
   ]
 }
@@ -436,7 +500,8 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
               {options.map((tech) => {
                 const isSelected = selectedStack[category as keyof typeof selectedStack] === tech.id
                 const isAIRecommended = stackSuggestions?.aiRecommendations?.[category] === tech.id
-                const hasHighRelevance = tech.relevanceScore && tech.relevanceScore > 0.7
+                const templateScore = projectData.template ? tech.templateRelevance[projectData.template] || 0 : 0
+                const hasHighRelevance = templateScore > 0.7
                 const categoryHasSelection = !!selectedStack[category as keyof typeof selectedStack]
                 
                 // Determine card state based on selection and recommendation status
