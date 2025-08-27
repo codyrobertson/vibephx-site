@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { CheckIcon, ExclamationTriangleIcon, MagicWandIcon, ReloadIcon } from '@radix-ui/react-icons'
+import { CheckIcon, ExclamationTriangleIcon, MagicWandIcon, ReloadIcon, ChevronDownIcon, ChevronUpIcon } from '@radix-ui/react-icons'
 import type { ProjectData } from './BuilderWizard'
 
 type FeatureAnalysis = {
@@ -34,6 +34,8 @@ export default function FunctionalityBuilder({ projectData, updateProjectData }:
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>(projectData.features || [])
   const [error, setError] = useState<string | null>(null)
+  const [showWarnings, setShowWarnings] = useState(false)
+  const [showInsights, setShowInsights] = useState(false)
 
   const analyzeProject = useCallback(async () => {
     setIsAnalyzing(true)
@@ -166,36 +168,72 @@ export default function FunctionalityBuilder({ projectData, updateProjectData }:
         </div>
       </div>
 
-      {/* Scope Warnings */}
+      {/* Scope Warnings Accordion */}
       {analysis.scopeWarnings.length > 0 && (
-        <div className="p-4 bg-yellow-950/20 border border-yellow-800/30 rounded-lg">
-          <div className="flex items-start gap-3">
-            <ExclamationTriangleIcon className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-yellow-400 font-semibold mb-2">Scope Warnings</h3>
-              <ul className="space-y-1 text-sm text-gray-300">
-                {analysis.scopeWarnings.map((warning, index) => (
-                  <li key={index}>• {warning}</li>
-                ))}
-              </ul>
+        <div className="border border-yellow-800/30 rounded-lg bg-yellow-950/10">
+          <button
+            onClick={() => setShowWarnings(!showWarnings)}
+            className="w-full p-3 flex items-center justify-between text-left hover:bg-yellow-950/20 transition-colors rounded-lg"
+          >
+            <div className="flex items-center gap-3">
+              <ExclamationTriangleIcon className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+              <span className="text-yellow-400 font-semibold">Scope Warnings</span>
+              <span className="text-xs text-yellow-400/70 bg-yellow-900/30 px-2 py-1 rounded">
+                {analysis.scopeWarnings.length} items
+              </span>
             </div>
-          </div>
+            {showWarnings ? (
+              <ChevronUpIcon className="w-5 h-5 text-yellow-400" />
+            ) : (
+              <ChevronDownIcon className="w-5 h-5 text-yellow-400" />
+            )}
+          </button>
+          {showWarnings && (
+            <div className="px-3 pb-3">
+              <div className="space-y-2 text-sm text-gray-300">
+                {analysis.scopeWarnings.map((warning, index) => (
+                  <div key={index} className="flex items-start gap-2 p-2 bg-yellow-950/10 rounded">
+                    <span className="text-yellow-400 mt-0.5">⚠️</span>
+                    <span>{warning}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Key Insights */}
-      <div className="p-4 bg-blue-950/20 border border-blue-800/30 rounded-lg">
-        <div className="flex items-start gap-3">
-          <MagicWandIcon className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="text-blue-400 font-semibold mb-2">AI Insights</h3>
-            <ul className="space-y-1 text-sm text-gray-300">
-              {analysis.keyInsights.map((insight, index) => (
-                <li key={index}>• {insight}</li>
-              ))}
-            </ul>
+      {/* AI Insights Accordion */}
+      <div className="border border-blue-800/30 rounded-lg bg-blue-950/10">
+        <button
+          onClick={() => setShowInsights(!showInsights)}
+          className="w-full p-3 flex items-center justify-between text-left hover:bg-blue-950/20 transition-colors rounded-lg"
+        >
+          <div className="flex items-center gap-3">
+            <MagicWandIcon className="w-5 h-5 text-blue-400 flex-shrink-0" />
+            <span className="text-blue-400 font-semibold">AI Insights</span>
+            <span className="text-xs text-blue-400/70 bg-blue-900/30 px-2 py-1 rounded">
+              {analysis.keyInsights.length} tips
+            </span>
           </div>
-        </div>
+          {showInsights ? (
+            <ChevronUpIcon className="w-5 h-5 text-blue-400" />
+          ) : (
+            <ChevronDownIcon className="w-5 h-5 text-blue-400" />
+          )}
+        </button>
+        {showInsights && (
+          <div className="px-3 pb-3">
+            <div className="space-y-2 text-sm text-gray-300">
+              {analysis.keyInsights.map((insight, index) => (
+                <div key={index} className="flex items-start gap-2 p-2 bg-blue-950/10 rounded">
+                  <span className="text-blue-400 mt-0.5">💡</span>
+                  <span>{insight}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Feature Selection */}

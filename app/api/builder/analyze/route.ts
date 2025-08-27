@@ -16,7 +16,7 @@ const FeatureAnalysisSchema = z.object({
     database: z.string(),
     aiService: z.string().optional(),
   }),
-  projectComplexity: z.enum(['simple', 'moderate', 'complex']),
+  projectComplexity: z.enum(['simple', 'moderate']),
   estimatedTime: z.string(),
   keyInsights: z.array(z.string()),
 })
@@ -33,21 +33,34 @@ export async function POST(req: NextRequest) {
     const analysisPrompt = template 
       ? `Analyze this template project for a one-day build: "${template}".
          Consider the selected stack: ${JSON.stringify(selectedStack)}.
-         Focus on what features are essential vs. nice-to-have for a working MVP.`
+         Focus on what features are essential vs. nice-to-have for a working MVP.
+         
+         TARGET USER: Novice developer using tools like v0.dev, Loveable, or Replit
+         TIME LIMIT: Maximum 6 hours of actual development time
+         SKILL LEVEL: Beginner with basic React/Next.js knowledge`
       : `Analyze this custom app idea for a one-day build: "${projectIdea}".
          The user has selected this tech stack: ${JSON.stringify(selectedStack)}.
          
-         CRITICAL CONSTRAINTS:
-         - Must be buildable in 6-8 hours by a beginner-intermediate developer
-         - Should result in a working, deployable app
-         - Focus on core functionality only
-         - No complex integrations that require lengthy setup
+         CRITICAL CONSTRAINTS FOR NOVICE BUILDERS:
+         - Must be buildable in 4-6 hours by a novice developer using AI tools
+         - Target users: Complete beginners using v0.dev, Loveable, Replit, or similar
+         - Should result in a working, deployable app with minimal setup
+         - Focus on core functionality only - no complex integrations
+         - Prefer client-side solutions over complex backend logic
+         - Use built-in browser APIs and simple libraries only
+         
+         RECOMMENDED APPROACH:
+         - Next.js with App Router (most AI tools support this best)
+         - Client-side state management (useState, useEffect)
+         - Local storage for data persistence initially
+         - Simple UI with Tailwind CSS
+         - Avoid complex authentication, APIs, or database setup
          
          Suggest features that are:
-         1. Actually achievable in the timeframe
-         2. Create real user value
-         3. Can be built with the selected tech stack
-         4. Have clear, simple implementations`
+         1. Achievable in under 1 hour each for a novice
+         2. Create immediate, tangible user value
+         3. Can be copy-pasted and modified from AI tools
+         4. Work without external dependencies or setup`
 
     console.log('Calling OpenRouter API with model: anthropic/claude-3.5-sonnet')
     console.log('Base URL:', 'https://openrouter.ai/api/v1/chat/completions')
@@ -69,15 +82,47 @@ export async function POST(req: NextRequest) {
             role: 'user',
             content: `${analysisPrompt}
 
-            Provide a realistic analysis that keeps scope tight and achievable. Be honest about what's possible in one day.
+            ANALYSIS REQUIREMENTS:
             
-            For suggestedFeatures, limit to 3-7 core features max.
-            For scopeWarnings, flag anything that seems too ambitious.
-            For recommendedStack, suggest the best fit from available options.
-            For keyInsights, provide 2-3 strategic tips for success.
+            ⚠️  CRITICAL TIME CONSTRAINT - ABSOLUTE MAXIMUM 6 HOURS ⚠️
+            
+            MANDATORY TIME LIMITS (NEVER VIOLATE THESE):
+            - TOTAL PROJECT TIME: Maximum 6 hours (prefer 4-5 hours)
+            - INDIVIDUAL FEATURES: 30-60 minutes each maximum
+            - BEGINNER FRIENDLY: Account for learning curve with AI tools
+            - RESPONSE VALIDATION: "estimatedTime" must be one of: "3 hours", "4 hours", "4-5 hours", "5 hours", "5-6 hours", "6 hours"
+            - IF YOU ESTIMATE MORE THAN 6 HOURS: Remove features immediately until under 6 hours
+            
+            TECH STACK LIMITATIONS:
+            - Frontend: Only suggest Next.js, React, or vanilla JavaScript
+            - Backend: Prefer Next.js API routes or serverless functions only
+            - Database: Start with localStorage, then suggest simple options like Supabase
+            - AI Services: Use "openai", "anthropic", "openrouter", or "none" (if no AI features needed)
+            - NO AWS tools, complex cloud services, or enterprise solutions
+            
+            FEATURE SCOPING:
+            - Limit to 3-5 ultra-simple features maximum
+            - Each feature must work independently (no complex dependencies)
+            - Prioritize features that provide immediate visual feedback
+            - Everything should work with copy-paste code from AI tools
+            
+            SCOPE WARNINGS:
+            - Flag anything requiring more than basic React knowledge
+            - Warn about features needing external APIs or complex setup
+            - Identify anything that might take longer than 1 hour per feature
+            
+            INSIGHTS FOCUS:
+            - How to use v0.dev, Loveable, or similar AI tools effectively
+            - Which parts to build first for quick wins
+            - How to avoid common beginner pitfalls
             
             Please respond with valid JSON that matches this exact schema:
-            ${JSON.stringify(FeatureAnalysisSchema.shape, null, 2)}`
+            ${JSON.stringify(FeatureAnalysisSchema.shape, null, 2)}
+
+            IMPORTANT FIELD REQUIREMENTS:
+            - aiService: Must be a string value like "openai", "anthropic", "openrouter", or "none" (never null or undefined)
+            - estimatedTime: Must be "4-6 hours" or less (e.g., "3-5 hours", "4 hours")
+            - All fields are required unless marked optional`
           }
         ]
       })
@@ -107,6 +152,24 @@ export async function POST(req: NextRequest) {
 
     // Validate against schema
     const validatedResult = FeatureAnalysisSchema.parse(analysisResult)
+    
+    // Post-processing validation: Force time constraints if AI violates them
+    const timeRegex = /(\d+)(?:-(\d+))?\s*hours?/i
+    const match = validatedResult.estimatedTime.match(timeRegex)
+    const maxHours = match ? parseInt(match[2] || match[1]) : 0
+    
+    if (maxHours > 6) {
+      console.warn(`AI returned ${validatedResult.estimatedTime}, forcing to 6 hours max`)
+      validatedResult.estimatedTime = '5-6 hours'
+      
+      // Also truncate features if too many
+      if (validatedResult.suggestedFeatures.length > 4) {
+        validatedResult.suggestedFeatures = validatedResult.suggestedFeatures.slice(0, 4)
+        validatedResult.scopeWarnings.push(
+          'Project scope reduced to fit 6-hour time constraint for novice builders'
+        )
+      }
+    }
     
     console.log('Successfully generated and validated analysis from OpenRouter')
     return Response.json(validatedResult)

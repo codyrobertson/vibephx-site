@@ -1,11 +1,40 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CheckIcon, MagicWandIcon, ComponentInstanceIcon, TableIcon, GlobeIcon, LightningBoltIcon } from '@radix-ui/react-icons'
+import { CheckIcon, MagicWandIcon, ComponentInstanceIcon, TableIcon, GlobeIcon, LightningBoltIcon, ReloadIcon } from '@radix-ui/react-icons'
 import BrandLogo from '../ui/BrandLogo'
 import type { ProjectData } from './BuilderWizard'
 
-const TECH_STACKS = {
+interface StackItem {
+  id: string
+  name: string
+  description: string
+  difficulty: string
+  popular: boolean
+  logo: string
+  fallbackIcon?: any
+  relevanceScore?: number
+}
+
+interface StackSuggestions {
+  suggestions: {
+    frontend: StackItem[]
+    backend: StackItem[]
+    database: StackItem[]
+    aiService: StackItem[]
+  }
+  aiRecommendations: Record<string, string>
+  templateInfo: {
+    title: string
+    requiredFeatures: string[]
+    avoidFeatures: string[]
+    complexityBudget: number
+  } | null
+  reasoning: string
+}
+
+// Fallback stack options (in case API fails)
+const FALLBACK_TECH_STACKS = {
   frontend: [
     { 
       id: 'nextjs', 
@@ -22,7 +51,7 @@ const TECH_STACKS = {
       description: 'Modern React with fast bundling', 
       difficulty: 'Beginner', 
       popular: true,
-      logo: 'https://img.logo.dev/reactjs.org?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      logo: 'https://img.logo.dev/react.dev?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
       fallbackIcon: ComponentInstanceIcon
     },
     { 
@@ -75,10 +104,10 @@ const TECH_STACKS = {
     { 
       id: 'serverless', 
       name: 'Serverless Functions', 
-      description: 'Deploy-ready cloud functions', 
+      description: 'Simple cloud functions (Vercel/Netlify)', 
       difficulty: 'Beginner', 
       popular: true,
-      logo: 'https://img.logo.dev/aws.amazon.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      logo: 'https://img.logo.dev/vercel.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
       fallbackIcon: LightningBoltIcon
     }
   ],
@@ -186,16 +215,144 @@ interface SoftwareStackPickerProps {
 }
 
 export default function SoftwareStackPicker({ projectData, updateProjectData }: SoftwareStackPickerProps) {
-  const [selectedStack, setSelectedStack] = useState(projectData.stack || {})
+  const [selectedStack, setSelectedStack] = useState<Record<string, string>>({})
   const [showRecommendations, setShowRecommendations] = useState(true)
+  const [stackSuggestions, setStackSuggestions] = useState<StackSuggestions | null>(null)
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
+  const [techStacks, setTechStacks] = useState(FALLBACK_TECH_STACKS)
+  const [hasUserAppliedAI, setHasUserAppliedAI] = useState(false)
+
+  // Debug: Log component mount and any inherited data
+  console.log('SoftwareStackPicker mounted/re-rendered with:', {
+    projectDataStack: projectData.stack,
+    selectedStack,
+    template: projectData.template
+  })
+
+  // Force clear on component mount to prevent inheritance of stale data
+  useEffect(() => {
+    console.log('Component mounted - force clearing any inherited selections')
+    console.log('Before clearing - selectedStack keys:', Object.keys(selectedStack))
+    const emptyStack = {}
+    setSelectedStack(emptyStack)
+    setHasUserAppliedAI(false)
+    console.log('After clearing - should be empty')
+    // Don't call updateProjectData here to avoid infinite loops
+  }, []) // Empty dependency array = run once on mount
+
+  // Additional effect to monitor if selectedStack is getting set unexpectedly
+  useEffect(() => {
+    if (Object.keys(selectedStack).length > 0 && !hasUserAppliedAI) {
+      console.warn('⚠️  selectedStack has items but user has not applied AI:', selectedStack)
+      console.warn('This indicates auto-selection is happening somewhere!')
+    }
+  }, [selectedStack, hasUserAppliedAI])
+
+  // Reset selections when template/idea changes
+  useEffect(() => {
+    // Always clear selections when template changes (fresh start)
+    console.log('Template/idea changed:', { 
+      template: projectData.template, 
+      customIdea: projectData.customIdea,
+      currentStack: selectedStack,
+      projectDataStack: projectData.stack
+    })
+    
+    // Force clear local state
+    const emptyStack = {}
+    setSelectedStack(emptyStack)
+    setHasUserAppliedAI(false)
+    
+    console.log('Cleared all selections')
+  }, [projectData.template, projectData.customIdea])
+
+  // Define which templates should get AI recommendations
+  const isAITemplate = (templateId: string | undefined) => {
+    const aiTemplates = ['ai-lead-scorer'] // Only templates that explicitly need AI
+    return templateId ? aiTemplates.includes(templateId) : false
+  }
+
+  // Load intelligent stack suggestions based on template/custom idea
+  useEffect(() => {
+    const loadStackSuggestions = async () => {
+      if (!projectData.template && !projectData.customIdea) {
+        setTechStacks(FALLBACK_TECH_STACKS)
+        setStackSuggestions(null)
+        return
+      }
+
+      // Load AI suggestions for all templates to provide smart filtering and recommendations
+      // The difference is that non-AI templates won't auto-apply, but will still show intelligent options
+
+      setIsLoadingSuggestions(true)
+      
+      try {
+        const response = await fetch('/api/builder/stack-suggestions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            templateId: projectData.template,
+            customIdea: projectData.customIdea,
+            currentSelections: {} // Don't pass existing selections to avoid auto-application
+          })
+        })
+
+        if (response.ok) {
+          const suggestions: StackSuggestions = await response.json()
+          setStackSuggestions(suggestions)
+          
+          // Replace the tech stacks with filtered suggestions
+          setTechStacks({
+            frontend: suggestions.suggestions.frontend,
+            backend: suggestions.suggestions.backend,
+            database: suggestions.suggestions.database,
+            aiService: suggestions.suggestions.aiService
+          })
+
+          console.log('Loaded intelligent stack suggestions:', suggestions.reasoning)
+        } else {
+          console.warn('Failed to load stack suggestions, using fallback')
+          setTechStacks(FALLBACK_TECH_STACKS)
+        }
+      } catch (error) {
+        console.error('Error loading stack suggestions:', error)
+        setTechStacks(FALLBACK_TECH_STACKS)
+      } finally {
+        setIsLoadingSuggestions(false)
+      }
+    }
+
+    loadStackSuggestions()
+  }, [projectData.template, projectData.customIdea])
 
   useEffect(() => {
     updateProjectData({ stack: selectedStack })
-  }, [selectedStack, updateProjectData])
+  }, [selectedStack])
 
-  const selectTech = (category: keyof typeof TECH_STACKS, techId: string) => {
+  // Prevent unwanted inheritance of selections from projectData.stack
+  useEffect(() => {
+    // Only inherit projectData.stack if user has explicitly applied AI or manually selected
+    if (!hasUserAppliedAI && projectData.stack && Object.keys(projectData.stack).length > 0) {
+      // Don't inherit - projectData might have stale selections
+      console.log('Preventing inheritance of projectData.stack:', projectData.stack)
+    }
+  }, [projectData.stack, hasUserAppliedAI])
+
+  const selectTech = (category: keyof typeof techStacks, techId: string) => {
+    console.log('User manually selected:', category, techId)
     setSelectedStack(prev => ({ ...prev, [category]: techId }))
+    setHasUserAppliedAI(true) // Mark that user has made intentional selections
     setShowRecommendations(false)
+  }
+
+  const applyAIRecommendations = () => {
+    if (stackSuggestions?.aiRecommendations) {
+      // Replace entire stack with AI recommendations (no previous selections)
+      setSelectedStack(stackSuggestions.aiRecommendations)
+      setHasUserAppliedAI(true)
+      setShowRecommendations(false)
+      console.log('User explicitly applied AI recommendations:', stackSuggestions.aiRecommendations)
+    }
   }
 
   const applyRecommendedCombo = (combo: typeof RECOMMENDED_COMBOS[0]) => {
@@ -203,24 +360,65 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
     setShowRecommendations(false)
   }
 
-  const getSelectedTechName = (category: keyof typeof TECH_STACKS) => {
+  const getSelectedTechName = (category: keyof typeof techStacks) => {
     const techId = selectedStack[category]
     if (!techId) return null
-    const tech = TECH_STACKS[category].find(t => t.id === techId)
+    const tech = techStacks[category].find(t => t.id === techId)
     return tech?.name || null
   }
 
   return (
     <div className="space-y-8">
-      {showRecommendations && (
+      {showRecommendations && stackSuggestions && (
         <div className="bg-gradient-to-r from-purple-950/20 to-blue-950/20 border border-purple-800/30 rounded-lg p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <MagicWandIcon className="w-6 h-6 text-purple-400" />
-            <h3 className="text-xl font-bold">AI-Recommended Combinations</h3>
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              {isLoadingSuggestions ? (
+                <ReloadIcon className="w-6 h-6 text-purple-400 animate-spin" />
+              ) : (
+                <MagicWandIcon className="w-6 h-6 text-purple-400" />
+              )}
+              <h3 className="text-xl font-bold">
+                {isAITemplate(projectData.template) 
+                  ? 'AI-Optimized for Your Template'
+                  : stackSuggestions?.templateInfo 
+                    ? 'Smart Recommendations for Your Template'
+                    : 'AI-Recommended Combinations'
+                }
+              </h3>
+            </div>
+            {stackSuggestions?.aiRecommendations && Object.keys(stackSuggestions.aiRecommendations).length > 0 && (
+              <button
+                onClick={applyAIRecommendations}
+                className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-black font-semibold rounded-lg transition-colors"
+              >
+                {isAITemplate(projectData.template) ? 'Apply AI Pick' : 'Use Recommendations'}
+              </button>
+            )}
           </div>
-          <p className="text-gray-400 mb-6">
-            These proven combinations work well together and are optimized for one-day builds.
-          </p>
+          
+          {stackSuggestions?.reasoning && (
+            <p className="text-gray-300 mb-3 text-sm bg-purple-900/20 rounded p-2">
+              💡 {stackSuggestions.reasoning}
+            </p>
+          )}
+          
+          {!isLoadingSuggestions && stackSuggestions?.templateInfo && (
+            <div className="mb-3 text-xs">
+              <span className="text-gray-400 mr-2">Optimized for:</span>
+              {stackSuggestions.templateInfo.requiredFeatures.map((feature, idx) => (
+                <span key={idx} className="inline-block px-2 py-1 bg-green-900/30 text-green-400 rounded mr-1 mb-1">
+                  {feature}
+                </span>
+              ))}
+            </div>
+          )}
+          
+          {!stackSuggestions && !isLoadingSuggestions && (
+            <p className="text-gray-400 mb-6">
+              These proven combinations work well together and are optimized for one-day builds.
+            </p>
+          )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {RECOMMENDED_COMBOS.map((combo, index) => (
@@ -238,10 +436,10 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
                 <h4 className="font-semibold mb-1">{combo.name}</h4>
                 <p className="text-xs text-gray-400 mb-3">{combo.description}</p>
                 <div className="space-y-1 text-xs">
-                  <div className="text-blue-400">Frontend: {TECH_STACKS.frontend.find(t => t.id === combo.stack.frontend)?.name}</div>
-                  <div className="text-green-400">Backend: {TECH_STACKS.backend.find(t => t.id === combo.stack.backend)?.name}</div>
-                  <div className="text-yellow-400">Database: {TECH_STACKS.database.find(t => t.id === combo.stack.database)?.name}</div>
-                  <div className="text-purple-400">AI: {TECH_STACKS.aiService.find(t => t.id === combo.stack.aiService)?.name}</div>
+                  <div className="text-blue-400">Frontend: {techStacks.frontend.find(t => t.id === combo.stack.frontend)?.name}</div>
+                  <div className="text-green-400">Backend: {techStacks.backend.find(t => t.id === combo.stack.backend)?.name}</div>
+                  <div className="text-yellow-400">Database: {techStacks.database.find(t => t.id === combo.stack.database)?.name}</div>
+                  <div className="text-purple-400">AI: {techStacks.aiService.find(t => t.id === combo.stack.aiService)?.name}</div>
                 </div>
               </div>
             ))}
@@ -249,19 +447,52 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
         </div>
       )}
 
+      {/* Stack Summary */}
+      {Object.keys(selectedStack).length > 0 && (
+        <div className="p-6 bg-gray-950/50 border border-gray-800 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4">Your Selected Stack</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+            {Object.entries(selectedStack).map(([category, techId]) => {
+              if (!techId) return null
+              const tech = techStacks[category as keyof typeof techStacks]?.find(t => t.id === techId)
+              if (!tech) return null
+              
+              return (
+                <div key={category} className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-orange-400 rounded-full" />
+                  <span className="text-gray-400 capitalize">
+                    {category === 'aiService' ? 'AI Service' : category}:
+                  </span>
+                  <span className="font-medium">{tech.name}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Custom Selection */}
       <div className="space-y-8">
-        {Object.entries(TECH_STACKS).map(([category, options]) => (
+        {Object.entries(techStacks).map(([category, options]) => (
           <div key={category}>
             <div className="flex items-center gap-3 mb-4">
               <h3 className="text-lg font-semibold capitalize">
                 {category === 'aiService' ? 'AI Service' : category}
               </h3>
-              {getSelectedTechName(category as keyof typeof TECH_STACKS) && (
+              {getSelectedTechName(category as keyof typeof techStacks) && (
                 <div className="flex items-center gap-2 px-3 py-1 bg-orange-500/20 rounded-full">
                   <CheckIcon className="w-4 h-4 text-orange-400" />
                   <span className="text-sm text-orange-400">
-                    {getSelectedTechName(category as keyof typeof TECH_STACKS)}
+                    {getSelectedTechName(category as keyof typeof techStacks)}
+                  </span>
+                </div>
+              )}
+              
+              {stackSuggestions?.aiRecommendations?.[category] && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-purple-500/20 rounded-full">
+                  <MagicWandIcon className="w-4 h-4 text-purple-400" />
+                  <span className="text-sm text-purple-400">
+                    {isAITemplate(projectData.template) ? 'AI Pick' : 'Recommended'}: {techStacks[category as keyof typeof techStacks]?.find(t => t.id === stackSuggestions.aiRecommendations[category])?.name}
                   </span>
                 </div>
               )}
@@ -273,14 +504,17 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
                   key={tech.id}
                   onClick={() => {
                     console.log('Tech clicked:', tech.id, 'category:', category)
-                    selectTech(category as keyof typeof TECH_STACKS, tech.id)
+                    selectTech(category as keyof typeof techStacks, tech.id)
                   }}
                   className={`
                     w-full p-4 border rounded-lg cursor-pointer transition-colors select-none relative z-10
                     ${selectedStack[category as keyof typeof selectedStack] === tech.id
                       ? 'border-orange-500 bg-orange-950/20'
+                      : stackSuggestions?.aiRecommendations?.[category] === tech.id
+                      ? 'border-purple-500 bg-purple-950/20 hover:bg-purple-900/30'
                       : 'border-gray-800 hover:border-gray-600 hover:bg-gray-800/30'
                     }
+                    ${tech.relevanceScore && tech.relevanceScore > 0.7 ? 'ring-1 ring-blue-500/30' : ''}
                   `}
                   role="button"
                   tabIndex={0}
@@ -295,10 +529,11 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
                       />
                       <h4 className="font-semibold">{tech.name}</h4>
                     </div>
-                    <div className="flex gap-1">
-                      {tech.popular && (
-                        <span className="px-2 py-1 bg-green-900/30 text-green-400 text-xs rounded">
-                          Popular
+                    <div className="flex flex-col gap-1">
+                      {stackSuggestions?.aiRecommendations?.[category] === tech.id && 
+                       selectedStack[category as keyof typeof selectedStack] !== tech.id && (
+                        <span className="px-2 py-1 text-xs rounded bg-purple-900/30 text-purple-400">
+                          {isAITemplate(projectData.template) ? '🎯 AI Pick' : '⭐ Recommended'}
                         </span>
                       )}
                       <span className={`px-2 py-1 text-xs rounded ${
@@ -317,33 +552,6 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
           </div>
         ))}
       </div>
-
-      {/* Stack Summary */}
-      {Object.keys(selectedStack).length > 0 && (
-        <div className="p-6 bg-gray-950/50 border border-gray-800 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">Your Selected Stack</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-            {Object.entries(selectedStack).map(([category, techId]) => {
-              if (!techId) return null
-              const tech = TECH_STACKS[category as keyof typeof TECH_STACKS].find(t => t.id === techId)
-              return (
-                <div key={category} className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    category === 'frontend' ? 'bg-blue-400' :
-                    category === 'backend' ? 'bg-green-400' :
-                    category === 'database' ? 'bg-yellow-400' :
-                    'bg-purple-400'
-                  }`} />
-                  <span className="capitalize text-gray-400">
-                    {category === 'aiService' ? 'AI' : category}:
-                  </span>
-                  <span className="font-medium">{tech?.name}</span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

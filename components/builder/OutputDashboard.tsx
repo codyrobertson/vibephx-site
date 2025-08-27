@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { DownloadIcon, ExternalLinkIcon, CopyIcon, FileTextIcon, CodeIcon, ImageIcon, TableIcon, ListBulletIcon, SpeakerLoudIcon, MagicWandIcon, GearIcon } from '@radix-ui/react-icons'
 import type { ProjectData } from './BuilderWizard'
 
@@ -55,6 +55,31 @@ const DOCUMENT_INFO = {
   }
 }
 
+// Simple markdown syntax highlighting function
+const highlightMarkdown = (text: string) => {
+  return text
+    // Headers
+    .replace(/^(#{1,6})\s+(.*)$/gm, (match, hashes, content) => {
+      const level = hashes.length
+      const color = level <= 2 ? 'text-blue-300' : level <= 4 ? 'text-blue-400' : 'text-blue-500'
+      return `<span class="${color} font-bold">${hashes} ${content}</span>`
+    })
+    // Bold text
+    .replace(/\*\*(.*?)\*\*/g, '<span class="text-white font-bold">$1</span>')
+    // Italic text
+    .replace(/\*(.*?)\*/g, '<span class="text-gray-200 italic">$1</span>')
+    // Code blocks
+    .replace(/```([\s\S]*?)```/g, '<span class="text-green-300 bg-gray-800/50 px-1 rounded">$1</span>')
+    // Inline code
+    .replace(/`([^`]+)`/g, '<span class="text-green-300 bg-gray-800/50 px-1 rounded text-sm">$1</span>')
+    // List items
+    .replace(/^(\s*)[-*+]\s+(.*)$/gm, '$1<span class="text-orange-400">•</span> <span class="text-gray-200">$2</span>')
+    // Numbered lists
+    .replace(/^(\s*)(\d+\.)\s+(.*)$/gm, '$1<span class="text-orange-400">$2</span> <span class="text-gray-200">$3</span>')
+    // Links
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<span class="text-blue-400 underline">$1</span>')
+}
+
 interface OutputDashboardProps {
   projectData: ProjectData
 }
@@ -100,6 +125,12 @@ export default function OutputDashboard({ projectData }: OutputDashboardProps) {
   }
 
   const activeContent = generated[activeDocument] || ''
+  
+  // Memoize the highlighted content for better performance
+  const highlightedContent = useMemo(() => {
+    if (!activeContent) return 'No content available'
+    return highlightMarkdown(activeContent)
+  }, [activeContent])
 
   return (
     <div className="space-y-8">
@@ -225,10 +256,11 @@ export default function OutputDashboard({ projectData }: OutputDashboardProps) {
             </div>
 
             {/* Document Content */}
-            <div className="p-6 max-h-96 overflow-y-auto bg-gray-900/50">
-              <pre className="whitespace-pre-wrap text-sm text-gray-300 font-mono leading-relaxed">
-                {activeContent || 'No content available'}
-              </pre>
+            <div className="p-6 max-h-[70vh] overflow-y-auto bg-gray-900/50">
+              <div 
+                className="whitespace-pre-wrap text-sm text-gray-300 font-mono leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: highlightedContent }}
+              />
             </div>
           </div>
         </div>
