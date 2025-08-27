@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist } from 'next/font/google'
+import { StackProvider, StackTheme } from '@stackframe/stack'
+import { stackServerApp } from '@/stack'
 import Navbar from '@/components/Navbar'
 import './globals.css'
 
@@ -154,7 +156,14 @@ export default function RootLayout({
         />
       </head>
       <body className={`${geist.className} bg-black text-white`}>
-        {children}
+        <StackProvider app={stackServerApp}>
+          <StackTheme>
+            <Navbar />
+            <main className="pt-16 md:pt-20">
+              {children}
+            </main>
+          </StackTheme>
+        </StackProvider>
       </body>
     </html>
   )

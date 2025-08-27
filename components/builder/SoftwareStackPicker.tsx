@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { CheckIcon, MagicWandIcon, ComponentInstanceIcon, TableIcon, GlobeIcon, LightningBoltIcon, ReloadIcon } from '@radix-ui/react-icons'
 import { Card, CardIcon, CardBadge, CardHeader, CardTitle, CardDescription, CardMeta } from '@/components/ui/Card'
 import BrandLogo from '../ui/BrandLogo'
-import { getRelevantStackOptions, getAIRecommendation, TEMPLATE_STACK_MAPPINGS, type StackItem } from '@/lib/stackDatabase'
+import { getRelevantStackOptions, getAIRecommendation, getAIStackSuggestions, TEMPLATE_STACK_MAPPINGS, type StackItem } from '@/lib/stackDatabase'
 import type { ProjectData } from './BuilderWizard'
 
 // Remove duplicate StackItem interface - using the one from stackDatabase
@@ -15,6 +15,7 @@ interface StackSuggestions {
     backend: StackItem[]
     database: StackItem[]
     aiService: StackItem[]
+    secretSauce: StackItem[]
   }
   aiRecommendations: Record<string, string>
   templateInfo: {
@@ -243,6 +244,60 @@ const FALLBACK_TECH_STACKS = {
       timeComplexity: 0,
       learnCurve: 1
     }
+  ],
+  secretSauce: [
+    { 
+      id: 'resend', 
+      name: 'Resend', 
+      description: 'Simple email API for transactional emails', 
+      difficulty: 'Beginner' as const, 
+      popular: true,
+      logo: 'https://img.logo.dev/resend.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      fallbackIcon: GlobeIcon,
+      templateRelevance: {},
+      tags: ['email', 'transactional'],
+      timeComplexity: 3,
+      learnCurve: 1
+    },
+    { 
+      id: 'google-analytics', 
+      name: 'Google Analytics', 
+      description: 'Free website analytics and tracking', 
+      difficulty: 'Beginner' as const, 
+      popular: true,
+      logo: 'https://img.logo.dev/analytics.google.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      fallbackIcon: GlobeIcon,
+      templateRelevance: {},
+      tags: ['analytics', 'free'],
+      timeComplexity: 2,
+      learnCurve: 1
+    },
+    { 
+      id: 'posthog', 
+      name: 'PostHog', 
+      description: 'Open-source product analytics (free tier)', 
+      difficulty: 'Beginner' as const, 
+      popular: false,
+      logo: 'https://img.logo.dev/posthog.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      fallbackIcon: GlobeIcon,
+      templateRelevance: {},
+      tags: ['analytics', 'open-source', 'free'],
+      timeComplexity: 4,
+      learnCurve: 1
+    },
+    { 
+      id: 'no-marketing', 
+      name: 'No Marketing Tools', 
+      description: 'Focus on core features without marketing integrations', 
+      difficulty: 'Beginner' as const, 
+      popular: false,
+      logo: '',
+      fallbackIcon: GlobeIcon,
+      templateRelevance: {},
+      tags: ['simple'],
+      timeComplexity: 0,
+      learnCurve: 1
+    }
   ]
 }
 
@@ -278,6 +333,7 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
   const [stackSuggestions, setStackSuggestions] = useState<StackSuggestions | null>(null)
   const [techStacks, setTechStacks] = useState<Record<string, StackItem[]>>(FALLBACK_TECH_STACKS)
   const [hasUserAppliedAI, setHasUserAppliedAI] = useState(false)
+  const [loadingAISuggestions, setLoadingAISuggestions] = useState(false)
 
   // Simplified mounting - reduce console noise and re-renders
 
@@ -296,19 +352,46 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
 
   // Load intelligent stack suggestions instantly using local cache
   useEffect(() => {
-    const loadStackSuggestions = () => {
+    const loadStackSuggestions = async () => {
       if (!projectData.template && !projectData.customIdea) {
         setTechStacks(FALLBACK_TECH_STACKS)
         setStackSuggestions(null)
         return
       }
 
-      // Get relevant options for each stack type using cached data
-      const suggestions = {
-        frontend: getRelevantStackOptions(projectData.template, projectData.customIdea, 'frontend'),
-        backend: getRelevantStackOptions(projectData.template, projectData.customIdea, 'backend'),
-        database: getRelevantStackOptions(projectData.template, projectData.customIdea, 'database'),
-        aiService: getRelevantStackOptions(projectData.template, projectData.customIdea, 'aiService')
+      let suggestions: Record<string, StackItem[]>
+
+      // Use AI for custom ideas
+      if (!projectData.template && projectData.customIdea) {
+        console.log(`🤖 Loading AI suggestions for custom idea: "${projectData.customIdea}"`)
+        setLoadingAISuggestions(true)
+        
+        try {
+          const aiSuggestions = await getAIStackSuggestions(projectData.customIdea)
+          suggestions = aiSuggestions as Record<string, StackItem[]>
+          console.log('🎯 AI suggestions loaded successfully')
+        } catch (error) {
+          console.error('AI suggestions failed, falling back to basic matching:', error)
+          // Fallback to basic suggestions
+          suggestions = {
+            frontend: getRelevantStackOptions(projectData.template, projectData.customIdea, 'frontend'),
+            backend: getRelevantStackOptions(projectData.template, projectData.customIdea, 'backend'),
+            database: getRelevantStackOptions(projectData.template, projectData.customIdea, 'database'),
+            aiService: getRelevantStackOptions(projectData.template, projectData.customIdea, 'aiService'),
+            secretSauce: getRelevantStackOptions(projectData.template, projectData.customIdea, 'secretSauce')
+          }
+        } finally {
+          setLoadingAISuggestions(false)
+        }
+      } else {
+        // Use cached template suggestions
+        suggestions = {
+          frontend: getRelevantStackOptions(projectData.template, projectData.customIdea, 'frontend'),
+          backend: getRelevantStackOptions(projectData.template, projectData.customIdea, 'backend'),
+          database: getRelevantStackOptions(projectData.template, projectData.customIdea, 'database'),
+          aiService: getRelevantStackOptions(projectData.template, projectData.customIdea, 'aiService'),
+          secretSauce: getRelevantStackOptions(projectData.template, projectData.customIdea, 'secretSauce')
+        }
       }
       
       // Get AI recommendations
@@ -325,7 +408,9 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
         templateInfo,
         reasoning: projectData.template 
           ? `Optimized for ${templateInfo?.title || projectData.template} with emphasis on ${templateInfo?.requiredFeatures.join(', ') || 'core features'}.`
-          : 'Custom recommendations based on your idea'
+          : projectData.customIdea 
+            ? `AI-powered recommendations for your custom idea: "${projectData.customIdea}"`
+            : 'Custom recommendations based on your idea'
       }
       
       setStackSuggestions(stackSuggestions)
@@ -383,13 +468,21 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
         <div className="bg-gradient-to-r from-purple-950/20 to-blue-950/20 border border-purple-800/30 rounded-lg p-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
-              <MagicWandIcon className="w-6 h-6 text-purple-400" />
+              {loadingAISuggestions ? (
+                <ReloadIcon className="w-6 h-6 text-purple-400 animate-spin" />
+              ) : (
+                <MagicWandIcon className="w-6 h-6 text-purple-400" />
+              )}
               <h3 className="text-xl font-bold">
-                {isAITemplate(projectData.template) 
-                  ? 'AI-Optimized for Your Template'
-                  : stackSuggestions?.templateInfo 
-                    ? 'Smart Recommendations for Your Template'
-                    : 'AI-Recommended Combinations'
+                {loadingAISuggestions 
+                  ? 'AI is Analyzing Your Idea...'
+                  : isAITemplate(projectData.template) 
+                    ? 'AI-Optimized for Your Template'
+                    : stackSuggestions?.templateInfo 
+                      ? 'Smart Recommendations for Your Template'
+                      : !projectData.template && projectData.customIdea
+                        ? 'AI-Powered Recommendations'
+                        : 'AI-Recommended Combinations'
                 }
               </h3>
             </div>
@@ -448,17 +541,21 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
       {Object.keys(selectedStack).length > 0 && (
         <div className="p-6 bg-gray-950/50 border border-gray-800 rounded-lg">
           <h3 className="text-lg font-semibold mb-4">Your Selected Stack</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
             {Object.entries(selectedStack).map(([category, techId]) => {
               if (!techId) return null
               const tech = techStacks[category as keyof typeof techStacks]?.find(t => t.id === techId)
               if (!tech) return null
               
+              const displayName = category === 'aiService' ? 'AI Service' : 
+                                 category === 'secretSauce' ? 'Secret Sauce' : 
+                                 category
+              
               return (
                 <div key={category} className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-orange-400 rounded-full" />
                   <span className="text-gray-400 capitalize">
-                    {category === 'aiService' ? 'AI Service' : category}:
+                    {displayName}:
                   </span>
                   <span className="font-medium">{tech.name}</span>
                 </div>
@@ -474,7 +571,8 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
           <div key={category}>
             <div className="flex items-center gap-3 mb-4">
               <h3 className="text-lg font-semibold capitalize">
-                {category === 'aiService' ? 'AI Service' : category}
+                {category === 'aiService' ? 'AI Service' : 
+                 category === 'secretSauce' ? 'Secret Sauce' : category}
               </h3>
               {getSelectedTechName(category as keyof typeof techStacks) && (
                 <div className="flex items-center gap-2 px-3 py-1 bg-orange-500/20 rounded-full">

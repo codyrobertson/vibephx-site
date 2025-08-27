@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
-import SoftwareStackPicker from '@/components/builder/SoftwareStackPicker'
+import StackPageClient from '@/components/builder/StackPageClient'
 
 export const metadata = {
   title: 'Choose Tech Stack - VibePHX Builder',
@@ -32,7 +32,7 @@ export default async function StackPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+    <div className="min-h-screen bg-black">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
@@ -55,13 +55,13 @@ export default async function StackPage({ searchParams }: PageProps) {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
             </div>
           }>
-            <SoftwareStackPicker 
-              projectData={projectData}
-              updateProjectData={() => {}} // Will handle with form submission
-            />
+            <StackPageClient initialProjectData={projectData} />
           </Suspense>
         </div>
       </div>
+      
+      {/* Add padding bottom to account for fixed navigation */}
+      <div className="pb-24"></div>
     </div>
   )
 }

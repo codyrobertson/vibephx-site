@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { MagicWandIcon } from '@radix-ui/react-icons'
 import { useBuilder } from './builder/BuilderContext'
+import UserMenuWrapper from './auth/UserMenuWrapper'
 
 export default function Navbar() {
   const pathname = usePathname()
@@ -59,6 +60,7 @@ export default function Navbar() {
                   Back to VibePHX
                 </Link>
               )}
+              <UserMenuWrapper />
             </div>
           </div>
         </div>

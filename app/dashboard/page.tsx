@@ -1,32 +1,22 @@
 import { Suspense } from 'react'
-import TemplatePageClient from '@/components/builder/TemplatePageClient'
+import ProjectDashboard from '@/components/dashboard/ProjectDashboard'
 
 export const metadata = {
-  title: 'Choose Template - VibePHX Builder',
-  description: 'Select a project template to get started'
+  title: 'Dashboard - VibePHX Builder',
+  description: 'View and manage your AI-generated projects'
 }
 
-interface SearchParams {
-  idea?: string
-}
-
-interface PageProps {
-  searchParams: Promise<SearchParams>
-}
-
-export default async function TemplatePage({ searchParams }: PageProps) {
-  const params = await searchParams
-  
+export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-black">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-white mb-4">
-              Choose Your Project Template
+              Your Projects
             </h1>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Select a template that matches your project idea, or describe a custom concept
+              Manage your AI-generated project ideas and continue building
             </p>
           </div>
           
@@ -35,13 +25,10 @@ export default async function TemplatePage({ searchParams }: PageProps) {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
             </div>
           }>
-            <TemplatePageClient initialIdea={params.idea} />
+            <ProjectDashboard />
           </Suspense>
         </div>
       </div>
-      
-      {/* Add padding bottom to account for fixed navigation */}
-      <div className="pb-24"></div>
     </div>
   )
 }

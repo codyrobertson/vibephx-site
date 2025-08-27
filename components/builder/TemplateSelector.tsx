@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { RocketIcon, TargetIcon, MagicWandIcon, PlusIcon } from '@radix-ui/react-icons'
 import { Card, CardIcon, CardBadge, CardHeader, CardTitle, CardDescription, CardMeta, CardTags } from '@/components/ui/Card'
-import type { ProjectData } from './BuilderWizard'
 
 const TEMPLATES = [
   {
@@ -49,37 +49,56 @@ const TEMPLATES = [
 ]
 
 interface TemplateSelectorProps {
-  projectData: ProjectData
-  updateProjectData: (updates: Partial<ProjectData>) => void
+  initialIdea?: string
+  onTemplateSelect?: (templateId: string) => void
+  onCustomIdeaChange?: (idea: string) => void
+  selectedTemplate?: string
+  customIdea?: string
 }
 
-export default function TemplateSelector({ projectData, updateProjectData }: TemplateSelectorProps) {
-  const [selectedTemplate, setSelectedTemplate] = useState<string>(projectData.template || '')
-  const [customIdea, setCustomIdea] = useState<string>(projectData.customIdea || '')
+export default function TemplateSelector({ 
+  initialIdea, 
+  onTemplateSelect, 
+  onCustomIdeaChange,
+  selectedTemplate: externalSelectedTemplate,
+  customIdea: externalCustomIdea
+}: TemplateSelectorProps) {
+  const [internalSelectedTemplate, setInternalSelectedTemplate] = useState<string>('')
+  const [internalCustomIdea, setInternalCustomIdea] = useState<string>(initialIdea || '')
   const [mode, setMode] = useState<'template' | 'custom'>(
-    projectData.template ? 'template' : projectData.customIdea ? 'custom' : 'template'
+    initialIdea ? 'custom' : 'template'
   )
 
+  // Use external state if provided, otherwise use internal state
+  const selectedTemplate = externalSelectedTemplate !== undefined ? externalSelectedTemplate : internalSelectedTemplate
+  const customIdea = externalCustomIdea !== undefined ? externalCustomIdea : internalCustomIdea
+
   const selectTemplate = (templateId: string) => {
-    setSelectedTemplate(templateId)
-    setCustomIdea('')
-    updateProjectData({ template: templateId, customIdea: undefined })
+    if (onTemplateSelect) {
+      onTemplateSelect(templateId)
+      onCustomIdeaChange?.('')
+    } else {
+      setInternalSelectedTemplate(templateId)
+      setInternalCustomIdea('')
+    }
   }
 
   const handleCustomIdea = (idea: string) => {
-    setCustomIdea(idea)
-    setSelectedTemplate('')
-    updateProjectData({ customIdea: idea, template: undefined })
+    if (onCustomIdeaChange) {
+      onCustomIdeaChange(idea)
+      onTemplateSelect?.('')
+    } else {
+      setInternalCustomIdea(idea)
+      setInternalSelectedTemplate('')
+    }
   }
 
   const switchMode = (newMode: 'template' | 'custom') => {
     setMode(newMode)
     if (newMode === 'template') {
-      setCustomIdea('')
-      updateProjectData({ customIdea: undefined })
+      handleCustomIdea('')
     } else {
-      setSelectedTemplate('')
-      updateProjectData({ template: undefined })
+      selectTemplate('')
     }
   }
 

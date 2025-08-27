@@ -26,6 +26,7 @@ export interface TemplateStackMapping {
     backend: string[]
     database: string[]
     aiService: string[]
+    secretSauce: string[]
   }
   requiredFeatures: string[]
   avoidFeatures: string[]
@@ -319,6 +320,247 @@ export const STACK_DATABASE: Record<string, StackItem[]> = {
       timeComplexity: -0.3,
       learnCurve: 0.8
     }
+  ],
+
+  secretSauce: [
+    {
+      id: 'resend',
+      name: 'Resend',
+      description: 'Modern email API for developers',
+      difficulty: 'Beginner',
+      popular: true,
+      logo: getCachedLogoUrl('resend.com', '32', 'png'),
+      templateRelevance: {
+        'ai-lead-scorer': 0.9,
+        'booking-system': 0.8,
+        'viral-waitlist': 0.9,
+        'quote-generator': 0.7
+      },
+      tags: ['email', 'transactional', 'marketing'],
+      timeComplexity: 0.5,
+      learnCurve: 1.1
+    },
+    {
+      id: 'mailchimp',
+      name: 'Mailchimp',
+      description: 'Email marketing automation platform',
+      difficulty: 'Beginner',
+      popular: true,
+      logo: getCachedLogoUrl('mailchimp.com', '32', 'png'),
+      templateRelevance: {
+        'ai-lead-scorer': 0.8,
+        'booking-system': 0.6,
+        'viral-waitlist': 0.9,
+        'quote-generator': 0.5
+      },
+      tags: ['email-marketing', 'automation', 'lists'],
+      timeComplexity: 0.7,
+      learnCurve: 1.3
+    },
+    {
+      id: 'stripe',
+      name: 'Stripe',
+      description: 'Complete payments infrastructure',
+      difficulty: 'Intermediate',
+      popular: true,
+      logo: getCachedLogoUrl('stripe.com', '32', 'png'),
+      templateRelevance: {
+        'ai-lead-scorer': 0.3,
+        'booking-system': 0.9,
+        'viral-waitlist': 0.2,
+        'quote-generator': 0.8
+      },
+      tags: ['payments', 'subscriptions', 'billing'],
+      timeComplexity: 1.2,
+      learnCurve: 1.8
+    },
+    {
+      id: 'google-analytics',
+      name: 'Google Analytics 4',
+      description: 'Web analytics and insights',
+      difficulty: 'Beginner',
+      popular: true,
+      logo: getCachedLogoUrl('analytics.google.com', '32', 'png'),
+      templateRelevance: {
+        'ai-lead-scorer': 0.8,
+        'booking-system': 0.7,
+        'viral-waitlist': 0.8,
+        'quote-generator': 0.6
+      },
+      tags: ['analytics', 'tracking', 'insights'],
+      timeComplexity: 0.3,
+      learnCurve: 1.0
+    },
+    {
+      id: 'posthog',
+      name: 'PostHog',
+      description: 'Product analytics & feature flags',
+      difficulty: 'Intermediate',
+      popular: false,
+      logo: getCachedLogoUrl('posthog.com', '32', 'png'),
+      templateRelevance: {
+        'ai-lead-scorer': 0.7,
+        'booking-system': 0.8,
+        'viral-waitlist': 0.6,
+        'quote-generator': 0.5
+      },
+      tags: ['product-analytics', 'feature-flags', 'cohorts'],
+      timeComplexity: 0.8,
+      learnCurve: 1.5
+    },
+    {
+      id: 'mixpanel',
+      name: 'Mixpanel',
+      description: 'Advanced event tracking & analytics',
+      difficulty: 'Intermediate',
+      popular: false,
+      logo: getCachedLogoUrl('mixpanel.com', '32', 'png'),
+      templateRelevance: {
+        'ai-lead-scorer': 0.8,
+        'booking-system': 0.7,
+        'viral-waitlist': 0.9,
+        'quote-generator': 0.4
+      },
+      tags: ['event-tracking', 'funnel-analysis', 'retention'],
+      timeComplexity: 0.9,
+      learnCurve: 1.6
+    },
+    {
+      id: 'sendgrid',
+      name: 'SendGrid',
+      description: 'Enterprise email delivery platform',
+      difficulty: 'Intermediate',
+      popular: true,
+      logo: getCachedLogoUrl('sendgrid.com', '32', 'png'),
+      templateRelevance: {
+        'ai-lead-scorer': 0.8,
+        'booking-system': 0.7,
+        'viral-waitlist': 0.8,
+        'quote-generator': 0.6
+      },
+      tags: ['email-delivery', 'transactional', 'marketing'],
+      timeComplexity: 0.7,
+      learnCurve: 1.4
+    },
+    {
+      id: 'intercom',
+      name: 'Intercom',
+      description: 'Customer messaging platform',
+      difficulty: 'Beginner',
+      popular: false,
+      logo: getCachedLogoUrl('intercom.com', '32', 'png'),
+      templateRelevance: {
+        'ai-lead-scorer': 0.9,
+        'booking-system': 0.8,
+        'viral-waitlist': 0.3,
+        'quote-generator': 0.5
+      },
+      tags: ['customer-support', 'live-chat', 'messaging'],
+      timeComplexity: 0.4,
+      learnCurve: 1.1
+    },
+    {
+      id: 'crisp',
+      name: 'Crisp Chat',
+      description: 'Simple live chat widget',
+      difficulty: 'Beginner',
+      popular: false,
+      logo: getCachedLogoUrl('crisp.chat', '32', 'png'),
+      templateRelevance: {
+        'ai-lead-scorer': 0.7,
+        'booking-system': 0.8,
+        'viral-waitlist': 0.2,
+        'quote-generator': 0.4
+      },
+      tags: ['live-chat', 'simple', 'widget'],
+      timeComplexity: 0.2,
+      learnCurve: 0.9
+    },
+    {
+      id: 'hotjar',
+      name: 'Hotjar',
+      description: 'Heatmaps and user session recordings',
+      difficulty: 'Beginner',
+      popular: false,
+      logo: getCachedLogoUrl('hotjar.com', '32', 'png'),
+      templateRelevance: {
+        'ai-lead-scorer': 0.6,
+        'booking-system': 0.7,
+        'viral-waitlist': 0.8,
+        'quote-generator': 0.5
+      },
+      tags: ['heatmaps', 'session-recording', 'ux'],
+      timeComplexity: 0.3,
+      learnCurve: 1.0
+    },
+    {
+      id: 'sentry',
+      name: 'Sentry',
+      description: 'Error tracking and performance monitoring',
+      difficulty: 'Intermediate',
+      popular: true,
+      logo: getCachedLogoUrl('sentry.io', '32', 'png'),
+      templateRelevance: {
+        'ai-lead-scorer': 0.7,
+        'booking-system': 0.8,
+        'viral-waitlist': 0.6,
+        'quote-generator': 0.7
+      },
+      tags: ['error-tracking', 'monitoring', 'performance'],
+      timeComplexity: 0.5,
+      learnCurve: 1.2
+    },
+    {
+      id: 'logsnag',
+      name: 'LogSnag',
+      description: 'Simple event tracking for developers',
+      difficulty: 'Beginner',
+      popular: false,
+      logo: getCachedLogoUrl('logsnag.com', '32', 'png'),
+      templateRelevance: {
+        'ai-lead-scorer': 0.8,
+        'booking-system': 0.6,
+        'viral-waitlist': 0.7,
+        'quote-generator': 0.5
+      },
+      tags: ['event-logging', 'notifications', 'simple'],
+      timeComplexity: 0.2,
+      learnCurve: 0.8
+    },
+    {
+      id: 'cal-com',
+      name: 'Cal.com',
+      description: 'Open source scheduling platform',
+      difficulty: 'Intermediate',
+      popular: false,
+      logo: getCachedLogoUrl('cal.com', '32', 'png'),
+      templateRelevance: {
+        'ai-lead-scorer': 0.6,
+        'booking-system': 0.9,
+        'viral-waitlist': 0.1,
+        'quote-generator': 0.3
+      },
+      tags: ['scheduling', 'calendar', 'open-source'],
+      timeComplexity: 0.8,
+      learnCurve: 1.4
+    },
+    {
+      id: 'none-marketing',
+      name: 'No Marketing Tools',
+      description: 'Just core functionality',
+      difficulty: 'Beginner',
+      popular: false,
+      logo: '',
+      templateRelevance: {
+        'ai-lead-scorer': 0.2,
+        'booking-system': 0.3,
+        'viral-waitlist': 0.1,
+        'quote-generator': 0.4
+      },
+      tags: ['minimal', 'core-only'],
+      timeComplexity: 0,
+      learnCurve: 0.8
+    }
   ]
 }
 
@@ -331,7 +573,8 @@ export const TEMPLATE_STACK_MAPPINGS: Record<string, TemplateStackMapping> = {
       frontend: ['nextjs', 'react'],
       backend: ['nextjs-api', 'serverless'],
       database: ['supabase', 'planetscale'],
-      aiService: ['openai', 'anthropic', 'openrouter']
+      aiService: ['openai', 'anthropic', 'openrouter'],
+      secretSauce: ['resend', 'intercom', 'google-analytics', 'sentry']
     },
     requiredFeatures: ['ai-processing', 'csv-upload', 'data-analysis'],
     avoidFeatures: ['no-ai', 'local-only'],
@@ -345,7 +588,8 @@ export const TEMPLATE_STACK_MAPPINGS: Record<string, TemplateStackMapping> = {
       frontend: ['nextjs', 'react'],
       backend: ['nextjs-api', 'serverless'],
       database: ['supabase', 'firebase'],
-      aiService: ['none', 'openai']
+      aiService: ['none', 'openai'],
+      secretSauce: ['stripe', 'cal-com', 'resend', 'google-analytics']
     },
     requiredFeatures: ['calendar', 'email', 'crm-integration'],
     avoidFeatures: ['local-only', 'no-backend'],
@@ -359,7 +603,8 @@ export const TEMPLATE_STACK_MAPPINGS: Record<string, TemplateStackMapping> = {
       frontend: ['react', 'nextjs', 'vue'],
       backend: ['serverless', 'nextjs-api'],
       database: ['firebase', 'supabase'],
-      aiService: ['none']
+      aiService: ['none'],
+      secretSauce: ['mailchimp', 'mixpanel', 'hotjar', 'logsnag']
     },
     requiredFeatures: ['realtime', 'referral-system', 'simple-ui'],
     avoidFeatures: ['complex-ai', 'heavy-backend'],
@@ -373,7 +618,8 @@ export const TEMPLATE_STACK_MAPPINGS: Record<string, TemplateStackMapping> = {
       frontend: ['nextjs', 'react'],
       backend: ['nextjs-api', 'serverless'],
       database: ['supabase', 'local'],
-      aiService: ['none', 'openai']
+      aiService: ['none', 'openai'],
+      secretSauce: ['stripe', 'resend', 'google-analytics', 'sentry']
     },
     requiredFeatures: ['pdf-generation', 'email', 'calculations'],
     avoidFeatures: ['realtime', 'complex-auth'],
@@ -435,22 +681,47 @@ export function getRelevantStackOptions(
     return result
   }
 
-  // Fallback to complex scoring for custom ideas
+  // Use AI for custom ideas - this will be handled by async function
+  if (customIdea && !templateId) {
+    console.log(`🤖 AI-powered suggestions needed for custom idea: "${customIdea}" (${stackType})`)
+    // For now, return popular options with basic keyword matching
+    // The AI suggestions will be loaded asynchronously by the component
+    const keywords = customIdea.toLowerCase().split(' ')
+    let scoredOptions = allOptions.map(option => {
+      let score = 0
+      
+      // Basic keyword matching
+      const matchingTags = option.tags.filter(tag => 
+        keywords.some(keyword => keyword.includes(tag) || tag.includes(keyword))
+      ).length
+      score += (matchingTags / option.tags.length) * 0.6
+      
+      // Popularity bonus
+      if (option.popular) score += 0.4
+      
+      return { ...option, relevanceScore: score }
+    })
+    
+    // Filter and sort
+    scoredOptions = scoredOptions.filter(option => 
+      option.relevanceScore >= 0.2 || option.popular
+    )
+    
+    const result = scoredOptions
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .slice(0, 6)
+    
+    console.log(`🔍 Basic matching for custom idea "${customIdea}": ${result.length} options (${(performance.now() - startTime).toFixed(1)}ms)`)
+    return result
+  }
+
+  // Fallback to complex scoring for templates
   let scoredOptions = allOptions.map(option => {
     let score = 0
     
     // Template relevance scoring
     if (templateId && option.templateRelevance[templateId]) {
       score += option.templateRelevance[templateId] * 0.8
-    }
-    
-    // Custom idea keyword matching (simplified)
-    if (customIdea && !templateId) {
-      const keywords = customIdea.toLowerCase().split(' ')
-      const matchingTags = option.tags.filter(tag => 
-        keywords.some(keyword => keyword.includes(tag) || tag.includes(keyword))
-      ).length
-      score += (matchingTags / option.tags.length) * 0.6
     }
     
     // Dependency compatibility
@@ -484,6 +755,120 @@ export function getRelevantStackOptions(
   return scoredOptions
     .sort((a, b) => b.relevanceScore - a.relevanceScore)
     .slice(0, 6) // Limit to top 6 options
+}
+
+// AI-powered stack suggestions for custom ideas
+export async function getAIStackSuggestions(
+  customIdea: string,
+  stackType?: keyof typeof STACK_DATABASE
+): Promise<Record<string, StackItem[]> | StackItem[]> {
+  console.log(`🤖 Getting AI suggestions for: "${customIdea}"`)
+  
+  try {
+    // Get available options for context
+    const availableStacks = stackType 
+      ? { [stackType]: STACK_DATABASE[stackType] }
+      : STACK_DATABASE
+    
+    // Create a simplified list for AI to choose from
+    const stackOptions = Object.entries(availableStacks).reduce((acc, [category, options]) => {
+      acc[category] = options.map(opt => ({
+        id: opt.id,
+        name: opt.name,
+        description: opt.description,
+        tags: opt.tags,
+        difficulty: opt.difficulty,
+        popular: opt.popular
+      }))
+      return acc
+    }, {} as Record<string, any[]>)
+
+    const response = await fetch('/api/ai/stack-suggestions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customIdea,
+        availableStacks: stackOptions,
+        requestedCategory: stackType
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`AI API failed: ${response.status}`)
+    }
+
+    const aiSuggestions = await response.json()
+    
+    // Convert AI response back to full StackItem objects
+    if (stackType) {
+      // Single category request
+      const suggestions = aiSuggestions.suggestions?.map((suggestion: any) => 
+        STACK_DATABASE[stackType].find(item => item.id === suggestion.id)
+      ).filter(Boolean) || []
+      
+      console.log(`🎯 AI suggested ${suggestions.length} ${stackType} options`)
+      return suggestions
+    } else {
+      // All categories request
+      const result: Record<string, StackItem[]> = {}
+      Object.entries(aiSuggestions.categories || {}).forEach(([category, suggestions]: [string, any]) => {
+        const categoryKey = category as keyof typeof STACK_DATABASE
+        result[categoryKey] = (suggestions as any[])?.map(suggestion => 
+          STACK_DATABASE[categoryKey].find(item => item.id === suggestion.id)
+        ).filter(Boolean) || []
+      })
+      
+      console.log(`🎯 AI suggested options for ${Object.keys(result).length} categories`)
+      return result
+    }
+    
+  } catch (error) {
+    console.error('AI stack suggestions failed:', error)
+    
+    // Fallback to enhanced keyword matching
+    if (stackType) {
+      return getEnhancedKeywordMatching(customIdea, stackType)
+    } else {
+      const result: Record<string, StackItem[]> = {}
+      Object.keys(STACK_DATABASE).forEach(category => {
+        const categoryKey = category as keyof typeof STACK_DATABASE
+        result[categoryKey] = getEnhancedKeywordMatching(customIdea, categoryKey)
+      })
+      return result
+    }
+  }
+}
+
+function getEnhancedKeywordMatching(customIdea: string, stackType: keyof typeof STACK_DATABASE): StackItem[] {
+  const keywords = customIdea.toLowerCase().split(/\s+/)
+  const allOptions = STACK_DATABASE[stackType]
+  
+  const scoredOptions = allOptions.map(option => {
+    let score = 0
+    
+    // Enhanced keyword matching
+    keywords.forEach(keyword => {
+      // Check name
+      if (option.name.toLowerCase().includes(keyword)) score += 0.8
+      // Check description  
+      if (option.description.toLowerCase().includes(keyword)) score += 0.6
+      // Check tags
+      if (option.tags.some(tag => tag.includes(keyword) || keyword.includes(tag))) score += 0.4
+    })
+    
+    // Popularity bonus
+    if (option.popular) score += 0.3
+    
+    // Difficulty bonus for beginners
+    if (option.difficulty === 'Beginner') score += 0.2
+    
+    return { ...option, relevanceScore: score }
+  })
+  
+  return scoredOptions
+    .filter(option => option.relevanceScore > 0.1 || option.popular)
+    .sort((a, b) => b.relevanceScore - a.relevanceScore)
+    .slice(0, 6)
 }
 
 // AI recommendation system

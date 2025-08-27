@@ -47,6 +47,14 @@
     animation: slideUp 1s ease-out forwards;
     opacity: 0;
   }
+
+  .animate-float {
+    animation: float 20s ease-in-out infinite;
+  }
+
+  .animate-drift {
+    animation: drift 15s linear infinite;
+  }
 }
 
 @keyframes twinkle {
@@ -89,5 +97,23 @@
   to { 
     opacity: 1; 
     transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% { 
+    transform: rotate(45deg) translateY(0px);
+  }
+  50% { 
+    transform: rotate(45deg) translateY(-20px);
+  }
+}
+
+@keyframes drift {
+  0% { 
+    transform: translateX(-100px);
+  }
+  100% { 
+    transform: translateX(100vw);
   }
 }
