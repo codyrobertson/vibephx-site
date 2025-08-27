@@ -99,11 +99,13 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
 
   const startGeneration = async () => {
     setError(null)
+    setCurrentStep(0)
 
-    // Start all generations in parallel
+    // Generate documents sequentially for better UX
     for (let i = 0; i < GENERATION_STEPS.length; i++) {
       const step = GENERATION_STEPS[i]
-      generateDocument(step.id, i)
+      setCurrentStep(i)
+      await generateDocument(step.id, i)
     }
   }
 
@@ -198,18 +200,6 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
                   }))
                   
                   setCompletedSteps(prev => new Set([...prev, documentType]))
-                  
-                  // Check if all steps are complete
-                  if (completedSteps.size + 1 >= GENERATION_STEPS.length) {
-                    const generated: Record<string, string> = {}
-                    GENERATION_STEPS.forEach(step => {
-                      generated[step.id] = streamingContent[step.id]?.content || data.content
-                    })
-                    generated[documentType] = data.content
-                    
-                    updateProjectData({ generated })
-                    setTimeout(() => onComplete(), 1000)
-                  }
                   break
 
                 case 'error':
@@ -244,6 +234,19 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
       }
     } finally {
       activeConnections.current.delete(documentType)
+      
+      // Check if this was the last step
+      if (stepIndex === GENERATION_STEPS.length - 1) {
+        // All steps complete - collect generated content
+        const generated: Record<string, string> = {}
+        GENERATION_STEPS.forEach(step => {
+          const content = streamingContent[step.id]?.content || ''
+          generated[step.id] = content
+        })
+        
+        updateProjectData({ generated })
+        setTimeout(() => onComplete(), 1000)
+      }
     }
   }
 
@@ -307,7 +310,9 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
           const IconComponent = step.icon
           const stepContent = streamingContent[step.id]
           const isCompleted = completedSteps.has(step.id)
-          const isGenerating = stepContent?.isGenerating || false
+          const isCurrent = index === currentStep
+          const isGenerating = stepContent?.isGenerating || (isCurrent && !isCompleted)
+          const isPending = index > currentStep
           const isExpanded = expandedCards.has(step.id)
           const hasContent = stepContent?.content && stepContent.content.length > 0
 
@@ -318,6 +323,7 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
                 transition-all duration-300 hover:scale-[1.02]
                 ${isCompleted ? 'border-green-500 bg-green-950/10' :
                   isGenerating ? 'border-orange-500 bg-orange-950/10' :
+                  isPending ? 'border-gray-800/50 bg-gray-900/30' :
                   'border-gray-800 hover:border-gray-700'
                 }
               `}
@@ -329,6 +335,7 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
                   w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors
                   ${isCompleted ? 'bg-green-500' :
                     isGenerating ? 'bg-orange-500' :
+                    isPending ? 'bg-gray-700' :
                     'bg-gray-800'
                   }
                 `}>
@@ -336,6 +343,8 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
                     <CheckIcon className="w-6 h-6 text-black" />
                   ) : isGenerating ? (
                     <ReloadIcon className="w-6 h-6 animate-spin text-black" />
+                  ) : isPending ? (
+                    <IconComponent className="w-6 h-6 text-gray-500" />
                   ) : (
                     <IconComponent className="w-6 h-6 text-gray-400" />
                   )}
@@ -414,8 +423,8 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
               {/* Empty State */}
               {!hasContent && !isGenerating && (
                 <div className="text-center py-8 text-gray-500">
-                  <div className="text-2xl mb-2">⏳</div>
-                  <p className="text-sm">Waiting to start generation...</p>
+                  <div className="text-2xl mb-2">{isPending ? '⏸️' : '⏳'}</div>
+                  <p className="text-sm">{isPending ? 'Waiting in queue...' : 'Ready to generate...'}</p>
                 </div>
               )}
             </Card>

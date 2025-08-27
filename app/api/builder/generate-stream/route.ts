@@ -695,15 +695,15 @@ When using Cursor's AI assistance:
 }
 
 // Function to get cached content from cookies
-function getCachedContent(sessionId: string, docType: string): string | null {
-  const cookieStore = cookies()
+async function getCachedContent(sessionId: string, docType: string): Promise<string | null> {
+  const cookieStore = await cookies()
   const cacheKey = `gen_${sessionId}_${docType}`
   return cookieStore.get(cacheKey)?.value || null
 }
 
 // Function to cache content in cookies
-function setCachedContent(sessionId: string, docType: string, content: string): void {
-  const cookieStore = cookies()
+async function setCachedContent(sessionId: string, docType: string, content: string): Promise<void> {
+  const cookieStore = await cookies()
   const cacheKey = `gen_${sessionId}_${docType}`
   // Store with 24 hour expiration
   cookieStore.set(cacheKey, content, { 
@@ -714,8 +714,8 @@ function setCachedContent(sessionId: string, docType: string, content: string): 
 }
 
 // Generate session ID if not provided
-function getOrCreateSessionId(request: NextRequest): string {
-  const cookieStore = cookies()
+async function getOrCreateSessionId(request: NextRequest): Promise<string> {
+  const cookieStore = await cookies()
   const existingSession = cookieStore.get('gen_session_id')?.value
   
   if (existingSession) {
@@ -739,10 +739,10 @@ export async function POST(req: NextRequest) {
     const { projectData, documentType } = await req.json()
     
     // Get or create session ID
-    const sessionId = getOrCreateSessionId(req)
+    const sessionId = await getOrCreateSessionId(req)
     
     // Check cache first
-    const cachedContent = getCachedContent(sessionId, documentType)
+    const cachedContent = await getCachedContent(sessionId, documentType)
     if (cachedContent) {
       // Return cached content immediately as a stream
       const stream = new ReadableStream({
@@ -845,7 +845,7 @@ Generate a comprehensive, well-structured document in Markdown format.`
           }
 
           // Cache the generated content
-          setCachedContent(sessionId, documentType, content)
+          await setCachedContent(sessionId, documentType, content)
 
           // Stream the content word by word
           const words = content.split(' ')
