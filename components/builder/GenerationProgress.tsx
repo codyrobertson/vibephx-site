@@ -182,21 +182,28 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
+  const [stuckSteps, setStuckSteps] = useState<Set<string>>(new Set())
+  const [canForceComplete, setCanForceComplete] = useState(false)
   const activeConnections = useRef<Map<string, AbortController>>(new Map())
+  const stepTimers = useRef<Map<string, NodeJS.Timeout>>(new Map())
 
   useEffect(() => {
     startGeneration()
     
-    // Cleanup function to abort any active connections
+    // Cleanup function to abort any active connections and clear timers
     return () => {
       activeConnections.current.forEach((controller) => controller.abort())
       activeConnections.current.clear()
+      stepTimers.current.forEach((timer) => clearTimeout(timer))
+      stepTimers.current.clear()
     }
   }, [])
 
   const startGeneration = async () => {
     setError(null)
     setCurrentStep(0)
+    setStuckSteps(new Set())
+    setCanForceComplete(false)
 
     // Generate documents sequentially for better UX
     for (let i = 0; i < GENERATION_STEPS.length; i++) {
@@ -204,12 +211,34 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
       setCurrentStep(i)
       await generateDocument(step.id, i)
     }
+    
+    // After all steps attempted, check if user can force complete
+    setTimeout(() => {
+      setCanForceComplete(true)
+    }, 5000)
   }
 
   const generateDocument = async (documentType: string, stepIndex: number) => {
     // Create abort controller for this request
     const abortController = new AbortController()
     activeConnections.current.set(documentType, abortController)
+
+    // Set up timeout to detect stuck generation (45 seconds)
+    const timeoutId = setTimeout(() => {
+      console.warn(`Document ${documentType} seems stuck, marking as stuck`)
+      setStuckSteps(prev => new Set([...prev, documentType]))
+      setStreamingContent(prev => ({
+        ...prev,
+        [documentType]: {
+          ...prev[documentType],
+          isGenerating: false,
+          isComplete: false
+        }
+      }))
+      abortController.abort()
+    }, 45000)
+    
+    stepTimers.current.set(documentType, timeoutId)
 
     try {
       setStreamingContent(prev => ({
@@ -312,17 +341,36 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
                 break
 
               case 'complete':
-                setStreamingContent(prev => ({
-                  ...prev,
-                  [documentType]: {
-                    content: data.content,
-                    isGenerating: false,
-                    isComplete: true,
-                    isFromCache: prev[documentType]?.isFromCache || false
+                // Only mark as complete if we have actual content
+                if (data.content && data.content.trim().length > 0) {
+                  setStreamingContent(prev => ({
+                    ...prev,
+                    [documentType]: {
+                      content: data.content,
+                      isGenerating: false,
+                      isComplete: true,
+                      isFromCache: prev[documentType]?.isFromCache || false
+                    }
+                  }))
+                  
+                  setCompletedSteps(prev => new Set([...prev, documentType]))
+                  
+                  // Clear timeout since we completed successfully
+                  const timer = stepTimers.current.get(documentType)
+                  if (timer) {
+                    clearTimeout(timer)
+                    stepTimers.current.delete(documentType)
                   }
-                }))
-                
-                setCompletedSteps(prev => new Set([...prev, documentType]))
+                  
+                  // Auto-collapse completed cards
+                  setExpandedCards(prev => {
+                    const newSet = new Set(prev)
+                    newSet.delete(documentType)
+                    return newSet
+                  })
+                } else {
+                  console.warn(`Document ${documentType} marked complete but has no content`)
+                }
                 break
 
               case 'error':
@@ -357,9 +405,16 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
     } finally {
       activeConnections.current.delete(documentType)
       
+      // Clear timeout on completion or error
+      const timer = stepTimers.current.get(documentType)
+      if (timer) {
+        clearTimeout(timer)
+        stepTimers.current.delete(documentType)
+      }
+      
       // Check if this was the last step
       if (stepIndex === GENERATION_STEPS.length - 1) {
-        // All steps complete - collect generated content
+        // All steps attempted - collect generated content
         const generated: Record<string, string> = {}
         GENERATION_STEPS.forEach(step => {
           const content = streamingContent[step.id]?.content || ''
@@ -367,7 +422,14 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
         })
         
         updateProjectData({ generated })
-        setTimeout(() => onComplete(), 1000)
+        
+        // If we have at least some completed steps or enough content, allow completion
+        const hasMinimumContent = completedSteps.size >= Math.ceil(GENERATION_STEPS.length / 2) || 
+                                 Object.values(generated).some(content => content.length > 500)
+        
+        if (hasMinimumContent) {
+          setTimeout(() => onComplete(), 1000)
+        }
       }
     }
   }
@@ -389,12 +451,35 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
     setStreamingContent({})
     setError(null)
     setCurrentStep(0)
+    setStuckSteps(new Set())
+    setCanForceComplete(false)
     
-    // Abort any existing connections
+    // Abort any existing connections and clear timers
     activeConnections.current.forEach((controller) => controller.abort())
     activeConnections.current.clear()
+    stepTimers.current.forEach((timer) => clearTimeout(timer))
+    stepTimers.current.clear()
     
     startGeneration()
+  }
+
+  const forceComplete = () => {
+    // Collect whatever content we have
+    const generated: Record<string, string> = {}
+    GENERATION_STEPS.forEach(step => {
+      const content = streamingContent[step.id]?.content || ''
+      generated[step.id] = content
+    })
+    
+    updateProjectData({ generated })
+    
+    // Abort any remaining connections
+    activeConnections.current.forEach((controller) => controller.abort())
+    activeConnections.current.clear()
+    stepTimers.current.forEach((timer) => clearTimeout(timer))
+    stepTimers.current.clear()
+    
+    onComplete()
   }
 
   const totalEstimatedTime = GENERATION_STEPS.reduce((sum, step) => sum + step.estimatedTime, 0)
@@ -419,7 +504,7 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-12 py-8">
       {/* Header */}
       <div className="text-center">
         <h3 className="text-2xl font-bold mb-4">
@@ -451,32 +536,35 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
           const stepContent = streamingContent[step.id]
           const isCompleted = completedSteps.has(step.id)
           const isCurrent = index === currentStep
-          const isGenerating = stepContent?.isGenerating || (isCurrent && !isCompleted)
+          const isStuck = stuckSteps.has(step.id)
+          const isGenerating = stepContent?.isGenerating || (isCurrent && !isCompleted && !isStuck)
           const isPending = index > currentStep
           const isExpanded = expandedCards.has(step.id)
           const hasContent = stepContent?.content && stepContent.content.length > 0
 
-          // Only show current step, completed steps briefly, or if expanded
-          if (!isCurrent && !isCompleted && !isExpanded) return null
+          // Show current step, completed steps, stuck steps, and manually expanded steps
+          if (!isCurrent && !isCompleted && !isStuck && !isExpanded) return null
 
           return (
             <Card
               key={step.id}
               className={`
-                transition-all duration-300 hover:scale-[1.02]
+                transition-all duration-300 hover:scale-[1.02] mb-6
                 ${isCompleted ? 'border-green-500 bg-green-950/10' :
+                  isStuck ? 'border-red-500/70 bg-red-950/10' :
                   isGenerating ? 'border-orange-500 bg-orange-950/10' :
                   isPending ? 'border-gray-800/50 bg-gray-900/30' :
                   'border-gray-800 hover:border-gray-700'
                 }
               `}
-              padding="lg"
+              padding="xl"
             >
               {/* Card Header */}
-              <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center gap-4 mb-6">
                 <div className={`
                   w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors
                   ${isCompleted ? 'bg-green-500' :
+                    isStuck ? 'bg-red-500' :
                     isGenerating ? 'bg-orange-500' :
                     isPending ? 'bg-gray-700' :
                     'bg-gray-800'
@@ -484,6 +572,8 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
                 `}>
                   {isCompleted ? (
                     <CheckIcon className="w-6 h-6 text-black" />
+                  ) : isStuck ? (
+                    <span className="w-6 h-6 text-black font-bold">⚠</span>
                   ) : isGenerating ? (
                     <ReloadIcon className="w-6 h-6 animate-spin text-black" />
                   ) : isPending ? (
@@ -509,8 +599,8 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
                   )}
                 </div>
 
-                {/* Expand/Collapse Button */}
-                {hasContent && (
+                {/* Expand/Collapse Button - only for completed cards with content */}
+                {hasContent && isCompleted && (
                   <button
                     onClick={() => toggleCardExpanded(step.id)}
                     className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
@@ -526,7 +616,7 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
 
               {/* Generation Status */}
               {isGenerating && (
-                <div className="mb-4">
+                <div className="mb-6">
                   <div className="flex items-center gap-2 text-xs text-orange-400">
                     <ReloadIcon className="w-3 h-3 animate-spin" />
                     {stepContent?.isFromCache ? 'Loading from cache...' : 'Generating content...'}
@@ -534,9 +624,19 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
                 </div>
               )}
 
-              {/* Streaming Content Display */}
-              {hasContent && (
-                <div className="space-y-3">
+              {/* Stuck Status */}
+              {isStuck && (
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 text-xs text-red-400">
+                    <span>⚠</span>
+                    Generation timed out - this document may be skipped
+                  </div>
+                </div>
+              )}
+
+              {/* Streaming Content Display - only show for current generating step or manually expanded */}
+              {hasContent && (isCurrent || isExpanded) && (
+                <div className="space-y-4">
                   <div className={`
                     overflow-hidden transition-all duration-300
                     ${isCurrent ? 'max-h-96' : isExpanded ? 'max-h-96' : 'max-h-24'}
@@ -555,10 +655,19 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
                     <span>{Math.round(stepContent.content.length / 4)} words</span>
                     <span>
                       {isCompleted ? '✅ Complete' : 
+                       isStuck ? '⚠️ Timed out' :
                        isGenerating ? '⏳ Generating...' : 
                        '⏸️ Waiting...'}
                     </span>
                   </div>
+                </div>
+              )}
+
+              {/* Completed Card Compact View - show completion status for collapsed completed cards */}
+              {hasContent && isCompleted && !isExpanded && !isCurrent && (
+                <div className="flex justify-between items-center text-xs text-gray-500 pt-2 border-t border-gray-800">
+                  <span>{Math.round(stepContent.content.length / 4)} words generated</span>
+                  <span className="text-green-400">✅ Complete</span>
                 </div>
               )}
 
@@ -578,8 +687,7 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
           <div className="mt-8 p-6 bg-gray-900/30 rounded-lg border border-gray-800">
             <h3 className="text-lg font-semibold text-white mb-4">✅ Completed Documents ({completedSteps.size})</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {GENERATION_STEPS.filter((_, idx) => idx < currentStep || completedSteps.has(GENERATION_STEPS[idx].id)).map(step => {
-                const isCompleted = completedSteps.has(step.id)
+              {GENERATION_STEPS.filter(step => completedSteps.has(step.id)).map(step => {
                 const IconComponent = step.icon
                 return (
                   <button
@@ -587,12 +695,8 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
                     onClick={() => toggleCardExpanded(step.id)}
                     className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-800/50 transition-colors text-left"
                   >
-                    <div className={`w-6 h-6 rounded flex items-center justify-center ${isCompleted ? 'bg-green-500' : 'bg-gray-700'}`}>
-                      {isCompleted ? (
-                        <CheckIcon className="w-3 h-3 text-black" />
-                      ) : (
-                        <IconComponent className="w-3 h-3 text-gray-400" />
-                      )}
+                    <div className="w-6 h-6 rounded flex items-center justify-center bg-green-500">
+                      <CheckIcon className="w-3 h-3 text-black" />
                     </div>
                     <span className="text-sm text-gray-300 truncate">{step.name}</span>
                   </button>
@@ -614,6 +718,39 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
             >
               Retry Generation
             </button>
+          </div>
+        </Card>
+      )}
+
+      {/* Force Complete Option */}
+      {canForceComplete && completedSteps.size < GENERATION_STEPS.length && (
+        <Card className="border-yellow-800/30 bg-yellow-950/20">
+          <div className="text-center p-6">
+            <h4 className="text-lg font-semibold text-yellow-400 mb-2">
+              Some documents are taking longer than expected
+            </h4>
+            <p className="text-gray-300 mb-4">
+              You can continue with the {completedSteps.size} completed documents, or wait for the remaining ones to finish.
+              {stuckSteps.size > 0 && (
+                <><br /><span className="text-sm text-red-400">
+                  {stuckSteps.size} document{stuckSteps.size > 1 ? 's' : ''} timed out and may be incomplete.
+                </span></>
+              )}
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={forceComplete}
+                className="px-6 py-2 bg-green-500 hover:bg-green-600 text-black font-semibold rounded-lg transition-colors"
+              >
+                Continue with {completedSteps.size} Documents
+              </button>
+              <button
+                onClick={retryGeneration}
+                className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-black font-semibold rounded-lg transition-colors"
+              >
+                Retry All
+              </button>
+            </div>
           </div>
         </Card>
       )}
