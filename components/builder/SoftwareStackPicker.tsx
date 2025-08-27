@@ -436,10 +436,10 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
                 <h4 className="font-semibold mb-1">{combo.name}</h4>
                 <p className="text-xs text-gray-400 mb-3">{combo.description}</p>
                 <div className="space-y-1 text-xs">
-                  <div className="text-blue-400">Frontend: {techStacks.frontend.find(t => t.id === combo.stack.frontend)?.name}</div>
-                  <div className="text-green-400">Backend: {techStacks.backend.find(t => t.id === combo.stack.backend)?.name}</div>
-                  <div className="text-yellow-400">Database: {techStacks.database.find(t => t.id === combo.stack.database)?.name}</div>
-                  <div className="text-purple-400">AI: {techStacks.aiService.find(t => t.id === combo.stack.aiService)?.name}</div>
+                  <div className="text-blue-400">{techStacks.frontend.find(t => t.id === combo.stack.frontend)?.name}</div>
+                  <div className="text-green-400">{techStacks.backend.find(t => t.id === combo.stack.backend)?.name}</div>
+                  <div className="text-yellow-400">{techStacks.database.find(t => t.id === combo.stack.database)?.name}</div>
+                  <div className="text-purple-400">{techStacks.aiService.find(t => t.id === combo.stack.aiService)?.name}</div>
                 </div>
               </div>
             ))}
@@ -488,7 +488,8 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
                 </div>
               )}
               
-              {stackSuggestions?.aiRecommendations?.[category] && (
+              {stackSuggestions?.aiRecommendations?.[category] && 
+               !selectedStack[category as keyof typeof selectedStack] && (
                 <div className="flex items-center gap-2 px-3 py-1 bg-purple-500/20 rounded-full">
                   <MagicWandIcon className="w-4 h-4 text-purple-400" />
                   <span className="text-sm text-purple-400">
@@ -506,16 +507,34 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
                     console.log('Tech clicked:', tech.id, 'category:', category)
                     selectTech(category as keyof typeof techStacks, tech.id)
                   }}
-                  className={`
-                    w-full p-4 border rounded-lg cursor-pointer transition-colors select-none relative z-10
-                    ${selectedStack[category as keyof typeof selectedStack] === tech.id
-                      ? 'border-orange-500 bg-orange-950/20'
-                      : stackSuggestions?.aiRecommendations?.[category] === tech.id
-                      ? 'border-purple-500 bg-purple-950/20 hover:bg-purple-900/30'
-                      : 'border-gray-800 hover:border-gray-600 hover:bg-gray-800/30'
+                  className={(() => {
+                    const isSelected = selectedStack[category as keyof typeof selectedStack] === tech.id
+                    const isAIRecommended = stackSuggestions?.aiRecommendations?.[category] === tech.id
+                    const hasHighRelevance = tech.relevanceScore && tech.relevanceScore > 0.7
+                    const categoryHasSelection = !!selectedStack[category as keyof typeof selectedStack]
+                    
+                    let className = 'w-full p-4 border rounded-lg cursor-pointer transition-colors select-none relative z-10 '
+                    
+                    if (isSelected) {
+                      // Selected item - bright and prominent
+                      className += 'border-orange-500 bg-orange-950/20'
+                    } else if (categoryHasSelection) {
+                      // Category has a selection but this isn't it - muted
+                      className += 'border-gray-800/50 bg-gray-900/30 opacity-50 hover:opacity-70 hover:border-gray-700/50'
+                    } else if (isAIRecommended) {
+                      // No selection yet, show AI recommendation
+                      className += 'border-purple-500 bg-purple-950/20 hover:bg-purple-900/30'
+                    } else {
+                      // Default state - no selection in category
+                      className += 'border-gray-800 hover:border-gray-600 hover:bg-gray-800/30'
                     }
-                    ${tech.relevanceScore && tech.relevanceScore > 0.7 ? 'ring-1 ring-blue-500/30' : ''}
-                  `}
+                    
+                    if (hasHighRelevance && !categoryHasSelection) {
+                      className += ' ring-1 ring-blue-500/30'
+                    }
+                    
+                    return className
+                  })()}
                   role="button"
                   tabIndex={0}
                 >

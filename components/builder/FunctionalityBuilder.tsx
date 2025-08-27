@@ -110,15 +110,7 @@ export default function FunctionalityBuilder({ projectData, updateProjectData }:
   }
 
   if (isAnalyzing) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <ReloadIcon className="w-8 h-8 animate-spin mx-auto mb-4 text-orange-400" />
-          <p className="text-lg font-semibold mb-2">AI is analyzing your project...</p>
-          <p className="text-gray-400">This may take a few seconds</p>
-        </div>
-      </div>
-    )
+    return <StreamingAnalysisView projectData={projectData} />
   }
 
   if (error) {
@@ -308,6 +300,117 @@ export default function FunctionalityBuilder({ projectData, updateProjectData }:
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// Streaming Analysis View Component
+function StreamingAnalysisView({ projectData }: { projectData: ProjectData }) {
+  const [streamedContent, setStreamedContent] = useState<string>('')
+  const [isComplete, setIsComplete] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const startStreaming = async () => {
+      try {
+        const response = await fetch('/api/builder/analyze-stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectIdea: projectData.customIdea,
+            template: projectData.template,
+            selectedStack: projectData.stack
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error('Streaming failed')
+        }
+
+        const reader = response.body?.getReader()
+        if (!reader) {
+          throw new Error('No reader available')
+        }
+
+        const decoder = new TextDecoder()
+        let buffer = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          
+          if (done) {
+            setIsComplete(true)
+            break
+          }
+
+          const chunk = decoder.decode(value, { stream: true })
+          buffer += chunk
+
+          // Process SSE chunks
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || '' // Keep incomplete line in buffer
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6))
+                if (data.choices?.[0]?.delta?.content) {
+                  setStreamedContent(prev => prev + data.choices[0].delta.content)
+                }
+              } catch (e) {
+                // Skip malformed JSON
+              }
+            }
+          }
+        }
+      } catch (err) {
+        setError('Failed to stream analysis')
+        console.error('Streaming error:', err)
+      }
+    }
+
+    startStreaming()
+  }, [projectData])
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      {/* Streaming Container - Fixed Size */}
+      <div className="bg-black border border-gray-900 rounded-lg overflow-hidden h-[500px] flex flex-col">
+        {/* Terminal Header */}
+        <div className="flex items-center gap-2 px-4 py-3 bg-gray-950 border-b border-gray-900 flex-shrink-0">
+          <div className="flex gap-2">
+            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+          </div>
+          <span className="text-sm text-gray-500 ml-3 font-mono">Generating analysis/thoughts.md</span>
+        </div>
+
+        {/* Code Content with Gradient Scrim */}
+        <div className="flex-1 relative overflow-hidden">
+          <div className="absolute inset-0 p-6 font-mono text-sm overflow-y-auto bg-black">
+            {error ? (
+              <div className="text-red-400">Error: {error}</div>
+            ) : (
+              <div className="whitespace-pre-wrap text-gray-300">
+                {streamedContent}
+                {!isComplete && <span className="animate-pulse">|</span>}
+              </div>
+            )}
+          </div>
+          
+          {/* Gradient Scrim - fades content at bottom */}
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none"></div>
+        </div>
+
+        {/* Status Bar */}
+        <div className="px-6 py-3 bg-black border-t border-gray-900 flex-shrink-0">
+          <div className="flex justify-between text-xs text-gray-500">
+            <span>{isComplete ? 'Analysis Complete' : 'Streaming...'}</span>
+            <span>{streamedContent.length} characters</span>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

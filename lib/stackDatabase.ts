@@ -380,23 +380,60 @@ export const TEMPLATE_STACK_MAPPINGS: Record<string, TemplateStackMapping> = {
 }
 
 // Intelligent filtering function
+// Pre-computed recommendations cache for performance
+const TEMPLATE_RECOMMENDATIONS_CACHE: Record<string, Record<string, StackItem[]>> = {}
+
+// Initialize cache for all templates
+Object.keys(TEMPLATE_STACK_MAPPINGS).forEach(templateId => {
+  TEMPLATE_RECOMMENDATIONS_CACHE[templateId] = {}
+  
+  Object.keys(STACK_DATABASE).forEach(stackType => {
+    const allOptions = STACK_DATABASE[stackType as keyof typeof STACK_DATABASE]
+    
+    // Sort by template relevance score (descending)
+    const sorted = allOptions
+      .map(option => ({
+        ...option,
+        relevanceScore: option.templateRelevance[templateId] || 0
+      }))
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .slice(0, 6) // Keep top 6 most relevant
+    
+    TEMPLATE_RECOMMENDATIONS_CACHE[templateId][stackType] = sorted
+  })
+})
+
+console.log('📦 Stack suggestions cache initialized for', Object.keys(TEMPLATE_RECOMMENDATIONS_CACHE).length, 'templates')
+
 export function getRelevantStackOptions(
   templateId: string | undefined,
   customIdea: string | undefined,
   stackType: keyof typeof STACK_DATABASE,
   currentSelections: Record<string, string> = {}
 ): StackItem[] {
+  const startTime = performance.now()
+  
+  // Use cached recommendations for templates
+  if (templateId && TEMPLATE_RECOMMENDATIONS_CACHE[templateId]) {
+    const cached = TEMPLATE_RECOMMENDATIONS_CACHE[templateId][stackType] || []
+    console.log(`⚡ Fast cache lookup for ${templateId}/${stackType}: ${cached.length} options (${(performance.now() - startTime).toFixed(1)}ms)`)
+    return cached
+  }
+  
   const allOptions = STACK_DATABASE[stackType]
   
   if (!templateId && !customIdea) {
-    // No context - show popular options first
-    return allOptions.sort((a, b) => {
+    // No context - show popular options first (also cache this)
+    const result = allOptions.sort((a, b) => {
       if (a.popular && !b.popular) return -1
       if (!a.popular && b.popular) return 1
       return 0
     })
+    console.log(`📋 Popular options for ${stackType}: ${result.length} options (${(performance.now() - startTime).toFixed(1)}ms)`)
+    return result
   }
 
+  // Fallback to complex scoring for custom ideas
   let scoredOptions = allOptions.map(option => {
     let score = 0
     
@@ -453,6 +490,8 @@ export function getAIRecommendation(
   customIdea: string | undefined,
   currentSelections: Record<string, string> = {}
 ): Record<string, string> {
+  const startTime = performance.now()
+  
   if (!templateId && !customIdea) return {}
   
   const recommendations: Record<string, string> = {}
@@ -460,19 +499,14 @@ export function getAIRecommendation(
   if (templateId && TEMPLATE_STACK_MAPPINGS[templateId]) {
     const mapping = TEMPLATE_STACK_MAPPINGS[templateId]
     
-    // Get the highest scoring option for each stack type
+    // Use cached recommendations for speed
     Object.keys(mapping.optimalStacks).forEach(stackType => {
-      const relevantOptions = getRelevantStackOptions(
-        templateId, 
-        customIdea, 
-        stackType as keyof typeof STACK_DATABASE,
-        currentSelections
-      )
-      
-      if (relevantOptions.length > 0) {
-        recommendations[stackType] = relevantOptions[0].id
+      if (TEMPLATE_RECOMMENDATIONS_CACHE[templateId]?.[stackType]?.[0]) {
+        recommendations[stackType] = TEMPLATE_RECOMMENDATIONS_CACHE[templateId][stackType][0].id
       }
     })
+    
+    console.log(`⚡ AI recommendations for ${templateId}: ${Object.keys(recommendations).length} categories (${(performance.now() - startTime).toFixed(1)}ms)`)
   }
   
   return recommendations

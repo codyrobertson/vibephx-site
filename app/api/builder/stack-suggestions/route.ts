@@ -3,17 +3,24 @@ import { getRelevantStackOptions, getAIRecommendation, TEMPLATE_STACK_MAPPINGS }
 
 export async function POST(req: NextRequest) {
   try {
+    const requestStart = performance.now()
     const { templateId, customIdea, currentSelections } = await req.json()
     
-    console.log('Stack suggestions request:', { templateId, customIdea, hasCurrentSelections: !!currentSelections })
+    console.log('📊 Stack suggestions request:', { 
+      templateId, 
+      customIdea: customIdea ? `"${customIdea.slice(0, 50)}..."` : undefined,
+      hasCurrentSelections: !!currentSelections 
+    })
 
     // Get filtered stack options for each category
+    const suggestionsStart = performance.now()
     const suggestions = {
       frontend: getRelevantStackOptions(templateId, customIdea, 'frontend', currentSelections),
       backend: getRelevantStackOptions(templateId, customIdea, 'backend', currentSelections),
       database: getRelevantStackOptions(templateId, customIdea, 'database', currentSelections),
       aiService: getRelevantStackOptions(templateId, customIdea, 'aiService', currentSelections)
     }
+    console.log(`📋 Suggestions generated in ${(performance.now() - suggestionsStart).toFixed(1)}ms`)
 
     // Get AI recommendations
     const aiRecommendations = getAIRecommendation(templateId, customIdea, currentSelections)
@@ -33,9 +40,12 @@ export async function POST(req: NextRequest) {
       reasoning: generateReasoningText(templateId, customIdea, aiRecommendations)
     }
 
-    console.log('Generated stack suggestions:', {
+    const totalTime = performance.now() - requestStart
+    console.log('✅ Stack suggestions complete:', {
       totalOptions: Object.values(suggestions).reduce((sum, arr) => sum + arr.length, 0),
-      recommendationsCount: Object.keys(aiRecommendations).length
+      recommendationsCount: Object.keys(aiRecommendations).length,
+      totalTime: `${totalTime.toFixed(1)}ms`,
+      recommendations: aiRecommendations
     })
 
     return Response.json(response)

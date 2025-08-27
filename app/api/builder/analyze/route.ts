@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
          3. Can be copy-pasted and modified from AI tools
          4. Work without external dependencies or setup`
 
-    console.log('Calling OpenRouter API with model: anthropic/claude-3.5-sonnet')
+    console.log('Calling OpenRouter API with model: anthropic/claude-sonnet-4')
     console.log('Base URL:', 'https://openrouter.ai/api/v1/chat/completions')
     console.log('API Key prefix:', process.env.OPENROUTER_API_KEY?.substring(0, 10) + '...')
     
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
         'X-Title': process.env.OPENROUTER_SITE_NAME || 'VibePHX AI Builder',
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: 'anthropic/claude-sonnet-4',
         messages: [
           {
             role: 'user',
