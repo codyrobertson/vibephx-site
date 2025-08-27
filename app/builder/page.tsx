@@ -1,16 +1,8 @@
-import BuilderWizard from '@/components/builder/BuilderWizard'
+import { redirect } from 'next/navigation'
 
 export default function BuilderPage() {
-  return (
-    <div className="h-screen bg-black flex flex-col pt-8 md:pt-12">
-      <div className="container mx-auto px-4 flex-1 flex flex-col max-h-full overflow-hidden">
-        {/* Wizard - Takes full space */}
-        <div className="flex-1 overflow-hidden">
-          <BuilderWizard />
-        </div>
-      </div>
-    </div>
-  )
+  // Redirect to new route-based flow
+  redirect('/builder/template')
 }
 
 export const metadata = {
