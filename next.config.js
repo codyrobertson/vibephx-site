@@ -5,6 +5,8 @@ const nextConfig = {
       bodySizeLimit: '5mb',
     },
   },
+  // Allow cross-origin requests from local network for development
+  allowedDevOrigins: ['192.168.68.73:3003'],
   images: {
     remotePatterns: [
       {
