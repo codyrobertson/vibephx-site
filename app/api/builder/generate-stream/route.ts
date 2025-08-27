@@ -816,7 +816,7 @@ export async function POST(req: NextRequest) {
           const timeoutId = setTimeout(() => {
             console.log(`⏰ API call timeout for ${documentType}`)
             abortController.abort()
-          }, 30000) // 30 second timeout
+          }, 90000) // 90 second timeout - wait it out
           
           const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',

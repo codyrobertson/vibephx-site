@@ -231,9 +231,9 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
     const abortController = new AbortController()
     activeConnections.current.set(documentType, abortController)
 
-    // Set up timeout to detect stuck generation (60 seconds - generous for API calls)
+    // Set up timeout to detect stuck generation (2 minutes - wait it out)
     const timeoutId = setTimeout(() => {
-      console.warn(`⏰ Document ${documentType} taking too long (60s), marking as stuck`)
+      console.warn(`⏰ Document ${documentType} taking too long (2min), marking as stuck`)
       setStuckSteps(prev => new Set([...prev, documentType]))
       setStreamingContent(prev => ({
         ...prev,
@@ -244,7 +244,7 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
         }
       }))
       abortController.abort()
-    }, 60000)
+    }, 120000)
     
     stepTimers.current.set(documentType, timeoutId)
 
