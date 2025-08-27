@@ -1,3 +1,5 @@
+import { getCachedLogoUrl } from './logoCache'
+
 // Comprehensive tech stack database with intelligent template mappings
 export interface StackItem {
   id: string
@@ -39,7 +41,7 @@ export const STACK_DATABASE: Record<string, StackItem[]> = {
       description: 'React framework with SSR',
       difficulty: 'Intermediate',
       popular: true,
-      logo: 'https://img.logo.dev/nextjs.org?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      logo: getCachedLogoUrl('nextjs.org', '32', 'png'),
       templateRelevance: {
         'ai-lead-scorer': 0.9,
         'booking-system': 0.8,
@@ -56,7 +58,7 @@ export const STACK_DATABASE: Record<string, StackItem[]> = {
       description: 'Modern React with fast bundling',
       difficulty: 'Beginner',
       popular: true,
-      logo: 'https://img.logo.dev/react.dev?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      logo: getCachedLogoUrl('react.dev', '32', 'png'),
       templateRelevance: {
         'ai-lead-scorer': 0.7,
         'booking-system': 0.6,
@@ -73,7 +75,7 @@ export const STACK_DATABASE: Record<string, StackItem[]> = {
       description: 'Progressive JavaScript framework',
       difficulty: 'Beginner',
       popular: false,
-      logo: 'https://img.logo.dev/vuejs.org?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      logo: getCachedLogoUrl('vuejs.org', '32', 'png'),
       templateRelevance: {
         'ai-lead-scorer': 0.5,
         'booking-system': 0.6,
@@ -90,7 +92,7 @@ export const STACK_DATABASE: Record<string, StackItem[]> = {
       description: 'Pure JavaScript, no frameworks',
       difficulty: 'Beginner',
       popular: false,
-      logo: 'https://img.logo.dev/javascript.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      logo: getCachedLogoUrl('javascript.com', '32', 'png'),
       templateRelevance: {
         'ai-lead-scorer': 0.2,
         'booking-system': 0.1,
@@ -111,7 +113,7 @@ export const STACK_DATABASE: Record<string, StackItem[]> = {
       description: 'Built-in API with Next.js',
       difficulty: 'Beginner',
       popular: true,
-      logo: 'https://img.logo.dev/nextjs.org?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      logo: getCachedLogoUrl('nextjs.org', '32', 'png'),
       requires: ['nextjs'],
       templateRelevance: {
         'ai-lead-scorer': 0.9,
@@ -129,7 +131,7 @@ export const STACK_DATABASE: Record<string, StackItem[]> = {
       description: 'Simple cloud functions (Vercel/Netlify)',
       difficulty: 'Beginner',
       popular: true,
-      logo: 'https://img.logo.dev/vercel.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      logo: getCachedLogoUrl('vercel.com', '32', 'png'),
       templateRelevance: {
         'ai-lead-scorer': 0.8,
         'booking-system': 0.7,
@@ -146,7 +148,7 @@ export const STACK_DATABASE: Record<string, StackItem[]> = {
       description: 'Traditional Node.js server',
       difficulty: 'Intermediate',
       popular: false,
-      logo: 'https://img.logo.dev/nodejs.org?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      logo: getCachedLogoUrl('nodejs.org', '32', 'png'),
       templateRelevance: {
         'ai-lead-scorer': 0.6,
         'booking-system': 0.7,
@@ -163,7 +165,7 @@ export const STACK_DATABASE: Record<string, StackItem[]> = {
       description: 'Modern Python web framework',
       difficulty: 'Intermediate',
       popular: false,
-      logo: 'https://img.logo.dev/python.org?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      logo: getCachedLogoUrl('python.org', '32', 'png'),
       templateRelevance: {
         'ai-lead-scorer': 0.8,
         'booking-system': 0.4,
@@ -183,7 +185,7 @@ export const STACK_DATABASE: Record<string, StackItem[]> = {
       description: 'PostgreSQL with instant APIs',
       difficulty: 'Beginner',
       popular: true,
-      logo: 'https://img.logo.dev/supabase.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      logo: getCachedLogoUrl('supabase.com', '32', 'png'),
       templateRelevance: {
         'ai-lead-scorer': 0.9,
         'booking-system': 0.9,
@@ -200,7 +202,7 @@ export const STACK_DATABASE: Record<string, StackItem[]> = {
       description: 'NoSQL with real-time sync',
       difficulty: 'Beginner',
       popular: true,
-      logo: 'https://img.logo.dev/firebase.google.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      logo: getCachedLogoUrl('firebase.google.com', '32', 'png'),
       templateRelevance: {
         'ai-lead-scorer': 0.6,
         'booking-system': 0.7,
@@ -217,7 +219,7 @@ export const STACK_DATABASE: Record<string, StackItem[]> = {
       description: 'Browser-based storage (no backend needed)',
       difficulty: 'Beginner',
       popular: false,
-      logo: 'https://img.logo.dev/javascript.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      logo: getCachedLogoUrl('javascript.com', '32', 'png'),
       templateRelevance: {
         'ai-lead-scorer': 0.2,
         'booking-system': 0.1,
@@ -235,7 +237,7 @@ export const STACK_DATABASE: Record<string, StackItem[]> = {
       description: 'Serverless MySQL platform',
       difficulty: 'Intermediate',
       popular: false,
-      logo: 'https://img.logo.dev/planetscale.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      logo: getCachedLogoUrl('planetscale.com', '32', 'png'),
       templateRelevance: {
         'ai-lead-scorer': 0.7,
         'booking-system': 0.8,
@@ -255,7 +257,7 @@ export const STACK_DATABASE: Record<string, StackItem[]> = {
       description: 'Most capable AI models',
       difficulty: 'Beginner',
       popular: true,
-      logo: 'https://img.logo.dev/openai.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      logo: getCachedLogoUrl('openai.com', '32', 'png'),
       templateRelevance: {
         'ai-lead-scorer': 0.9,
         'booking-system': 0.3,
@@ -272,7 +274,7 @@ export const STACK_DATABASE: Record<string, StackItem[]> = {
       description: 'Excellent for analysis & reasoning',
       difficulty: 'Beginner',
       popular: true,
-      logo: 'https://img.logo.dev/anthropic.com?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      logo: getCachedLogoUrl('anthropic.com', '32', 'png'),
       templateRelevance: {
         'ai-lead-scorer': 0.9,
         'booking-system': 0.2,
@@ -289,7 +291,7 @@ export const STACK_DATABASE: Record<string, StackItem[]> = {
       description: 'Access to multiple AI models',
       difficulty: 'Intermediate',
       popular: false,
-      logo: 'https://img.logo.dev/openrouter.ai?token=pk_cJ_vQ1nNRM6nbN75WsWP3Q&size=32&format=png',
+      logo: getCachedLogoUrl('openrouter.ai', '32', 'png'),
       templateRelevance: {
         'ai-lead-scorer': 0.8,
         'booking-system': 0.2,

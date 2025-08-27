@@ -18,6 +18,12 @@ export type ProjectData = {
     database?: string
     aiService?: string
   }
+  aiRecommendations?: {
+    frontend?: string
+    backend?: string
+    database?: string
+    aiService?: string
+  }
   features: string[]
   deployment: {
     platform?: string
@@ -59,6 +65,15 @@ export default function BuilderWizard() {
 
   const nextStep = () => {
     if (currentStep < STEPS.length - 1) {
+      // If leaving stack step without manual selections, apply AI recommendations
+      if (currentStep === 1 && 
+          !projectData.stack.frontend && 
+          projectData.aiRecommendations && 
+          Object.keys(projectData.aiRecommendations).length > 0) {
+        console.log('Auto-applying AI recommendations before proceeding:', projectData.aiRecommendations)
+        updateProjectData({ stack: projectData.aiRecommendations })
+      }
+      
       setCurrentStep(currentStep + 1)
     }
   }
@@ -73,8 +88,9 @@ export default function BuilderWizard() {
     switch (currentStep) {
       case 0: // Template
         return projectData.template || projectData.customIdea
-      case 1: // Stack
-        return projectData.stack.frontend
+      case 1: // Stack - Allow proceeding if user selected OR if AI recommendations are available
+        return projectData.stack.frontend || 
+               (projectData.aiRecommendations && Object.keys(projectData.aiRecommendations).length > 0)
       case 2: // Features
         return projectData.features.length > 0
       case 3: // Deployment
@@ -141,17 +157,29 @@ export default function BuilderWizard() {
         </button>
 
         {currentStep < STEPS.length - 1 && (
-          <button
-            onClick={() => {
-              console.log('Next clicked, current step:', currentStep, 'can proceed:', canProceed())
-              nextStep()
-            }}
-            disabled={!canProceed() || isGenerating}
-            className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold rounded-lg transition-colors text-sm md:text-base"
-          >
-            Next
-            <ArrowRightIcon className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-4">
+            {/* Show guidance when AI recommendations are available but no manual selections made */}
+            {currentStep === 1 && 
+             projectData.aiRecommendations && 
+             Object.keys(projectData.aiRecommendations).length > 0 && 
+             !projectData.stack.frontend && (
+              <div className="text-sm text-purple-400 bg-purple-950/20 px-3 py-1 rounded-lg border border-purple-800/30">
+                ✨ AI recommendations ready - continue or make your own selections
+              </div>
+            )}
+            
+            <button
+              onClick={() => {
+                console.log('Next clicked, current step:', currentStep, 'can proceed:', canProceed())
+                nextStep()
+              }}
+              disabled={!canProceed() || isGenerating}
+              className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold rounded-lg transition-colors text-sm md:text-base"
+            >
+              Next
+              <ArrowRightIcon className="w-4 h-4" />
+            </button>
+          </div>
         )}
 
         {currentStep === STEPS.length - 1 && (

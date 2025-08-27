@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { RocketIcon, TargetIcon, MagicWandIcon, PlusIcon } from '@radix-ui/react-icons'
+import { Card, CardIcon, CardBadge, CardHeader, CardTitle, CardDescription, CardMeta, CardTags } from '@/components/ui/Card'
 import type { ProjectData } from './BuilderWizard'
 
 const TEMPLATES = [
@@ -117,61 +118,56 @@ export default function TemplateSelector({ projectData, updateProjectData }: Tem
           {TEMPLATES.map((template) => {
             const IconComponent = template.icon
             return (
-              <div
+              <Card
                 key={template.id}
+                background="code"
+                overlay="code"
+                state={selectedTemplate === template.id ? 'selected' : 'default'}
+                interactive="clickable"
+                size="lg"
                 onClick={() => {
                   console.log('Template clicked:', template.id)
                   selectTemplate(template.id)
                 }}
-                className={`
-                  w-full p-4 md:p-6 border rounded-lg cursor-pointer transition-colors select-none relative z-10
-                  ${selectedTemplate === template.id
-                    ? 'border-orange-500 bg-orange-950/20'
-                    : 'border-gray-800 hover:border-orange-500/50 hover:bg-gray-800/30'
-                  }
-                `}
-                role="button"
-                tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
                     selectTemplate(template.id)
                   }
                 }}
+                role="button"
+                tabIndex={0}
+                className="group hover:border-orange-500/50 transition-all duration-200 flex flex-col min-h-[220px] relative"
+                aria-label={`Select ${template.title} template`}
+                aria-selected={selectedTemplate === template.id}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                    <IconComponent className="w-8 h-8 text-orange-400" />
-                  </div>
-                  <div className={`px-2 py-1 rounded-full text-xs ${
-                    template.difficulty === 'Beginner-friendly' 
-                      ? 'bg-green-900/30 text-green-400' 
-                      : 'bg-yellow-900/30 text-yellow-400'
-                  }`}>
+                {/* Top Right: Badge */}
+                <div className="absolute top-4 right-4 z-30">
+                  <CardBadge 
+                    variant={template.difficulty === 'Beginner-friendly' ? 'success' : 'warning'}
+                  >
                     {template.difficulty}
-                  </div>
+                  </CardBadge>
+                </div>
+
+                {/* Top Left: Icon */}
+                <div className="flex justify-start px-6 pt-6">
+                  <CardIcon color="orange">
+                    <IconComponent className="w-full h-full" />
+                  </CardIcon>
                 </div>
                 
-                <h3 className="font-semibold mb-2 text-lg">{template.title}</h3>
-                <p className="text-orange-400 text-sm mb-3 font-medium">{template.description}</p>
-                <p className="text-gray-500 text-xs mb-4">{template.persona}</p>
-                
-                <div className="space-y-2 text-xs text-gray-400">
-                  <div className="flex items-center gap-2">
-                    <span>⏱️ {template.estimatedTime}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {template.features.slice(0, 3).map((feature, i) => (
-                      <span key={i} className="px-2 py-1 bg-gray-800 rounded text-xs">
-                        {feature}
-                      </span>
-                    ))}
-                    {template.features.length > 3 && (
-                      <span className="text-gray-500">+{template.features.length - 3}</span>
-                    )}
-                  </div>
+                {/* Middle: Title and Subtitle with more spacing */}
+                <div className="text-left space-y-3 px-6 pt-4 pb-6 flex-1">
+                  <CardTitle size="lg">
+                    {template.title}
+                  </CardTitle>
+                  
+                  <CardDescription color="gray">
+                    {template.description}
+                  </CardDescription>
                 </div>
-              </div>
+              </Card>
             )
           })}
           </div>

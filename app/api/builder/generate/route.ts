@@ -448,8 +448,8 @@ You are an experienced project manager and technical lead specializing in rapid 
 **Priority: Critical** | **Time: 15-30 min each**
 
 **Task: Development Environment Setup**
-- Description: Install dependencies, configure development tools, set up database
-- Acceptance Criteria: Can run `npm run dev` successfully, database connected
+- Description: Install dependencies, configure development tools, set up database  
+- Acceptance Criteria: Can run \`npm run dev\` successfully, database connected
 - Dependencies: None
 - Potential Blockers: Version conflicts, database connection issues
 - Success Metric: Local server running without errors
@@ -831,16 +831,16 @@ You are a senior technical lead creating comprehensive project documentation for
 - **AI Services**: Integration with AI APIs for enhanced functionality (if applicable)
 
 ### Project Structure
-```
+\`\`\`
 /
-├── app/                 # Next.js App Router (if applicable)
-├── components/          # Reusable UI components
-├── lib/                # Utility functions and configurations
-├── public/             # Static assets
-├── types/              # TypeScript type definitions
-├── utils/              # Helper functions
-└── README.md           # Project documentation
-```
+|-- app/                 # Next.js App Router (if applicable)
+|-- components/          # Reusable UI components  
+|-- lib/                # Utility functions and configurations
+|-- public/             # Static assets
+|-- types/              # TypeScript type definitions
+|-- utils/              # Helper functions
+\`-- README.md           # Project documentation
+\`\`\`
 
 ### Architectural Patterns
 - **Component Design**: Small, focused components with single responsibilities
@@ -852,7 +852,7 @@ You are a senior technical lead creating comprehensive project documentation for
 ## Coding Standards & Preferences
 
 ### TypeScript Guidelines
-- **Type Safety**: Prefer explicit types over `any`
+- **Type Safety**: Prefer explicit types over \`any\`
 - **Interface Design**: Use interfaces for object shapes, types for unions/primitives
 - **Generic Usage**: Leverage generics for reusable components and functions
 - **Null Safety**: Handle null/undefined explicitly with optional chaining
@@ -880,7 +880,7 @@ You are a senior technical lead creating comprehensive project documentation for
 - **Database**: snake_case for table/column names
 
 ### Import Organization
-```typescript
+\`\`\`typescript
 // 1. External library imports
 import React from 'react'
 import { NextRequest } from 'next/server'
@@ -891,10 +891,10 @@ import { validateInput } from '@/lib/validation'
 
 // 3. Relative imports
 import './styles.css'
-```
+\`\`\`
 
 ### Component Structure Template
-```typescript
+\`\`\`typescript
 'use client' // If client component
 
 import { useState } from 'react'
@@ -920,7 +920,7 @@ export default function ComponentName({ prop1, prop2 }: Props) {
     </div>
   )
 }
-```
+\`\`\`
 
 ## Common Patterns to Follow
 
@@ -953,7 +953,7 @@ export default function ComponentName({ prop1, prop2 }: Props) {
 ### ✅ DO
 - Write self-documenting code with clear variable names
 - Handle edge cases and error states explicitly
-- Use TypeScript strictly without `any` types
+- Use TypeScript strictly without \`any\` types
 - Test critical user flows manually before considering complete
 - Optimize for mobile experience from the start
 - Follow accessibility best practices (semantic HTML, keyboard navigation)
@@ -963,7 +963,7 @@ export default function ComponentName({ prop1, prop2 }: Props) {
 ### ❌ DON'T
 - Expose API keys or sensitive data in client-side code
 - Create deeply nested component hierarchies
-- Ignore TypeScript errors or use `@ts-ignore` without justification
+- Ignore TypeScript errors or use \`@ts-ignore\` without justification
 - Implement complex state management for simple applications
 - Skip input validation on both client and server sides
 - Hardcode URLs, API endpoints, or configuration values
@@ -1099,7 +1099,7 @@ We're building an MVP quickly but with production-quality code that can be maint
 - Folders: kebab-case for multi-word directories
 
 ### Import Organization
-```typescript
+\`\`\`typescript
 // 1. React and framework imports
 import React from 'react'
 import { NextRequest } from 'next/server'
@@ -1115,7 +1115,7 @@ import type { User } from '@/types/user'
 
 // 4. Relative imports (only when necessary)
 import './component.css'
-```
+\`\`\`
 
 ## Framework-Specific Patterns
 
@@ -1142,7 +1142,7 @@ import './component.css'
 ## Component Patterns
 
 ### Component Structure Template
-```typescript
+\`\`\`typescript
 'use client' // Only if client-side features needed
 
 import { useState } from 'react'
@@ -1180,10 +1180,10 @@ export function ComponentName({ title, onAction, className }: Props) {
     </div>
   )
 }
-```
+\`\`\`
 
 ### Form Handling Pattern
-```typescript
+\`\`\`typescript
 const [formData, setFormData] = useState({ name: '', email: '' })
 const [errors, setErrors] = useState({})
 const [submitting, setSubmitting] = useState(false)
@@ -1207,16 +1207,16 @@ const handleSubmit = async (e: React.FormEvent) => {
     setSubmitting(false)
   }
 }
-```
+\`\`\`
 
 ## Error Handling Standards
 
 ### API Error Handling
-```typescript
+\`\`\`typescript
 try {
   const response = await fetch('/api/endpoint')
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
+    throw new Error(\`HTTP error! status: \${response.status}\`)
   }
   const data = await response.json()
   return data
@@ -1224,10 +1224,10 @@ try {
   console.error('API call failed:', error)
   throw error // Re-throw to let calling component handle
 }
-```
+\`\`\`
 
 ### Database Error Handling
-```typescript
+\`\`\`typescript
 try {
   const user = await db.user.findUnique({ where: { id } })
   if (!user) {
@@ -1238,7 +1238,7 @@ try {
   console.error('Database query failed:', error)
   return { error: 'Internal server error', status: 500 }
 }
-```
+\`\`\`
 
 ## Performance Guidelines
 
@@ -1289,7 +1289,7 @@ try {
 ## Git Workflow
 
 ### Commit Message Format
-```
+\`\`\`
 type(scope): brief description
 
 Longer description if needed
@@ -1301,7 +1301,7 @@ Examples:
 feat(api): add user authentication endpoints
 fix(ui): resolve mobile navigation menu issue
 refactor(db): optimize user query performance
-```
+\`\`\`
 
 ### Branch Naming
 - feature/feature-name

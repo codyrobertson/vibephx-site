@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { CheckIcon, GlobeIcon, RocketIcon, LightningBoltIcon } from '@radix-ui/react-icons'
+import { Card, CardIcon, CardBadge, CardHeader, CardTitle, CardDescription, CardMeta } from '@/components/ui/Card'
 import BrandLogo from '../ui/BrandLogo'
 import type { ProjectData } from './BuilderWizard'
 
@@ -224,94 +225,104 @@ export default function DeploymentSelector({ projectData, updateProjectData }: D
           const IconComponent = platform.icon
           const isRecommended = platform.id === recommendedPlatformId
           const isSelected = selectedPlatform === platform.id
+          
+          let cardState: 'default' | 'selected' | 'recommended' = 'default'
+          let cardClassName = ''
+          
+          if (isSelected) {
+            cardState = 'selected'
+          } else if (isRecommended) {
+            cardState = 'recommended'
+            cardClassName = 'ring-2 ring-blue-500/30'
+          }
 
           return (
-            <div
-              key={platform.id}
-              onClick={() => {
-                console.log('Platform clicked:', platform.id)
-                selectPlatform(platform.id)
-              }}
-              className={`
-                relative w-full p-4 md:p-6 border rounded-lg cursor-pointer transition-colors select-none z-10
-                ${isSelected
-                  ? 'border-orange-500 bg-orange-950/20'
-                  : 'border-gray-800 hover:border-gray-600 hover:bg-gray-800/30'
-                }
-                ${isRecommended ? 'ring-2 ring-blue-500/30' : ''}
-              `}
-              role="button"
-              tabIndex={0}
-            >
+            <div key={platform.id} className="relative">
               {isRecommended && (
-                <div className="absolute -top-3 left-4 px-3 py-1 bg-blue-500 text-black text-xs font-bold rounded-full">
+                <div className="absolute -top-3 left-4 px-3 py-1 bg-blue-500 text-black text-xs font-bold rounded-full z-20">
                   RECOMMENDED
                 </div>
               )}
+              
+              <Card
+                background="code"
+                overlay="code"
+                state={cardState}
+                interactive="clickable"
+                size="lg"
+                onClick={() => {
+                  console.log('Platform clicked:', platform.id)
+                  selectPlatform(platform.id)
+                }}
+                role="button"
+                tabIndex={0}
+                className={`transition-all duration-200 ${cardClassName}`}
+              >
+                <CardHeader>
+                  <CardIcon color="orange">
+                    <BrandLogo 
+                      src={platform.logo}
+                      alt={platform.name}
+                      fallbackIcon={platform.icon}
+                      className="w-full h-full"
+                    />
+                  </CardIcon>
+                  
+                  <div className="flex items-center gap-2">
+                    {isSelected && (
+                      <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                        <CheckIcon className="w-4 h-4 text-black" />
+                      </div>
+                    )}
+                    <CardBadge
+                      variant={platform.difficulty === 'Beginner' ? 'success' : 'warning'}
+                    >
+                      {platform.difficulty}
+                    </CardBadge>
+                  </div>
+                </CardHeader>
 
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                  <BrandLogo 
-                    src={platform.logo}
-                    alt={platform.name}
-                    fallbackIcon={platform.icon}
-                    className="w-8 h-8"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  {isSelected && (
-                    <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
-                      <CheckIcon className="w-4 h-4 text-black" />
+                <div className="space-y-4">
+                  <CardTitle size="xl">{platform.name}</CardTitle>
+                  <CardDescription>{platform.description}</CardDescription>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Setup time:</span>
+                      <span className="text-orange-400">{platform.setupTime}</span>
                     </div>
-                  )}
-                  <span className={`px-2 py-1 text-xs rounded ${
-                    platform.difficulty === 'Beginner'
-                      ? 'bg-green-900/30 text-green-400'
-                      : 'bg-yellow-900/30 text-yellow-400'
-                  }`}>
-                    {platform.difficulty}
-                  </span>
-                </div>
-              </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Pricing:</span>
+                      <span className="text-green-400">{platform.pricing}</span>
+                    </div>
+                  </div>
 
-              <h3 className="text-xl font-bold mb-2">{platform.name}</h3>
-              <p className="text-gray-400 mb-4">{platform.description}</p>
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2 text-gray-300">Key Features:</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {platform.features.slice(0, 3).map((feature, i) => (
+                        <span key={i} className="px-2 py-1 bg-gray-800 rounded text-xs text-gray-300">
+                          {feature}
+                        </span>
+                      ))}
+                      {platform.features.length > 3 && (
+                        <span className="text-xs text-gray-500">+{platform.features.length - 3} more</span>
+                      )}
+                    </div>
+                  </div>
 
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Setup time:</span>
-                  <span className="text-orange-400">{platform.setupTime}</span>
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2 text-gray-300">Best for:</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {platform.bestFor.map((use, i) => (
+                        <span key={i} className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs">
+                          {use}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Pricing:</span>
-                  <span className="text-green-400">{platform.pricing}</span>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <h4 className="text-sm font-semibold mb-2 text-gray-300">Key Features:</h4>
-                <div className="flex flex-wrap gap-1">
-                  {platform.features.slice(0, 3).map((feature, i) => (
-                    <span key={i} className="px-2 py-1 bg-gray-800 rounded text-xs text-gray-300">
-                      {feature}
-                    </span>
-                  ))}
-                  {platform.features.length > 3 && (
-                    <span className="text-xs text-gray-500">+{platform.features.length - 3} more</span>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-semibold mb-2 text-gray-300">Best for:</h4>
-                <div className="flex flex-wrap gap-1">
-                  {platform.bestFor.map((use, i) => (
-                    <span key={i} className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs">
-                      {use}
-                    </span>
-                  ))}
-                </div>
-              </div>
+              </Card>
             </div>
           )
         })}

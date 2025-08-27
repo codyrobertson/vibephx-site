@@ -142,11 +142,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Parse the JSON content
+    // Clean the content - remove markdown code blocks if present
+    let cleanContent = content.trim()
+    if (cleanContent.startsWith('```json\n') && cleanContent.endsWith('\n```')) {
+      cleanContent = cleanContent.slice(8, -4).trim()
+    } else if (cleanContent.startsWith('```\n') && cleanContent.endsWith('\n```')) {
+      cleanContent = cleanContent.slice(4, -4).trim()
+    }
+    
     let analysisResult
     try {
-      analysisResult = JSON.parse(content)
+      analysisResult = JSON.parse(cleanContent)
     } catch (parseError) {
-      console.error('Failed to parse JSON from OpenRouter response:', content)
+      console.error('Failed to parse JSON from OpenRouter response:', cleanContent)
       throw new Error('Invalid JSON response from OpenRouter')
     }
 

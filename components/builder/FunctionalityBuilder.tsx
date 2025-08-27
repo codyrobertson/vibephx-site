@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { CheckIcon, ExclamationTriangleIcon, MagicWandIcon, ReloadIcon, ChevronDownIcon, ChevronUpIcon } from '@radix-ui/react-icons'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import type { ProjectData } from './BuilderWizard'
 
 type FeatureAnalysis = {
@@ -309,6 +311,7 @@ function StreamingAnalysisView({ projectData }: { projectData: ProjectData }) {
   const [streamedContent, setStreamedContent] = useState<string>('')
   const [isComplete, setIsComplete] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const contentRef = React.useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const startStreaming = async () => {
@@ -355,7 +358,16 @@ function StreamingAnalysisView({ projectData }: { projectData: ProjectData }) {
               try {
                 const data = JSON.parse(line.slice(6))
                 if (data.choices?.[0]?.delta?.content) {
-                  setStreamedContent(prev => prev + data.choices[0].delta.content)
+                  setStreamedContent(prev => {
+                    const newContent = prev + data.choices[0].delta.content
+                    // Auto-scroll to bottom after content updates
+                    setTimeout(() => {
+                      if (contentRef.current) {
+                        contentRef.current.scrollTop = contentRef.current.scrollHeight
+                      }
+                    }, 10)
+                    return newContent
+                  })
                 }
               } catch (e) {
                 // Skip malformed JSON
@@ -388,14 +400,28 @@ function StreamingAnalysisView({ projectData }: { projectData: ProjectData }) {
 
         {/* Code Content with Gradient Scrim */}
         <div className="flex-1 relative overflow-hidden">
-          <div className="absolute inset-0 p-6 font-mono text-sm overflow-y-auto bg-black">
+          <div ref={contentRef} className="absolute inset-0 p-6 font-mono text-sm overflow-y-auto bg-black">
             {error ? (
               <div className="text-red-400">Error: {error}</div>
             ) : (
-              <div className="whitespace-pre-wrap text-gray-300">
-                {streamedContent}
-                {!isComplete && <span className="animate-pulse">|</span>}
-              </div>
+              <SyntaxHighlighter
+                language="markdown"
+                style={oneDark}
+                customStyle={{
+                  backgroundColor: 'transparent',
+                  padding: 0,
+                  margin: 0,
+                  fontSize: '14px',
+                  lineHeight: '1.5'
+                }}
+                codeTagProps={{
+                  style: {
+                    backgroundColor: 'transparent'
+                  }
+                }}
+              >
+                {streamedContent + (!isComplete ? ' |' : '')}
+              </SyntaxHighlighter>
             )}
           </div>
           
