@@ -11,7 +11,7 @@ async function getShikiHighlighter() {
   if (!highlighterPromise) {
     highlighterPromise = createHighlighter({
       themes: ['vitesse-dark'], // Single theme for speed
-      langs: ['typescript', 'sql', 'javascript'] // Only languages we need
+      langs: ['typescript', 'sql', 'javascript', 'bash', 'css', 'html', 'json', 'markdown'] // Common languages
     })
   }
   

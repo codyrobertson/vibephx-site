@@ -809,7 +809,15 @@ export async function POST(req: NextRequest) {
         try {
           controller.enqueue(encoder.encode(`data: {"type":"start","message":"Generating ${documentType}..."}\n\n`))
 
-          // Make API call to OpenRouter
+          console.log(`🚀 Starting generation for ${documentType}...`)
+          
+          // Make API call to OpenRouter with timeout
+          const abortController = new AbortController()
+          const timeoutId = setTimeout(() => {
+            console.log(`⏰ API call timeout for ${documentType}`)
+            abortController.abort()
+          }, 30000) // 30 second timeout
+          
           const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -834,19 +842,28 @@ Additional Context:
 Generate a comprehensive, well-structured document in Markdown format.`
               }],
               stream: false // We'll handle streaming manually for better control
-            })
+            }),
+            signal: abortController.signal
           })
+          
+          clearTimeout(timeoutId)
 
           if (!response.ok) {
+            const errorText = await response.text()
+            console.error(`❌ OpenRouter API error: ${response.status} ${response.statusText}`, errorText)
             throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`)
           }
 
+          console.log(`✅ Got response for ${documentType}, parsing...`)
           const data = await response.json()
           const content = data.choices[0]?.message?.content
 
           if (!content) {
+            console.error('❌ No content in OpenRouter response:', data)
             throw new Error('No content in OpenRouter response')
           }
+          
+          console.log(`📝 Generated ${content.length} characters for ${documentType}`)
 
           // Cache the generated content
           await setCachedContent(sessionId, documentType, content)
@@ -873,8 +890,15 @@ Generate a comprehensive, well-structured document in Markdown format.`
           controller.close()
 
         } catch (error) {
-          console.error('Streaming generation error:', error)
-          controller.enqueue(encoder.encode(`data: {"type":"error","message":"Failed to generate document"}\n\n`))
+          console.error(`❌ Streaming generation error for ${documentType}:`, error)
+          
+          // Send detailed error message
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+          const errorData = JSON.stringify({ 
+            type: "error", 
+            message: `Failed to generate ${documentType}: ${errorMessage}` 
+          })
+          controller.enqueue(encoder.encode(`data: ${errorData}\n\n`))
           controller.close()
         }
       }
