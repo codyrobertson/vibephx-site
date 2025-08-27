@@ -757,11 +757,15 @@ export async function POST(req: NextRequest) {
           const sendChunk = () => {
             if (wordIndex < words.length) {
               const chunk = words.slice(wordIndex, Math.min(wordIndex + 5, words.length)).join(' ')
-              controller.enqueue(encoder.encode(`data: {"type":"content","chunk":"${chunk} "}\n\n`))
+              // Use JSON.stringify to properly escape the chunk
+              const chunkData = JSON.stringify({ type: "content", chunk: chunk + " " })
+              controller.enqueue(encoder.encode(`data: ${chunkData}\n\n`))
               wordIndex += 5
               setTimeout(sendChunk, 50) // Fast playback for cached content
             } else {
-              controller.enqueue(encoder.encode(`data: {"type":"complete","content":"${cachedContent}"}\n\n`))
+              // Use JSON.stringify for final content
+              const completeData = JSON.stringify({ type: "complete", content: cachedContent })
+              controller.enqueue(encoder.encode(`data: ${completeData}\n\n`))
               controller.close()
             }
           }
@@ -855,13 +859,17 @@ Generate a comprehensive, well-structured document in Markdown format.`
             const chunk = words[i] + ' '
             currentContent += chunk
             
-            controller.enqueue(encoder.encode(`data: {"type":"content","chunk":"${chunk}"}\n\n`))
+            // Use JSON.stringify to properly escape the chunk
+            const jsonData = JSON.stringify({ type: "content", chunk: chunk })
+            controller.enqueue(encoder.encode(`data: ${jsonData}\n\n`))
             
             // Add small delay to simulate real-time generation
             await new Promise(resolve => setTimeout(resolve, 30))
           }
 
-          controller.enqueue(encoder.encode(`data: {"type":"complete","content":"${content}"}\n\n`))
+          // Use JSON.stringify for final content
+          const completeData = JSON.stringify({ type: "complete", content: content })
+          controller.enqueue(encoder.encode(`data: ${completeData}\n\n`))
           controller.close()
 
         } catch (error) {

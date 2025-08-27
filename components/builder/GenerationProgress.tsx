@@ -247,67 +247,89 @@ export default function GenerationProgress({ projectData, updateProjectData, onC
       while (true) {
         const { done, value } = await reader.read()
         
-        if (done) break
+        if (done) {
+          // Process any remaining buffer content
+          if (buffer.trim()) {
+            processLine(buffer.trim())
+          }
+          break
+        }
 
         buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
         
-        // Keep the last incomplete line in the buffer
-        buffer = lines.pop() || ''
+        // Split on double newlines to handle SSE format better
+        const chunks = buffer.split('\n\n')
+        
+        // Keep the last incomplete chunk in the buffer
+        buffer = chunks.pop() || ''
 
-        for (const line of lines) {
-          if (line.trim().startsWith('data: ')) {
-            const jsonString = line.slice(6).trim()
-            if (!jsonString) continue
-            
-            try {
-              const data = JSON.parse(jsonString)
-              
-              switch (data.type) {
-                case 'cache':
-                  setStreamingContent(prev => ({
-                    ...prev,
-                    [documentType]: {
-                      ...prev[documentType],
-                      isFromCache: true
-                    }
-                  }))
-                  break
-
-                case 'start':
-                  // Already handled in initial state
-                  break
-
-                case 'content':
-                  setStreamingContent(prev => ({
-                    ...prev,
-                    [documentType]: {
-                      ...prev[documentType],
-                      content: prev[documentType]?.content + data.chunk || data.chunk
-                    }
-                  }))
-                  break
-
-                case 'complete':
-                  setStreamingContent(prev => ({
-                    ...prev,
-                    [documentType]: {
-                      content: data.content,
-                      isGenerating: false,
-                      isComplete: true,
-                      isFromCache: prev[documentType]?.isFromCache || false
-                    }
-                  }))
-                  
-                  setCompletedSteps(prev => new Set([...prev, documentType]))
-                  break
-
-                case 'error':
-                  throw new Error(data.message)
-              }
-            } catch (parseError) {
-              console.error('Error parsing SSE data:', parseError)
+        for (const chunk of chunks) {
+          const lines = chunk.split('\n')
+          for (const line of lines) {
+            processLine(line)
+          }
+        }
+      }
+      
+      // Process line function to handle JSON parsing safely
+      function processLine(line: string) {
+        if (line.trim().startsWith('data: ')) {
+          const jsonString = line.slice(6).trim()
+          if (!jsonString) return
+          
+          try {
+            // Check if JSON string looks complete before parsing
+            if (!jsonString.startsWith('{') || !jsonString.endsWith('}')) {
+              console.warn('Incomplete JSON detected, skipping:', jsonString.substring(0, 50))
+              return
             }
+            
+            const data = JSON.parse(jsonString)
+            
+            switch (data.type) {
+              case 'cache':
+                setStreamingContent(prev => ({
+                  ...prev,
+                  [documentType]: {
+                    ...prev[documentType],
+                    isFromCache: true
+                  }
+                }))
+                break
+
+              case 'start':
+                // Already handled in initial state
+                break
+
+              case 'content':
+                setStreamingContent(prev => ({
+                  ...prev,
+                  [documentType]: {
+                    ...prev[documentType],
+                    content: prev[documentType]?.content + data.chunk || data.chunk
+                  }
+                }))
+                break
+
+              case 'complete':
+                setStreamingContent(prev => ({
+                  ...prev,
+                  [documentType]: {
+                    content: data.content,
+                    isGenerating: false,
+                    isComplete: true,
+                    isFromCache: prev[documentType]?.isFromCache || false
+                  }
+                }))
+                
+                setCompletedSteps(prev => new Set([...prev, documentType]))
+                break
+
+              case 'error':
+                throw new Error(data.message)
+            }
+          } catch (parseError) {
+            console.error('Error parsing SSE data:', parseError, 'Raw data:', jsonString)
           }
         }
       }
