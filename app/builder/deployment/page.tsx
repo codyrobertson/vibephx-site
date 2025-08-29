@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
-import DeploymentPicker from '@/components/builder/DeploymentPicker'
+import DeploymentSelector from '@/components/builder/DeploymentSelector'
 
 export const metadata = {
   title: 'Choose Deployment - VibePHX Builder',
@@ -37,7 +37,11 @@ export default async function DeploymentPage({ searchParams }: PageProps) {
       database: params.database || '',
       aiService: params.aiService || ''
     },
-    deployment: ''
+    features: [],
+    deployment: {
+      platform: '',
+      config: {}
+    }
   }
 
   return (
@@ -77,7 +81,7 @@ export default async function DeploymentPage({ searchParams }: PageProps) {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
             </div>
           }>
-            <DeploymentPicker 
+            <DeploymentSelector 
               projectData={projectData}
               updateProjectData={() => {}} // Will handle with form submission
             />

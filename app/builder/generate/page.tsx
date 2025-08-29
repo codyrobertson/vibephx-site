@@ -38,7 +38,11 @@ export default async function GeneratePage({ searchParams }: PageProps) {
       database: params.database || '',
       aiService: params.aiService || ''
     },
-    deployment: params.deployment || ''
+    features: [],
+    deployment: {
+      platform: params.deployment || '',
+      config: {}
+    }
   }
 
   return (

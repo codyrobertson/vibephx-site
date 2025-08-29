@@ -17,7 +17,7 @@ export default function AuthTestPage() {
 
   const handleTestSignOut = async () => {
     try {
-      await stackApp.signOut()
+      await user?.signOut()
     } catch (error) {
       console.error('Test sign-out failed:', error)
     }

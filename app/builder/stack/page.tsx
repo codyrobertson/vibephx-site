@@ -28,7 +28,11 @@ export default async function StackPage({ searchParams }: PageProps) {
     template: params.template || '',
     customIdea: params.idea || '',
     stack: {},
-    deployment: ''
+    features: [],
+    deployment: {
+      platform: '',
+      config: {}
+    }
   }
 
   return (

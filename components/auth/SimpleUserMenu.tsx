@@ -25,7 +25,7 @@ export default function SimpleUserMenu() {
 
   const handleSignOut = async () => {
     try {
-      await stackApp.signOut()
+      await user?.signOut()
       setIsOpen(false)
     } catch (error) {
       console.error('Sign out failed:', error)

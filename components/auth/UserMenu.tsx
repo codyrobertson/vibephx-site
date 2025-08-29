@@ -21,9 +21,13 @@ export default function UserMenu() {
     )
   }
 
-  const handleSignOut = () => {
-    stackApp.signOut()
-    setShowDropdown(false)
+  const handleSignOut = async () => {
+    try {
+      await user?.signOut()
+      setShowDropdown(false)
+    } catch (error) {
+      console.error('Sign out failed:', error)
+    }
   }
 
   return (

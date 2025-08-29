@@ -105,7 +105,12 @@ export default function BuilderWizard() {
   const renderStep = () => {
     switch (currentStep) {
       case 0:
-        return <TemplateSelector projectData={projectData} updateProjectData={updateProjectData} />
+        return <TemplateSelector 
+          selectedTemplate={projectData.template} 
+          customIdea={projectData.customIdea}
+          onTemplateSelect={(templateId) => updateProjectData({ template: templateId })}
+          onCustomIdeaChange={(idea) => updateProjectData({ customIdea: idea })}
+        />
       case 1:
         return <SoftwareStackPicker projectData={projectData} updateProjectData={updateProjectData} />
       case 2:
