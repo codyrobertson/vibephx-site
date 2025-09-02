@@ -64,13 +64,22 @@ export const metadata: Metadata = {
     title: 'VibePHX - Ship a live AI-built app in one day',
     description: 'Oct 4, 2025 | Phoenix | $99 | One-day workshop for AI-curious builders. Working URL by 5pm guaranteed.',
     siteName: 'VibePHX',
-    images: [{
-      url: '/api/og',
-      width: 1200,
-      height: 630,
-      alt: 'VibePHX - One day AI coding workshop in Phoenix',
-      type: 'image/png'
-    }],
+    images: [
+      {
+        url: '/api/og',
+        width: 1200,
+        height: 630,
+        alt: 'VibePHX - One day AI coding workshop in Phoenix',
+        type: 'image/png'
+      },
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'VibePHX - One day AI coding workshop in Phoenix',
+        type: 'image/png'
+      }
+    ],
     countryName: 'United States',
     ttl: 86400,
   },
@@ -80,10 +89,16 @@ export const metadata: Metadata = {
     creator: '@mackody_',
     title: 'VibePHX - Ship a live AI-built app in one day',
     description: 'Oct 4, 2025 | Phoenix | $99 | One-day workshop for AI-curious builders. Working URL by 5pm guaranteed.',
-    images: [{
-      url: '/api/og',
-      alt: 'VibePHX - One day AI coding workshop in Phoenix'
-    }],
+    images: [
+      {
+        url: '/api/og',
+        alt: 'VibePHX - One day AI coding workshop in Phoenix'
+      },
+      {
+        url: '/og-image.png',
+        alt: 'VibePHX - One day AI coding workshop in Phoenix'
+      }
+    ],
   },
   other: {
     'event-date': '2025-10-04',

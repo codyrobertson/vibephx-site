@@ -4,6 +4,35 @@ export const runtime = 'edge'
 
 export async function GET() {
   try {
+    // Try to load fonts, but fall back gracefully if they fail
+    let fonts = []
+    try {
+      const [regularFont, boldFont] = await Promise.all([
+        fetch('https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyeMZhrib2Bg-4.woff2')
+          .then((res) => res.arrayBuffer()),
+        fetch('https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfMZhrib2Bg-4.woff2')
+          .then((res) => res.arrayBuffer())
+      ])
+      
+      fonts = [
+        {
+          name: 'Inter',
+          data: regularFont,
+          weight: 400,
+          style: 'normal',
+        },
+        {
+          name: 'Inter',
+          data: boldFont,
+          weight: 700,
+          style: 'normal',
+        },
+      ]
+    } catch (fontError) {
+      console.log('Font loading failed, using system fonts:', fontError)
+      // Continue without custom fonts
+    }
+
     return new ImageResponse(
       (
         <div
@@ -15,7 +44,7 @@ export async function GET() {
             alignItems: 'center',
             justifyContent: 'center',
             background: 'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)',
-            fontFamily: 'Geist',
+            fontFamily: fonts.length > 0 ? 'Inter' : 'system-ui, sans-serif',
           }}
         >
           {/* Background Pattern */}
@@ -97,26 +126,30 @@ export async function GET() {
       {
         width: 1200,
         height: 630,
-        fonts: [
-          {
-            name: 'Geist',
-            data: await fetch('https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyeMZhrib2Bg-4.woff2')
-              .then((res) => res.arrayBuffer()),
-            weight: 400,
-            style: 'normal',
-          },
-          {
-            name: 'Geist',
-            data: await fetch('https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfMZhrib2Bg-4.woff2')
-              .then((res) => res.arrayBuffer()),
-            weight: 700,
-            style: 'normal',
-          },
-        ],
+        fonts,
+        headers: {
+          'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800',
+        },
       }
     )
   } catch (e: any) {
-    console.log(`${e.message}`)
+    console.log(`OG generation failed: ${e.message}`)
+    
+    // Fallback to static image
+    try {
+      const response = await fetch(new URL('/og-image.png', 'https://www.vibecodephx.com'))
+      if (response.ok) {
+        return new Response(response.body, {
+          headers: {
+            'Content-Type': 'image/png',
+            'Cache-Control': 'public, max-age=31536000, immutable',
+          },
+        })
+      }
+    } catch (fallbackError) {
+      console.log(`Static fallback failed: ${fallbackError.message}`)
+    }
+    
     return new Response(`Failed to generate the image`, {
       status: 500,
     })
