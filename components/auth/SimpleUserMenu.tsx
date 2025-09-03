@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { usePathname } from 'next/navigation'
 import { useUser, useStackApp } from '@stackframe/stack'
+import createIcon from 'blockies-ts'
 
 export default function SimpleUserMenu() {
   const pathname = usePathname()
@@ -15,6 +16,17 @@ export default function SimpleUserMenu() {
 
   const user = useUser()
   const stackApp = useStackApp()
+
+  // Generate Blockie avatar
+  const blockieDataUrl = useMemo(() => {
+    if (!user?.primaryEmail) return null
+    const canvas = createIcon.create({
+      seed: user.primaryEmail,
+      size: 8,
+      scale: 4,
+    })
+    return canvas.toDataURL()
+  }, [user?.primaryEmail])
 
   // Don't render on server or while loading
   if (!mounted) {
@@ -38,13 +50,21 @@ export default function SimpleUserMenu() {
       <div className="relative">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-black font-semibold rounded-lg transition-colors"
+          className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 hover:border-gray-500 rounded-lg transition-colors"
         >
-          <div className="w-6 h-6 bg-black rounded-full flex items-center justify-center">
-            {user.displayName ? user.displayName[0].toUpperCase() : 'U'}
-          </div>
-          <span className="hidden sm:inline">
-            {user.displayName || user.primaryEmail || 'User'}
+          {blockieDataUrl ? (
+            <img 
+              src={blockieDataUrl} 
+              alt="User Avatar" 
+              className="w-6 h-6 rounded-full"
+            />
+          ) : (
+            <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center">
+              {user.displayName ? user.displayName[0].toUpperCase() : 'U'}
+            </div>
+          )}
+          <span className="hidden sm:inline text-sm font-medium">
+            {user.displayName || user.primaryEmail?.split('@')[0] || 'User'}
           </span>
         </button>
         
@@ -57,14 +77,29 @@ export default function SimpleUserMenu() {
             />
             
             {/* Dropdown */}
-            <div className="absolute right-0 top-full mt-2 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50">
+            <div className="absolute right-0 top-full mt-2 w-56 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50">
               <div className="p-3 border-b border-gray-700">
-                <p className="font-semibold text-white text-sm">
-                  {user.displayName || 'User'}
-                </p>
-                <p className="text-gray-400 text-xs">
-                  {user.primaryEmail}
-                </p>
+                <div className="flex items-center gap-3">
+                  {blockieDataUrl ? (
+                    <img 
+                      src={blockieDataUrl} 
+                      alt="User Avatar" 
+                      className="w-8 h-8 rounded-full"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                      {user.displayName ? user.displayName[0].toUpperCase() : 'U'}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-white text-sm truncate">
+                      {user.displayName || 'User'}
+                    </p>
+                    <p className="text-gray-400 text-xs truncate">
+                      {user.primaryEmail}
+                    </p>
+                  </div>
+                </div>
               </div>
               <div className="py-1">
                 <a

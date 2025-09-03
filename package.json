@@ -28,6 +28,7 @@
     "@vercel/og": "^0.8.5",
     "ai": "^5.0.25",
     "autoprefixer": "^10.4.21",
+    "blockies-ts": "^1.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "jszip": "^3.10.1",

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { MagicWandIcon } from '@radix-ui/react-icons'
-// import { useBuilder } from './builder/BuilderContext'
+import { useBuilder } from './builder/BuilderContext'
 import UserMenuWrapper from './auth/UserMenuWrapper'
 
 export default function Navbar() {
@@ -12,8 +12,8 @@ export default function Navbar() {
   
   let builderProgress = null
   try {
-    // const builder = useBuilder()
-    // builderProgress = builder.progress
+    const builder = useBuilder()
+    builderProgress = builder.progress
   } catch {
     // Not in builder context, ignore
   }
@@ -44,8 +44,7 @@ export default function Navbar() {
 
             {/* Right - Navigation Links */}
             <div className="flex items-center gap-4">
-              {/* Temporarily commented out for faster page load */}
-              {/* {!isBuilderPage && (
+              {!isBuilderPage && (
                 <Link 
                   href="/builder"
                   className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-black font-semibold rounded-lg transition-colors"
@@ -61,7 +60,7 @@ export default function Navbar() {
                   Back to VibePHX
                 </Link>
               )}
-              <UserMenuWrapper /> */}
+              <UserMenuWrapper />
             </div>
           </div>
         </div>
