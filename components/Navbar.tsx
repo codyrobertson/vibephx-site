@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { MagicWandIcon } from '@radix-ui/react-icons'
+import Image from 'next/image'
 import { useBuilder } from './builder/BuilderContext'
 import UserMenuWrapper from './auth/UserMenuWrapper'
 
@@ -24,9 +25,18 @@ export default function Navbar() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Left - Logo/Brand */}
-            <Link href="/" className="flex items-center gap-2 text-xl font-bold">
-              <span className="text-orange-400">Vibe</span>
-              <span className="text-white">PHX</span>
+            <Link href="/" className="flex items-center gap-2">
+              <Image
+                src="/logo.svg"
+                alt="VibePHX"
+                width={32}
+                height={32}
+                className="w-8 h-8"
+              />
+              <div className="flex items-center gap-0 text-xl font-bold">
+                <span className="text-orange-400">Vibe</span>
+                <span className="text-white">PHX</span>
+              </div>
             </Link>
 
             {/* Center - Builder Title (only on builder page) */}

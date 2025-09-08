@@ -1,10 +1,10 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
-import GeneratePageClient from '@/components/builder/GeneratePageClient'
+import ResultsPageClient from '@/components/builder/ResultsPageClient'
 
 export const metadata = {
-  title: 'Generate Project - VibePHX Builder',
-  description: 'AI-powered project generation in progress'
+  title: 'Project Results - VibePHX Builder',
+  description: 'Your generated project is ready'
 }
 
 interface SearchParams {
@@ -16,21 +16,23 @@ interface SearchParams {
   stack_database?: string
   stack_aiService?: string
   stack_secretSauce?: string
+  generated?: string
 }
 
 interface PageProps {
   searchParams: Promise<SearchParams>
 }
 
-export default async function GeneratePage({ searchParams }: PageProps) {
+export default async function ResultsPage({ searchParams }: PageProps) {
   const params = await searchParams
   
-  // Redirect if required data missing
-  if (!params.template && !params.idea) {
+  // Redirect if not generated or missing required data
+  if (!params.generated || !params.projectId || (!params.template && !params.idea)) {
     redirect('/builder/template')
   }
 
   const projectData = {
+    projectId: params.projectId || '',
     template: params.template || '',
     customIdea: params.idea || '',
     stack: {
@@ -42,24 +44,20 @@ export default async function GeneratePage({ searchParams }: PageProps) {
     },
     features: [],
     deployment: {
-      platform: 'vercel', // Default deployment platform
+      platform: 'vercel',
       config: {}
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          <Suspense fallback={
-            <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-            </div>
-          }>
-            <GeneratePageClient initialProjectData={projectData} />
-          </Suspense>
+    <div className="min-h-screen bg-black">
+      <Suspense fallback={
+        <div className="flex items-center justify-center py-20 bg-black">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
         </div>
-      </div>
+      }>
+        <ResultsPageClient projectData={projectData} />
+      </Suspense>
     </div>
   )
 }

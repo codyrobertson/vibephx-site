@@ -8,6 +8,7 @@ export const metadata = {
 
 interface SearchParams {
   idea?: string
+  template?: string
 }
 
 interface PageProps {
@@ -35,7 +36,10 @@ export default async function TemplatePage({ searchParams }: PageProps) {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
             </div>
           }>
-            <TemplatePageClient initialIdea={params.idea} />
+            <TemplatePageClient 
+              initialIdea={params.idea}
+              initialTemplate={params.template}
+            />
           </Suspense>
         </div>
       </div>

@@ -7,14 +7,25 @@ import BuilderNavigation from './BuilderNavigation'
 
 interface TemplatePageClientProps {
   initialIdea?: string
+  initialTemplate?: string
 }
 
-export default function TemplatePageClient({ initialIdea }: TemplatePageClientProps) {
+export default function TemplatePageClient({ initialIdea, initialTemplate }: TemplatePageClientProps) {
   const router = useRouter()
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('')
+  const [selectedTemplate, setSelectedTemplate] = useState<string>(initialTemplate || '')
   const [customIdea, setCustomIdea] = useState<string>(initialIdea || '')
 
+
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplate(templateId)
+  }
+
+  const handleCustomIdeaChange = (idea: string) => {
+    setCustomIdea(idea)
+  }
+
   const canProceed = Boolean(selectedTemplate) || customIdea.trim().length > 0
+  
 
   const handleNext = () => {
     const params = new URLSearchParams()
@@ -31,8 +42,8 @@ export default function TemplatePageClient({ initialIdea }: TemplatePageClientPr
     <>
       <TemplateSelector 
         initialIdea={initialIdea}
-        onTemplateSelect={setSelectedTemplate}
-        onCustomIdeaChange={setCustomIdea}
+        onTemplateSelect={handleTemplateSelect}
+        onCustomIdeaChange={handleCustomIdeaChange}
         selectedTemplate={selectedTemplate}
         customIdea={customIdea}
       />
