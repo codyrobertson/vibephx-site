@@ -14,18 +14,21 @@ export default function Hero() {
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 via-black to-red-900/20" />
       
-      {/* Animated background dots */}
+      {/* Twinkling stars */}
       {mounted && (
         <div className="absolute inset-0">
           {[...Array(50)].map((_, i) => (
             <div
               key={i}
-              className="absolute w-1 h-1 bg-white/10 rounded-full animate-pulse"
+              className="absolute rounded-full animate-twinkle"
               style={{
                 left: `${(i * 17) % 100}%`,
                 top: `${(i * 23) % 100}%`,
-                animationDelay: `${(i * 0.1) % 5}s`,
-                animationDuration: `${3 + (i * 0.08) % 4}s`
+                width: i % 3 === 0 ? '2px' : '1px',
+                height: i % 3 === 0 ? '2px' : '1px',
+                backgroundColor: i % 5 === 0 ? 'rgb(251 191 36 / 0.6)' : 'rgb(255 255 255 / 0.4)',
+                animationDelay: `${(i * 0.3) % 8}s`,
+                animationDuration: `${2 + (i * 0.1) % 4}s`
               }}
             />
           ))}
@@ -102,9 +105,11 @@ export default function Hero() {
             href="https://luma.com/cvlfi81t"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg font-bold text-lg hover:scale-105 transition-transform glow"
+            className="relative inline-block px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg font-bold text-lg hover:scale-105 transition-transform group overflow-hidden"
           >
-            Reserve Your Spot — $99
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-400 via-orange-300 to-red-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-shimmer"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 animate-shimmer-slide"></div>
+            <span className="relative z-10">Reserve Your Spot — $99</span>
           </a>
         </div>
 

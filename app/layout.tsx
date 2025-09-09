@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
 import { Geist } from 'next/font/google'
+import { StackProvider, StackTheme } from '@stackframe/stack'
+import { stackServerApp } from '@/stack'
+import Navbar from '@/components/Navbar'
 import './globals.css'
 
 const geist = Geist({ subsets: ['latin'] })
@@ -61,13 +64,22 @@ export const metadata: Metadata = {
     title: 'VibePHX - Ship a live AI-built app in one day',
     description: 'Oct 4, 2025 | Phoenix | $99 | One-day workshop for AI-curious builders. Working URL by 5pm guaranteed.',
     siteName: 'VibePHX',
-    images: [{
-      url: '/api/og',
-      width: 1200,
-      height: 630,
-      alt: 'VibePHX - One day AI coding workshop in Phoenix',
-      type: 'image/png'
-    }],
+    images: [
+      {
+        url: '/api/og',
+        width: 1200,
+        height: 630,
+        alt: 'VibePHX - One day AI coding workshop in Phoenix',
+        type: 'image/png'
+      },
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'VibePHX - One day AI coding workshop in Phoenix',
+        type: 'image/png'
+      }
+    ],
     countryName: 'United States',
     ttl: 86400,
   },
@@ -77,10 +89,16 @@ export const metadata: Metadata = {
     creator: '@mackody_',
     title: 'VibePHX - Ship a live AI-built app in one day',
     description: 'Oct 4, 2025 | Phoenix | $99 | One-day workshop for AI-curious builders. Working URL by 5pm guaranteed.',
-    images: [{
-      url: '/api/og',
-      alt: 'VibePHX - One day AI coding workshop in Phoenix'
-    }],
+    images: [
+      {
+        url: '/api/og',
+        alt: 'VibePHX - One day AI coding workshop in Phoenix'
+      },
+      {
+        url: '/og-image.png',
+        alt: 'VibePHX - One day AI coding workshop in Phoenix'
+      }
+    ],
   },
   other: {
     'event-date': '2025-10-04',
@@ -97,7 +115,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#f97316" />
@@ -152,7 +170,16 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${geist.className} bg-black text-white`}>{children}</body>
+      <body className={`${geist.className} bg-black text-white`}>
+        <StackProvider app={stackServerApp}>
+          <StackTheme>
+            <Navbar />
+            <main className="pt-16 md:pt-20">
+              {children}
+            </main>
+          </StackTheme>
+        </StackProvider>
+      </body>
     </html>
   )
 }

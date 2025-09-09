@@ -1,6 +1,7 @@
 'use client'
 
 import Hero from '@/components/Hero'
+import CorePrinciples from '@/components/CorePrinciples'
 import Features from '@/components/Features'
 import BuildTracks from '@/components/BuildTracks'
 import Schedule from '@/components/Schedule'
@@ -17,11 +18,12 @@ export default function Home() {
       <Hero />
       <Features />
       <BuildTracks />
-      <Schedule />
+      <CorePrinciples />
       <Methodology />
+      <Schedule />
       <ValueProp />
-      <CTA />
       <Instructor />
+      <CTA />
       <FAQ />
       <Footer />
     </main>

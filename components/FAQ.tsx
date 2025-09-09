@@ -97,10 +97,10 @@ export default function FAQ() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="mailto:hello@vibephx.com"
+              href="mailto:cody@vibecodephx.com"
               className="px-6 py-2 border border-gray-700 rounded-lg hover:border-orange-500 transition-colors"
             >
-              hello@vibephx.com
+              cody@vibecodephx.com
             </a>
             <a
               href="https://discord.gg/Vmk3eFyj"
