@@ -1,0 +1,790 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Token Extractor</title>
+    <style>
+      /* Design tokens (light) */
+      :root {
+        --bg: #ffffff;
+        --fg: #0b1220;
+        --muted: #6b7280;
+        --panel: #f8fafc;
+        --panel-contrast: #eef2f7;
+        --border: #e5e7eb;
+        --primary: #2563eb;
+        --primary-600: #1d4ed8;
+        --primary-700: #1e40af;
+        --code-bg: #0b1020;
+        --code-fg: #e5e7eb;
+        --code-key: #93c5fd;
+        --code-string: #86efac;
+        --code-number: #f0abfc;
+        --code-bool: #fca5a5;
+        --code-null: #fcd34d;
+        --code-punct: #9aa4b2;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0b0f1a;
+          --fg: #e5e7eb;
+          --muted: #9aa4b2;
+          --panel: #0f172a;
+          --panel-contrast: #111827;
+          --border: #1f2937;
+          --primary: #60a5fa;
+          --primary-600: #3b82f6;
+          --primary-700: #2563eb;
+          --code-bg: #0b1020;
+          --code-fg: #e5e7eb;
+        }
+      }
+
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji; background: linear-gradient(180deg, var(--bg) 0%, var(--panel) 100%); color: var(--fg); }
+
+      .container { display: flex; flex-direction: column; height: 100vh; gap: 12px; padding: 14px; }
+      header { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); background: var(--panel); border-radius: 10px; box-shadow: 0 1px 0 rgba(0,0,0,.04); }
+      h1 { font-size: 13px; margin: 0; font-weight: 600; letter-spacing: .2px; }
+
+      .toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+      .btn { appearance: none; border: 1px solid var(--border); background: var(--panel-contrast); color: var(--fg); border-radius: 8px; padding: 6px 10px; font-size: 12px; line-height: 1; cursor: pointer; transition: background .15s ease, border-color .15s ease, color .15s ease; }
+      .btn:hover { background: var(--panel); }
+      .btn.primary { background: var(--primary); border-color: var(--primary-700); color: #ffffff; }
+      .btn.primary:hover { background: var(--primary-600); }
+      .btn.ghost { background: transparent; }
+
+      #status { font-size: 12px; opacity: 0.85; margin-top: -4px; }
+
+      .surface { flex: 1 1 auto; min-height: 0; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+      .surface-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel-contrast); }
+      .surface-title { font-size: 12px; color: var(--muted); }
+
+      .viewer { position: relative; flex: 1 1 auto; min-height: 0; }
+
+      /* Virtualized code view */
+      .code-scroll { height: 100%; width: 100%; overflow: auto; background: var(--code-bg); color: var(--code-fg); border-radius: 0 0 10px 10px; will-change: transform; }
+      .code-virtual { position: relative; height: 0; }
+      .code-slice { position: absolute; left: 0; right: 0; top: 0; padding: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 11.5px; white-space: pre; contain: content; will-change: transform; }
+      .code-line { white-space: pre; }
+
+      /* Full (wrapped) view */
+      pre.code-full { margin: 0; height: 100%; width: 100%; padding: 12px; overflow: auto; background: var(--code-bg); color: var(--code-fg); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 11.5px; border-radius: 0 0 10px 10px; white-space: pre-wrap; word-break: break-word; }
+
+      /* JSON token colors */
+      .t-key { color: var(--code-key); }
+      .t-string { color: var(--code-string); }
+      .t-number { color: var(--code-number); }
+      .t-bool { color: var(--code-bool); }
+      .t-null { color: var(--code-null); }
+      .t-punct { color: var(--code-punct); }
+
+      /* Responsive tweaks */
+      @media (max-width: 720px) { header { flex-direction: column; align-items: stretch; gap: 10px; } .toolbar { justify-content: space-between; } }
+    </style>
+    <script src="transformer.class.js"></script>
+    <script src="transform.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Tokens → Tailwind & shadcn (Extractor)</h1>
+        <div class="toolbar">
+          <button id="extract" class="btn primary">Extract</button>
+          <button id="copy" class="btn">Copy</button>
+          <button id="download" class="btn">Download</button>
+          <button id="clear" class="btn ghost">Clear</button>
+          <button id="advanced" class="btn">Advanced</button>
+        </div>
+      </header>
+
+      <div id="adv-subnav" class="subnav" style="display:none;">
+        <div class="surface-header" style="border-radius:8px;">
+          <div class="toolbar" style="gap:6px;">
+            <button id="adv-ir" class="btn">View IR</button>
+            <button id="adv-flat" class="btn">Tokens.JSON</button>
+            <button id="adv-dt" class="btn">W3C Tokens</button>
+            <div style="position:relative;display:inline-block;">
+              <button id="adv-more" class="btn">More ▾</button>
+              <div id="adv-menu" style="display:none;position:absolute;left:0;top:110%;min-width:200px;background:var(--panel);border:1px solid var(--border);border-radius:8px;box-shadow:0 10px 20px rgba(0,0,0,.15);z-index:9999;pointer-events:auto;overflow:hidden;">
+                <button id="to-tw" class="btn" style="display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--border);border-radius:0;background:transparent">Tailwind Config</button>
+                <button id="to-css" class="btn" style="display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--border);border-radius:0;background:transparent">Tokens CSS</button>
+                <button id="to-shadcn" class="btn" style="display:block;width:100%;text-align:left;border:0;border-radius:0;background:transparent">shadcn CSS</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="status">Ready.</div>
+
+      <section class="surface" aria-label="Extraction Viewer">
+        <div class="surface-header">
+          <div id="view-title" class="surface-title">Extraction output (JSON)</div>
+          <div style="font-size:12px;color:var(--muted)"><span id="meta-ts"></span></div>
+        </div>
+        <div class="viewer">
+          <!-- Virtualized viewer -->
+          <div id="virt" class="virt">
+            <div id="virt-scroll" class="code-scroll">
+              <div id="virt-virtual" class="code-virtual" style="height:0px;">
+                <div id="virt-slice" class="code-slice"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Full wrapped viewer -->
+          <pre id="full" class="code-full" hidden><code id="full-code"></code></pre>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const statusEl = document.getElementById('status')
+      const metaTs = document.getElementById('meta-ts')
+      const viewTitle = document.getElementById('view-title')
+      function setTitle(t){ if (viewTitle) viewTitle.textContent = t }
+
+      const DEBUG = true
+      function log(){ try { if (DEBUG) console.log('[UI]', ...arguments) } catch(_) {} }
+      log('bootstrap: DOM ready')
+ 
+      // Virtualization elements
+      const virt = { scroll: document.getElementById('virt-scroll'), virtual: document.getElementById('virt-virtual'), slice: document.getElementById('virt-slice') }
+      const full = { pre: document.getElementById('full'), code: document.getElementById('full-code') }
+
+      let lastPayload = null
+      let lastJsonStr = ''
+      let lastIR = null
+      let lastTextStr = ''
+      let viewKind = 'json' // 'json' | 'text'
+      let downloadName = 'figma-tokens-extract.json'
+      function setStatus(text) { statusEl.textContent = text }
+      const escHtml = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+
+      // Transformer instance (class-based) with safe fallback to legacy Transformer or noop
+      let Transformer
+      try {
+        const transformerInstance = (window.TokenTransformer && window.TokenTransformer.TokenTransformer) ? new window.TokenTransformer.TokenTransformer() : null
+        if (transformerInstance) {
+          Transformer = {
+            buildIR: (extract) => transformerInstance.buildIR(extract),
+            resolveAliases: (ir) => transformerInstance.resolveAliases(ir),
+            buildCssFromIR: (ir) => transformerInstance.buildCssFromIR(ir),
+            generateTailwindConfig: (ir) => {
+              const cfgObj = transformerInstance.generateTailwindConfig(ir)
+              return "// Generated Tailwind v3 config extension from IR\n" + 'module.exports = ' + JSON.stringify(cfgObj, null, 2) + "\n"
+            },
+            toFlatTokens: (ir) => transformerInstance.toFlatTokens(ir),
+            buildShadcnCss: (ir, mapping) => transformerInstance.buildShadcnCss(ir, mapping),
+            toDesignTokens: (ir) => transformerInstance.toDesignTokens(ir)
+          }
+        } else if (window.Transformer) {
+          Transformer = window.Transformer
+        }
+      } catch (e) {
+        Transformer = window.Transformer || undefined
+      }
+      if (!Transformer) {
+        // Fallback functional transformer (inline) used if external scripts fail to load
+        function _toSegments(name) {
+          const s = String(name || '')
+            .trim()
+            .replace(/[\\/]+/g, '.')
+            .replace(/\s+/g, '-')
+            .replace(/[^A-Za-z0-9._-]+/g, '-')
+            .replace(/\.+/g, '.')
+            .replace(/-+/g, '-')
+            .toLowerCase()
+          return s.split('.').filter(Boolean)
+        }
+        function _guessCategory(resolvedType, parts){
+          if (resolvedType === 'COLOR') return 'color'
+          if (resolvedType === 'FLOAT'){
+            const joined = parts.join('-')
+            if (/radius|radii|round|corner/.test(joined)) return 'radius'
+            if (/(^|-)spacing|space|gap|padding|margin/.test(joined)) return 'spacing'
+            if (/(^|-)size|text-size|font-size/.test(joined)) return 'fontSize'
+            if (/opacity|alpha/.test(joined)) return 'opacity'
+            if (/shadow|elevation|blur/.test(joined)) return 'effect'
+            return 'number'
+          }
+          if (resolvedType === 'STRING'){
+            const joined = parts.join('-')
+            if (/font|family|typeface/.test(joined)) return 'fontFamily'
+            if (/(^|-)size|text-size|font-size/.test(joined)) return 'fontSize'
+            return 'string'
+          }
+          return (resolvedType || 'unknown').toLowerCase()
+        }
+        function _colorToRgbTuple(val){
+          if (!val || typeof val !== 'object') return null
+          const has = (k) => Object.prototype.hasOwnProperty.call(val, k)
+          if (has('r') && has('g') && has('b')){
+            const r = Math.round((val.r || 0) * 255)
+            const g = Math.round((val.g || 0) * 255)
+            const b = Math.round((val.b || 0) * 255)
+            return [r,g,b]
+          }
+          return null
+        }
+        function _toCssVarName(category, parts){
+          const segs = parts.slice(); if (segs[0] === category) segs.shift()
+          const base = [category].concat(segs).filter(Boolean).join('-')
+          return '--' + base
+        }
+        function _aliasRef(value){
+          return value && typeof value === 'object' && value.aliasTo ? { aliasTo: value.aliasTo, aliasToName: value.aliasToName || null } : null
+        }
+        function _buildIR(extract){
+          const ir = { meta: { source: 'figma', timestamp: new Date().toISOString() }, collections: {}, tokens: [], categories: { color: [], spacing: [], radius: [], opacity: [], number: [], string: [], fontFamily: [], fontSize: [], effect: [] }, styles: extract?.styles || {} }
+          if (!extract || !extract.variables) return ir
+          const collections = extract.variables.collections || []
+          const variables = extract.variables.variables || []
+          for (const c of collections){
+            ir.collections[c.id] = { id: c.id, name: c.name, defaultModeId: c.defaultModeId, modes: (c.modes||[]).map(m => ({ id: m.id||m.modeId||m, name: m.name||String(m.id||m) })) }
+          }
+          for (const v of variables){
+            const parts = _toSegments(v.name)
+            const category = _guessCategory(v.resolvedType, parts)
+            const cssVar = _toCssVarName(category, parts)
+            const token = { id: v.id, rawName: v.name, name: parts.join('.'), category, cssVar, collectionId: v.variableCollectionId, scopes: Array.isArray(v.scopes)? v.scopes.slice():[], description: v.description || '', resolvedType: v.resolvedType, modes: {} }
+            const valuesByMode = v.valuesByMode || {}
+            for (const modeId of Object.keys(valuesByMode)){
+              const value = valuesByMode[modeId]
+              const a = _aliasRef(value)
+              if (a){ token.modes[modeId] = { aliasTo: a.aliasTo, aliasToName: a.aliasToName } }
+              else {
+                if (category === 'color'){
+                  const rgb = _colorToRgbTuple(value)
+                  token.modes[modeId] = rgb ? { rgb, asCssRgb: rgb.join(' ') } : { value }
+                } else if (category === 'opacity'){
+                  const n = typeof value === 'number' ? value : Number(value)
+                  token.modes[modeId] = isFinite(n) ? { number: n } : { value }
+                } else if (category === 'radius' || category === 'spacing' || category === 'number' || category === 'fontSize'){
+                  const n = typeof value === 'number' ? value : Number(value)
+                  token.modes[modeId] = isFinite(n) ? { number: n, px: n + 'px' } : { value }
+                } else if (category === 'string' || category === 'fontFamily'){
+                  token.modes[modeId] = { string: String(value) }
+                } else {
+                  token.modes[modeId] = { value }
+                }
+              }
+            }
+            ir.tokens.push(token)
+            if (ir.categories[category]) ir.categories[category].push(token)
+          }
+          return ir
+        }
+        function _resolveAliases(ir){
+          const byId = {}; for (const t of ir.tokens) byId[t.id] = t
+          const defaultModeByCollection = {}
+          for (const id of Object.keys(ir.collections)){
+            const c = ir.collections[id]
+            defaultModeByCollection[id] = c.defaultModeId || (c.modes && c.modes[0] && c.modes[0].id) || null
+          }
+          function resolveForMode(token, modeId, stack){
+            const set = stack || new Set(); if (set.has(token.id)) return null; set.add(token.id)
+            const collDefault = defaultModeByCollection[token.collectionId]
+            let mv = token.modes[modeId] || (collDefault ? token.modes[collDefault] : undefined)
+            if (!mv) return null
+            if (mv.aliasTo){ const target = byId[mv.aliasTo]; if (!target) return null; return resolveForMode(target, modeId, set) }
+            return mv
+          }
+          for (const t of ir.tokens){
+            const coll = ir.collections[t.collectionId]
+            const modes = (coll?.modes || []).map(m=>m.id)
+            t.resolved = {}
+            for (const modeId of modes){ const r = resolveForMode(t, modeId); if (r) t.resolved[modeId] = r }
+          }
+          return ir
+        }
+        function _buildCssFromIR(ir){
+          const lines = []
+          lines.push('/* Generated tokens from Figma IR */')
+          const collections = ir.collections || {}
+          const colIds = Object.keys(collections)
+          lines.push(':root {')
+          for (const t of ir.tokens){
+            const coll = collections[t.collectionId]
+            const modeId = coll ? coll.defaultModeId || (coll.modes && coll.modes[0] && coll.modes[0].id) : undefined
+            if (!modeId) continue
+            const mv = (t.resolved && t.resolved[modeId]) || t.modes[modeId]
+            if (!mv) continue
+            if (t.category === 'color' && (mv.asCssRgb || mv.rgb)){
+              const rgb = mv.asCssRgb || (Array.isArray(mv.rgb) ? mv.rgb.join(' ') : null)
+              if (rgb) lines.push(`  ${t.cssVar}: ${rgb};`)
+            } else if (mv.px){ lines.push(`  ${t.cssVar}: ${mv.px};`) }
+            else if (typeof mv.number === 'number'){ lines.push(`  ${t.cssVar}: ${mv.number};`) }
+            else if (mv.string){ lines.push(`  ${t.cssVar}: ${JSON.stringify(mv.string)};`) }
+          }
+          lines.push('}')
+          for (const collId of colIds){
+            const coll = collections[collId]
+            const modes = coll?.modes || []
+            for (const m of modes){
+              const sel = `[data-theme="${(coll.name||'collection').toLowerCase()}:${(m.name||m.id).toLowerCase()}"]`
+              lines.push(`${sel} {`)
+              for (const t of ir.tokens.filter(x => x.collectionId===collId)){
+                const mv = (t.resolved && t.resolved[m.id]) || t.modes[m.id] || t.modes[m.modeId]
+                if (!mv) continue
+                if (t.category === 'color' && (mv.asCssRgb || mv.rgb)){
+                  const rgb = mv.asCssRgb || (Array.isArray(mv.rgb) ? mv.rgb.join(' ') : null)
+                  if (rgb) lines.push(`  ${t.cssVar}: ${rgb};`)
+                } else if (mv.px){ lines.push(`  ${t.cssVar}: ${mv.px};`) }
+                else if (typeof mv.number === 'number'){ lines.push(`  ${t.cssVar}: ${mv.number};`) }
+                else if (mv.string){ lines.push(`  ${t.cssVar}: ${JSON.stringify(mv.string)};`) }
+              }
+              lines.push('}')
+            }
+          }
+          return lines.join('\n')
+        }
+        function _setDeep(obj, pathArr, value){ let cur=obj; for (let i=0;i<pathArr.length;i++){ const k=pathArr[i]; if (i===pathArr.length-1){ cur[k]=value; return } if (!cur[k] || typeof cur[k] !== 'object') cur[k]={}; cur=cur[k] } }
+        function _parseFontFamily(str){ const arr = String(str||'').split(',').map(s=>s.trim()).filter(Boolean); return arr.length? arr: [String(str||'')] }
+        function _effectsToBoxShadow(effectStyles){ const out={}; for (const s of effectStyles||[]){ const parts=[]; for (const e of s.effects||[]){ if (e.type==='DROP_SHADOW' || e.type==='INNER_SHADOW'){ const ox=e.offset?.x||0, oy=e.offset?.y||0, blur=e.radius||0, spread=e.spread||0; const col = (function(val){ if (!val||typeof val!=='object') return null; const rgb=_colorToRgbTuple(val); const a = typeof val.a==='number'? val.a : (typeof val.opacity==='number'? val.opacity: 1); if (!rgb) return null; return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${Math.max(0, Math.min(1, a)).toFixed(3).replace(/0+$/, '').replace(/\.$/, '')})` })(e.color); parts.push(`${ox}px ${oy}px ${blur}px ${spread}px ${col || 'rgba(0,0,0,0.25)'}`) } } if (parts.length) out[s.name]=parts.join(', ') } return out }
+        function _generateTailwindConfig(ir){
+          const colors={}, spacing={}, radius={}, fontFamily={}, fontSize={}
+          const boxShadow = _effectsToBoxShadow(ir.styles?.effectStyles || [])
+          for (const t of ir.categories.color || []){
+            const parts = t.name.split('.'); if (parts[0]==='color') parts.shift(); const cssRef = `rgb(var(${t.cssVar}) / <alpha-value>)`; _setDeep(colors, parts, cssRef)
+          }
+          function _pickPx(t){ const coll=ir.collections[t.collectionId]; const modeId = coll ? coll.defaultModeId || (coll.modes && coll.modes[0] && coll.modes[0].id) : undefined; const mv = modeId ? (t.resolved?.[modeId] || t.modes[modeId]) : null; return mv?.px || (typeof mv?.number==='number'? mv.number+'px': undefined) }
+          for (const t of ir.categories.spacing || []){ const key=t.name.split('.').slice(-1)[0]; const val=_pickPx(t); if (val) spacing[key]=val }
+          for (const t of ir.categories.radius || []){ const key=t.name.split('.').slice(-1)[0]; const val=_pickPx(t); if (val) radius[key]=val }
+          for (const t of ir.categories.fontFamily || []){ const key=t.name.split('.').slice(-1)[0]; const coll=ir.collections[t.collectionId]; const modeId = coll ? coll.defaultModeId || (coll.modes && coll.modes[0] && coll.modes[0].id) : undefined; const mv = modeId ? (t.resolved?.[modeId] || t.modes[modeId]) : null; const arr = mv?.string ? _parseFontFamily(mv.string) : null; if (arr) fontFamily[key]=arr }
+          for (const t of ir.categories.fontSize || []){ const key=t.name.split('.').slice(-1)[0]; const val=_pickPx(t); if (val) fontSize[key]=val }
+          const configObj = { theme: { extend: { colors, spacing, borderRadius: radius, fontFamily, fontSize, boxShadow } } }
+          return `// Generated Tailwind v3 config extension from Figma IR\nmodule.exports = ${JSON.stringify(configObj, null, 2)}\n`
+        }
+        function _toFlatTokens(ir){ const out = { meta: ir.meta, collections: ir.collections, tokens: [] }; for (const t of ir.tokens){ out.tokens.push({ id:t.id, name:t.name, category:t.category, cssVar:t.cssVar, collectionId:t.collectionId, description:t.description||'', modes:t.modes, resolved:t.resolved||{} }) } return out }
+        function _buildShadcnCss(ir, mapping){ const map = mapping || { background:'color.background', foreground:'color.foreground', card:'color.card', 'card-foreground':'color.card-foreground', popover:'color.popover', 'popover-foreground':'color.popover-foreground', primary:'color.primary', 'primary-foreground':'color.on-primary', secondary:'color.secondary', 'secondary-foreground':'color.on-secondary', muted:'color.muted', 'muted-foreground':'color.on-muted', accent:'color.accent', 'accent-foreground':'color.on-accent', destructive:'color.destructive', 'destructive-foreground':'color.on-destructive', border:'color.border', input:'color.input', ring:'color.ring', radius:'radius.md' }; function findTokenPath(path){ const norm=String(path).toLowerCase(); return ir.tokens.find(t => t.name.toLowerCase()===norm || t.name.toLowerCase().startsWith(norm+'.')) } const lines=[]; lines.push('/* shadcn/ui CSS variables mapped from IR */'); lines.push(':root {'); for (const key of Object.keys(map)){ const t=findTokenPath(map[key]); if (!t) continue; if (key==='radius') lines.push(`  --radius: var(${t.cssVar});`); else lines.push(`  --${key}: rgb(var(${t.cssVar}));`) } lines.push('}'); for (const collId of Object.keys(ir.collections)){ const coll=ir.collections[collId]; for (const m of coll.modes||[]){ const sel = `[data-theme="${(coll.name||'collection').toLowerCase()}:${(m.name||m.id).toLowerCase()}"]`; lines.push(`${sel} {`); for (const key of Object.keys(map)){ const t=findTokenPath(map[key]); if (!t) continue; if (key==='radius') lines.push(`  --radius: var(${t.cssVar});`); else lines.push(`  --${key}: rgb(var(${t.cssVar}));`) } lines.push('}') } } return lines.join('\n') }
+        function _toDesignTokens(ir){ const out={ $schema:'https://design-tokens.github.io/schema.json', $themes:[], tokens:{} }; for (const t of ir.tokens){ const path=t.name.split('.'); let cur=out.tokens; for (let i=0;i<path.length-1;i++){ const k=path[i]; cur[k] = cur[k] || {}; cur=cur[k] } const k=path[path.length-1]; const val={ name:t.name, type:t.category, $extensions:{ cssVar:t.cssVar } }; cur[k]=val } return out }
+        Transformer = {
+          buildIR: _buildIR,
+          resolveAliases: _resolveAliases,
+          buildCssFromIR: _buildCssFromIR,
+          generateTailwindConfig: _generateTailwindConfig,
+          toFlatTokens: _toFlatTokens,
+          buildShadcnCss: _buildShadcnCss,
+          toDesignTokens: _toDesignTokens
+        }
+      }
+      log('transformer init:', !!Transformer, !!(window.TokenTransformer && window.TokenTransformer.TokenTransformer), !!window.Transformer)
+ 
+       // Robust clipboard copy with fallbacks for plugin sandbox
+      async function copyText(text) {
+        // Prefer execCommand to avoid clipboard-write policy warnings
+        try {
+          const ta = document.createElement('textarea')
+          ta.value = text
+          ta.setAttribute('readonly', '')
+          ta.style.position = 'fixed'; ta.style.left = '-9999px'; ta.style.top = '-9999px'
+          document.body.appendChild(ta)
+          ta.select()
+          const ok = document.execCommand('copy')
+          document.body.removeChild(ta)
+          return ok
+        } catch (e) {
+          // Last resort: try navigator.clipboard if available
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              await navigator.clipboard.writeText(text)
+              return true
+            }
+          } catch (_) {}
+          return false
+        }
+      }
+
+      // Robust download using Blob, with data: URL fallback
+      function downloadText(filename, text) {
+        try {
+          const blob = new Blob([text], { type: 'application/json;charset=utf-8' })
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = filename
+          document.body.appendChild(a)
+          a.click()
+          a.remove()
+          URL.revokeObjectURL(url)
+          return true
+        } catch (e) {
+          try {
+            const href = 'data:application/json;charset=utf-8,' + encodeURIComponent(text)
+            const a = document.createElement('a')
+            a.href = href
+            a.download = filename
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            return true
+          } catch (e2) {
+            return false
+          }
+        }
+      }
+
+      // Measure line height reliably
+      let LINE_HEIGHT = 16
+      ;(function measureLineHeight(){
+        const m = document.createElement('div')
+        m.textContent = 'A'
+        m.style.cssText = 'position:absolute;left:-9999px;top:-9999px;visibility:hidden;white-space:pre;padding:0;margin:0;font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \'Liberation Mono\', \'Courier New\', monospace; font-size:11.5px;'
+        document.body.appendChild(m)
+        LINE_HEIGHT = Math.max(14, Math.round(m.getBoundingClientRect().height))
+        document.body.removeChild(m)
+      })()
+
+      // Highlighter → array of HTML lines (fast to slice)
+      function highlightJSONAstLines(data) {
+        const indentUnit = '  '
+        const lines = []
+        const escMap = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}
+        const esc = (s) => s.replace(/[&<>"']/g, c => escMap[c])
+        const span = (cls, text) => '<span class="' + cls + '">' + text + '</span>'
+        const punct = (t) => span('t-punct', t)
+
+        function write(s) { lines.push(s) }
+        function appendToLast(s){ if (lines.length) lines[lines.length-1] += s; else lines.push(s) }
+
+        function renderValue(v) {
+          if (v === null) return span('t-null','null')
+          const t = typeof v
+          if (t === 'string') return span('t-string', esc(JSON.stringify(v)))
+          if (t === 'number') return span('t-number', String(v))
+          if (t === 'boolean') return span('t-bool', String(v))
+          return null // complex
+        }
+
+        function renderNode(v, depth) {
+          const ind = indentUnit.repeat(depth)
+          const indNext = indentUnit.repeat(depth + 1)
+
+          const prim = renderValue(v)
+          if (prim !== null) { write(ind + prim); return }
+
+          if (Array.isArray(v)) {
+            if (v.length === 0) { write(ind + punct('[') + punct(']')); return }
+            write(ind + punct('['))
+            for (let i=0;i<v.length;i++){
+              const pv = renderValue(v[i])
+              if (pv !== null) {
+                write(indNext + pv + (i < v.length-1 ? punct(',') : ''))
+              } else {
+                renderNode(v[i], depth+1)
+                if (i < v.length-1) appendToLast(punct(','))
+              }
+            }
+            write(ind + punct(']'))
+            return
+          }
+
+          const keys = Object.keys(v)
+          if (keys.length === 0) { write(ind + punct('{') + punct('}')); return }
+          write(ind + punct('{'))
+          keys.forEach((k, idx) => {
+            const keyHtml = '<span class="t-key">' + esc(JSON.stringify(k)) + '</span>'
+            const val = v[k]
+            const pv = renderValue(val)
+            if (pv !== null) {
+              write(indNext + keyHtml + punct(': ') + pv + (idx < keys.length-1 ? punct(',') : ''))
+            } else {
+              write(indNext + keyHtml + punct(': '))
+              renderNode(val, depth+1)
+              if (idx < keys.length-1) appendToLast(punct(','))
+            }
+          })
+          write(ind + punct('}'))
+        }
+
+        renderNode(data, 0)
+        return lines
+      }
+
+      // Lightweight syntax highlighters for CSS/JS and auto-detect
+      function highlightCssLines(text){
+        const lines = String(text||'').split('\n')
+        return lines.map(line => {
+          let s = escHtml(line)
+          // strings
+          s = s.replace(/(\"[^\"]*\"|'[^']*')/g, '<span class="t-string">$1<\/span>')
+          // properties at start of line
+          s = s.replace(/^(\s*)([-a-zA-Z_][-\w]*)(\s*:\s*)/, '$1<span class="t-key">$2<\/span>$3')
+          // hex colors
+          s = s.replace(/(#(?:[0-9a-fA-F]{3,8}))/g, '<span class="t-number">$1<\/span>')
+          // numbers + units
+          s = s.replace(/\b(\d*\.?\d+)(px|rem|em|vh|vw|%|s|ms)?\b/g, '<span class="t-number">$1$2<\/span>')
+          // punctuation
+          s = s.replace(/([{}:;,()])/g, '<span class="t-punct">$1<\/span>')
+          return s
+        })
+      }
+
+      function highlightJsLines(text){
+        const lines = String(text||'').split('\n')
+        const kw = /\b(const|let|var|return|module|exports|new|class|function|if|else|for|of|in)\b/g
+        return lines.map(line => {
+          let s = escHtml(line)
+          // strings first
+          s = s.replace(/(\"[^\"\\]*(?:\\.[^\"\\]*)*\"|'[^'\\]*(?:\\.[^'\\]*)*'|`[^`\\]*(?:\\.[^`\\]*)*`)/g, '<span class="t-string">$1<\/span>')
+          // booleans/null
+          s = s.replace(/\b(true|false)\b/g, '<span class="t-bool">$1<\/span>')
+          s = s.replace(/\bnull\b/g, '<span class="t-null">null<\/span>')
+          // numbers
+          s = s.replace(/\b\d+(?:\.\d+)?\b/g, '<span class="t-number">$&<\/span>')
+          // keywords
+          s = s.replace(kw, '<span class="t-key">$1<\/span>')
+          // punctuation
+          s = s.replace(/([{}\[\]():.,=])/g, '<span class="t-punct">$1<\/span>')
+          return s
+        })
+      }
+
+      function detectLang(name, text){
+        const n = String(name||'').toLowerCase()
+        if (n.endsWith('.json')) return 'json'
+        if (n.endsWith('.css')) return 'css'
+        if (n.endsWith('.js') || /module\.exports|const |let |var /.test(String(text||''))) return 'js'
+        const t = String(text||'')
+        if (/^\s*[\[{]/.test(t)) return 'json'
+        if (/:\s*[^;]+;/.test(t) || /{\s*$/.test(t)) return 'css'
+        return 'txt'
+      }
+
+      function highlightTextLines(text, name, lang){
+        const l = lang || detectLang(name, text)
+        if (l === 'json'){
+          try { return highlightJSONAstLines(JSON.parse(String(text||''))) } catch { /* fallthrough */ }
+        }
+        if (l === 'css') return highlightCssLines(text)
+        if (l === 'js') return highlightJsLines(text)
+        return String(text||'').split('\n').map(escHtml)
+      }
+
+      // Virtualization state
+      let vState = { lines: [], start: 0, end: 0, height: 0, raf: null }
+
+      function mountVirtualFromPayload(payload, title){ log('mountVirtualFromPayload', { hasPayload: !!payload, keys: payload? Object.keys(payload).slice(0,6): [] }); document.getElementById('virt').hidden = false; if (full && full.pre) full.pre.hidden = true; if (title) setTitle(title)
+        viewKind = 'json'
+        lastPayload = payload
+        lastJsonStr = JSON.stringify(payload, null, 2)
+        lastTextStr = ''
+        downloadName = 'figma-tokens-extract.json'
+        vState.lines = highlightJSONAstLines(payload)
+        vState.height = vState.lines.length * LINE_HEIGHT
+        virt.virtual.style.height = vState.height + 'px'
+        virt.slice.style.lineHeight = LINE_HEIGHT + 'px'
+        metaTs.textContent = payload?.meta?.timestamp ? new Date(payload.meta.timestamp).toLocaleString() : ''
+        virt.scroll.scrollTop = 0
+        vState.start = -1; vState.end = -1
+        updateSlice(true)
+      }
+
+      function mountVirtualFromText(text, name, lang, title){ log('mountVirtualFromText', { name, lang, length: (text||'').length }); document.getElementById('virt').hidden = false; if (full && full.pre) full.pre.hidden = true; if (title) setTitle(title); else if (name) setTitle(name)
+        viewKind = 'text'
+        lastTextStr = String(text || '')
+        downloadName = name || 'output.txt'
+        vState.lines = highlightTextLines(text, name, lang)
+        vState.height = vState.lines.length * LINE_HEIGHT
+        virt.virtual.style.height = vState.height + 'px'
+        virt.slice.style.lineHeight = LINE_HEIGHT + 'px'
+        metaTs.textContent = ''
+        virt.scroll.scrollTop = 0
+        vState.start = -1; vState.end = -1
+        updateSlice(true)
+      }
+
+      function renderSlice(start, end){
+        const frag = []
+        for (let i=start;i<end;i++) frag.push('<div class="code-line">' + vState.lines[i] + '</div>')
+        virt.slice.innerHTML = frag.join('')
+        const offset = start * LINE_HEIGHT
+        virt.slice.style.transform = 'translateY(' + offset + 'px)'
+      }
+
+      function updateSlice(force){
+        const vh = virt.scroll.clientHeight || 0
+        const top = virt.scroll.scrollTop || 0
+        const visible = Math.max(1, Math.ceil(vh / LINE_HEIGHT))
+        const buffer = 20
+        let start = Math.max(0, Math.floor(top / LINE_HEIGHT) - buffer)
+        let end = Math.min(vState.lines.length, start + visible + buffer*2)
+        if (force || start !== vState.start || end !== vState.end) {
+          vState.start = start; vState.end = end
+          renderSlice(start, end)
+        }
+      }
+
+      virt.scroll.addEventListener('scroll', () => {
+        if (vState.raf) return
+        vState.raf = requestAnimationFrame(() => { vState.raf = null; updateSlice(false) })
+      })
+      window.addEventListener('resize', () => updateSlice(true))
+
+      // Controls
+      document.getElementById('extract').onclick = () => { log('click: extract')
+        setStatus('Extracting…')
+        parent.postMessage({ pluginMessage: { type: 'extract' } }, '*')
+      }
+
+      document.getElementById('copy').onclick = async () => { log('click: copy', { viewKind, length: (viewKind==='text'? lastTextStr.length: lastJsonStr.length) })
+        const text = viewKind === 'text' ? lastTextStr : lastJsonStr
+        if (!text) return
+        const ok = await copyText(text)
+        setStatus(ok ? 'Copied to clipboard' : 'Copy failed — permissions blocked')
+        if (ok) setTimeout(() => setStatus('Ready.'), 1200)
+      }
+
+      document.getElementById('download').onclick = () => { log('click: download', { viewKind, filename: downloadName })
+        const text = viewKind === 'text' ? lastTextStr : lastJsonStr
+        if (!text) return
+        const ok = downloadText(downloadName, text)
+        setStatus(ok ? 'Download started' : 'Download blocked by sandbox')
+        if (ok) setTimeout(() => setStatus('Ready.'), 1200)
+      }
+
+      // Advanced subnav + dropdown (guarded)
+      {
+        const advBtn = document.getElementById('advanced')
+        const advSubnav = document.getElementById('adv-subnav')
+        const advMoreBtn = document.getElementById('adv-more')
+        const advMenu = document.getElementById('adv-menu')
+        log('adv elements', { hasBtn: !!advBtn, hasSubnav: !!advSubnav, hasMore: !!advMoreBtn, hasMenu: !!advMenu, initialMenu: advMenu && advMenu.style ? advMenu.style.display : '(no-style)', initialSubnav: advSubnav && advSubnav.style ? advSubnav.style.display : '(no-style)' })
+        if (advBtn && advSubnav) {
+          advBtn.addEventListener('click', (e) => {
+            e.stopPropagation()
+            const cur = (advSubnav.style.display || 'none').toLowerCase()
+            const next = cur === 'none' ? 'block' : 'none'
+            advSubnav.style.display = next
+            log('adv subnav toggle', { cur, next })
+            setStatus(next === 'block' ? 'Advanced open' : 'Advanced closed')
+          })
+        }
+        if (advMoreBtn && advMenu) {
+          advMoreBtn.addEventListener('click', (e) => {
+            e.stopPropagation()
+            const cur = (advMenu.style.display || 'none').toLowerCase()
+            const next = cur === 'none' ? 'block' : 'none'
+            advMenu.style.display = next
+            log('adv menu toggle', { cur, next })
+          })
+          window.addEventListener('click', () => { advMenu.style.display = 'none'; log('adv menu close: outside click') })
+        }
+      }
+
+      // Advanced actions
+      document.getElementById('adv-ir').onclick = () => { log('click: adv-ir', { hasPayload: !!lastPayload })
+        if (!lastPayload) { setStatus('Extract first'); return }
+        try {
+          lastIR = Transformer.resolveAliases(Transformer.buildIR(lastPayload))
+          mountVirtualFromPayload(lastIR, 'IR (JSON)')
+          setStatus('IR ready')
+        } catch (e) {
+          setStatus('IR failed: ' + (e?.message || e))
+        }
+      }
+
+      document.getElementById('adv-flat').onclick = () => { log('click: adv-flat', { hasIR: !!lastIR })
+        if (!lastIR) { setStatus('Build IR first'); return }
+        try {
+          const flat = Transformer.toFlatTokens(lastIR)
+          const json = JSON.stringify(flat, null, 2)
+          mountVirtualFromText(json, 'tokens.json', 'json', 'Flat Tokens (tokens.json)')
+          lastTextStr = json
+          setStatus('Flat tokens ready')
+        } catch (e) {
+          setStatus('Flat tokens failed: ' + (e?.message || e))
+        }
+      }
+
+      {
+        const el = document.getElementById('to-tw')
+        if (el) el.onclick = () => { log('click: to-tw', { hasIR: !!lastIR })
+          if (!lastIR) { setStatus('Build IR first'); return }
+          try {
+            const cfg = Transformer.generateTailwindConfig(lastIR)
+            mountVirtualFromText(cfg, 'tailwind.config.js', 'js', 'Tailwind Config')
+            lastTextStr = cfg
+            setStatus('Tailwind config ready')
+          } catch (e) {
+            setStatus('Config failed: ' + (e?.message || e))
+          }
+        }
+      }
+
+      {
+        const el = document.getElementById('to-css')
+        if (el) el.onclick = () => { log('click: to-css', { hasIR: !!lastIR })
+          if (!lastIR) { setStatus('Build IR first'); return }
+          try {
+            const css = Transformer.buildCssFromIR(lastIR)
+            mountVirtualFromText(css, 'tokens.css', 'css', 'Tokens CSS')
+            lastTextStr = css
+            setStatus('Tokens CSS ready')
+          } catch (e) {
+            setStatus('CSS failed: ' + (e?.message || e))
+          }
+        }
+      }
+
+      document.getElementById('adv-dt').onclick = () => { log('click: adv-dt', { hasIR: !!lastIR })
+        if (!lastIR) { setStatus('Build IR first'); return }
+        try {
+          const dt = Transformer.toDesignTokens(lastIR)
+          const json = JSON.stringify(dt, null, 2)
+          mountVirtualFromText(json, 'design-tokens.json', 'json', 'W3C Tokens')
+          lastTextStr = json
+          setStatus('W3C tokens ready')
+        } catch (e) {
+          setStatus('W3C tokens failed: ' + (e?.message || e))
+        }
+      }
+
+      {
+        const el = document.getElementById('to-shadcn')
+        if (el) el.onclick = () => { log('click: to-shadcn', { hasIR: !!lastIR })
+          if (!lastIR) { setStatus('Build IR first'); return }
+          try {
+            const css = Transformer.buildShadcnCss(lastIR)
+            mountVirtualFromText(css, 'shadcn.css', 'css', 'shadcn CSS')
+            lastTextStr = css
+            setStatus('shadcn CSS ready')
+          } catch (e) {
+            setStatus('shadcn failed: ' + (e?.message || e))
+          }
+        }
+      }
+
+      document.getElementById('clear').onclick = () => { log('click: clear')
+        lastPayload = null
+        lastJsonStr = ''
+        vState.lines = []
+        vState.height = 0
+        virt.virtual.style.height = '0px'
+        virt.slice.innerHTML = ''
+        virt.scroll.scrollTop = 0
+        full.pre.hidden = true
+        document.getElementById('virt').hidden = false
+        setStatus('Cleared')
+        setTimeout(() => setStatus('Ready.'), 800)
+      }
+
+      {
+        const el = document.getElementById('close')
+        if (el) el.onclick = () => { log('click: close'); parent.postMessage({ pluginMessage: { type: 'close' } }, '*') }
+      }
+
+      onmessage = (event) => { log('onmessage', { hasData: !!event?.data, keys: event?.data? Object.keys(event.data).slice(0,6): [] })
+        const msg = event.data && event.data.pluginMessage
+        if (!msg) return
+        if (msg.type === 'extracted') { log('message: extracted', { payloadKeys: msg?.payload? Object.keys(msg.payload).slice(0,6): [] })
+          mountVirtualFromPayload(msg.payload, 'Extraction output (JSON)')
+          setStatus('Extraction complete')
+        }
+      }
+    </script>
+  </body>
+</html>
