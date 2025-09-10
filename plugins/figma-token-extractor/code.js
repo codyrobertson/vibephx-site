@@ -163,9 +163,9 @@ async function extractAll() {
 
 figma.showUI(__html__, { width: 900, height: 650 })
 
-async function getStored(key){ try { return await figma.clientStorage.getAsync(key) } catch { return null } }
-async function setStored(key, val){ try { await figma.clientStorage.setAsync(key, val); return true } catch { return false } }
-async function delStored(key){ try { await figma.clientStorage.deleteAsync(key); return true } catch { return false } }
+async function getStored(key){ try { return await figma.clientStorage.getAsync(key) } catch (e) { return null } }
+async function setStored(key, val){ try { await figma.clientStorage.setAsync(key, val); return true } catch (e) { return false } }
+async function delStored(key){ try { await figma.clientStorage.deleteAsync(key); return true } catch (e) { return false } }
 
 figma.ui.onmessage = async (msg) => {
   if (!msg || typeof msg !== 'object') return
