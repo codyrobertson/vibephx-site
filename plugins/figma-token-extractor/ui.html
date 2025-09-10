@@ -92,14 +92,15 @@
       <header>
         <h1>Tokens → Tailwind & shadcn (Extractor)</h1>
         <div class="toolbar">
-          <button id="extract" class="btn primary">Extract</button>
+          <button id="mode-export" class="btn primary">Export</button>
+          <button id="mode-sync" class="btn ghost">Sync</button>
+          <button id="extract" class="btn">Extract</button>
+          <button id="tw-export" class="btn">Export Tailwind</button>
+          <button id="css-export" class="btn">Export CSS</button>
           <button id="copy" class="btn">Copy</button>
           <button id="download" class="btn">Download</button>
           <button id="clear" class="btn ghost">Clear</button>
           <button id="link" class="btn">Link</button>
-          <button id="pull" class="btn">Pull</button>
-          <button id="push" class="btn">Push</button>
-          <button id="apply" class="btn">Apply</button>
           <button id="advanced" class="btn">Advanced</button>
         </div>
       </header>
@@ -192,11 +193,29 @@
       function clearCreds(){ try { LS.removeItem('codesync.install') } catch(_){} }
       function isLinked(){ const c = getCreds(); return !!(c && c.installationId && c.token) }
       function refreshLinkUI(){ const btn = document.getElementById('link'); if (!btn) return; if (isLinked()){ btn.textContent = 'Linked ✓'; btn.classList.add('primary') } else { btn.textContent = 'Link'; btn.classList.remove('primary') } }
+      function refreshModeUI(){
+        const mExp = document.getElementById('mode-export');
+        const mSync = document.getElementById('mode-sync');
+        const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none' }
+        if (mExp && mSync){
+          if ((uiMode||'export') === 'export'){
+            mExp.classList.add('primary'); mSync.classList.remove('primary')
+          } else { mSync.classList.add('primary'); mExp.classList.remove('primary') }
+        }
+        const isExp = (uiMode||'export') === 'export'
+        show('tw-export', isExp)
+        show('css-export', isExp)
+        show('pull', !isExp)
+        show('push', !isExp)
+        show('apply', !isExp)
+        // Keep Extract, Copy, Download visible in both
+      }
 
       const DEBUG = true
       function log(){ try { if (DEBUG) console.log('[UI]', ...arguments) } catch(_) {} }
        log('bootstrap: DOM ready')
        try { refreshLinkUI() } catch(_) {}
+       try { refreshModeUI() } catch(_) {}
        try { parent.postMessage({ pluginMessage: { type: 'getCreds' } }, '*') } catch(_) {}
        try { parent.postMessage({ pluginMessage: { type: 'getBase' } }, '*') } catch(_) {}
 
@@ -211,6 +230,10 @@
       let lastTextStr = ''
       let viewKind = 'json' // 'json' | 'text'
       let downloadName = 'figma-tokens-extract.json'
+      let uiMode = LS.getItem('ui.mode') || 'export' // 'export' | 'sync'
+      let pendingAction = '' // 'export_tailwind' | 'export_css'
+      let uiMode = LS.getItem('ui.mode') || 'export' // 'export' | 'sync'
+      let pendingAction = '' // 'export_tailwind' | 'export_css'
       function setStatus(text) { statusEl.textContent = text }
       const escHtml = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
 
@@ -675,10 +698,58 @@
       })
       window.addEventListener('resize', () => updateSlice(true))
 
+      // Mode toggle
+      {
+        const mExp = document.getElementById('mode-export')
+        const mSync = document.getElementById('mode-sync')
+        if (mExp) mExp.onclick = () => { uiMode = 'export'; try { LS.setItem('ui.mode', 'export') } catch(_) {}; refreshModeUI() }
+        if (mSync) mSync.onclick = () => { uiMode = 'sync'; try { LS.setItem('ui.mode', 'sync') } catch(_) {}; refreshModeUI() }
+      }
+
       // Controls
       document.getElementById('extract').onclick = () => { log('click: extract')
         setStatus('Extracting…')
+        pendingAction = ''
         parent.postMessage({ pluginMessage: { type: 'extract' } }, '*')
+      }
+      {
+        const tw = document.getElementById('tw-export')
+        if (tw) tw.onclick = () => {
+          log('click: export tailwind')
+          function build(){
+            try {
+              lastIR = Transformer.resolveAliases(Transformer.buildIR(lastPayload))
+              const cfg = Transformer.generateTailwindConfig(lastIR)
+              mountVirtualFromText(cfg, 'tailwind.tokens.config.js', 'js', 'Tailwind Tokens Config')
+              lastTextStr = cfg
+              downloadName = 'tailwind.tokens.config.js'
+              setStatus('Tailwind config ready')
+            } catch (e){ setStatus('Config failed: ' + (e?.message || e)) }
+          }
+          if (lastPayload) return build()
+          setStatus('Extracting…')
+          pendingAction = 'export_tailwind'
+          parent.postMessage({ pluginMessage: { type: 'extract' } }, '*')
+        }
+        const cs = document.getElementById('css-export')
+        if (cs) cs.onclick = () => {
+          log('click: export css')
+          function build(){
+            try {
+              lastIR = lastIR || Transformer.resolveAliases(Transformer.buildIR(lastPayload))
+              const css = Transformer.buildCssFromIR(lastIR)
+              mountVirtualFromText(css, 'tokens.css', 'css', 'Tokens CSS')
+              lastTextStr = css
+              downloadName = 'tokens.css'
+              setStatus('Tokens CSS ready')
+            } catch (e){ setStatus('CSS failed: ' + (e?.message || e)) }
+          }
+          if (lastPayload && lastIR) return build()
+          if (lastPayload) return build()
+          setStatus('Extracting…')
+          pendingAction = 'export_css'
+          parent.postMessage({ pluginMessage: { type: 'extract' } }, '*')
+        }
       }
 
       // Link flow (modal-based; prompts blocked in plugin sandbox)
@@ -972,7 +1043,28 @@
         if (!msg) return
         if (msg.type === 'extracted') { log('message: extracted', { payloadKeys: msg?.payload? Object.keys(msg.payload).slice(0,6): [] })
           mountVirtualFromPayload(msg.payload, 'Extraction output (JSON)')
-          setStatus('Extraction complete')
+          if (pendingAction === 'export_tailwind') {
+            try {
+              lastIR = Transformer.resolveAliases(Transformer.buildIR(msg.payload))
+              const cfg = Transformer.generateTailwindConfig(lastIR)
+              mountVirtualFromText(cfg, 'tailwind.tokens.config.js', 'js', 'Tailwind Tokens Config')
+              lastTextStr = cfg
+              downloadName = 'tailwind.tokens.config.js'
+              setStatus('Tailwind config ready')
+            } catch (e){ setStatus('Config failed: ' + (e?.message || e)) }
+          } else if (pendingAction === 'export_css') {
+            try {
+              lastIR = Transformer.resolveAliases(Transformer.buildIR(msg.payload))
+              const css = Transformer.buildCssFromIR(lastIR)
+              mountVirtualFromText(css, 'tokens.css', 'css', 'Tokens CSS')
+              lastTextStr = css
+              downloadName = 'tokens.css'
+              setStatus('Tokens CSS ready')
+            } catch (e){ setStatus('CSS failed: ' + (e?.message || e)) }
+          } else {
+            setStatus('Extraction complete')
+          }
+          pendingAction = ''
         } else if (msg.type === 'creds') {
           if (msg.payload && typeof msg.payload === 'object') setCreds(msg.payload); else clearCreds()
           refreshLinkUI()
