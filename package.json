@@ -8,7 +8,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "test:plugin": "jest --config plugins/figma-token-extractor/jest.config.js"
+    "test:plugin": "jest --config plugins/figma-token-extractor/jest.config.js",
+    "codesync": "node tools/codesync/cli.js"
   },
   "keywords": [],
   "author": "",

@@ -11,3 +11,6 @@ build/
 
 # Logo cache directory
 .logo-cache/
+
+# CodeSync state
+.codesync/

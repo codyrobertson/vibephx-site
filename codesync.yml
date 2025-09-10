@@ -1,0 +1,5 @@
+# CodeSync project link (scaffold)
+projectId: "proj_local"
+figmaFileKey: ""
+sourceOfTruth: "code"  # or "figma"
+lastSync: ""
