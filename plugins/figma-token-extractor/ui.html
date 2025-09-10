@@ -94,15 +94,11 @@
         <div class="toolbar">
           <button id="mode-export" class="btn primary">Export</button>
           <button id="mode-sync" class="btn ghost">Sync</button>
-          <button id="extract" class="btn">Extract</button>
-          <button id="tw-export" class="btn">Export Tailwind</button>
-          <button id="css-export" class="btn">Export CSS</button>
-          <button id="copy" class="btn">Copy</button>
-          <button id="download" class="btn">Download</button>
-          <button id="clear" class="btn ghost">Clear</button>
-          <button id="link" class="btn">Link</button>
-          <button id="advanced" class="btn">Advanced</button>
-          <button id="export-all" class="btn primary">Export All</button>
+          <button id="run" class="btn primary">Extract</button>
+          <div style="position:relative;display:inline-block;">
+            <button id="hdr-more" class="btn">More ▾</button>
+            <div id="hdr-menu" style="display:none;position:absolute;left:0;top:110%;min-width:220px;background:var(--panel);border:1px solid var(--border);border-radius:8px;box-shadow:0 10px 20px rgba(0,0,0,.15);z-index:9999;pointer-events:auto;overflow:hidden;"></div>
+          </div>
         </div>
       </header>
 
@@ -230,6 +226,7 @@
        log('bootstrap: DOM ready')
        try { refreshLinkUI() } catch(_) {}
        try { refreshModeUI() } catch(_) {}
+       try { refreshRunUI() } catch(_) {}
        try { parent.postMessage({ pluginMessage: { type: 'getCreds' } }, '*') } catch(_) {}
        try { parent.postMessage({ pluginMessage: { type: 'getBase' } }, '*') } catch(_) {}
 
@@ -244,10 +241,7 @@
       let lastTextStr = ''
       let viewKind = 'json' // 'json' | 'text'
       let downloadName = 'figma-tokens-extract.json'
-      let uiMode = LS.getItem('ui.mode') || 'export' // 'export' | 'sync'
-      let pendingAction = '' // 'export_tailwind' | 'export_css'
-      let uiMode = LS.getItem('ui.mode') || 'export' // 'export' | 'sync'
-      let pendingAction = '' // 'export_tailwind' | 'export_css'
+
       function setStatus(text) { statusEl.textContent = text }
       const escHtml = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
 
@@ -716,20 +710,108 @@
       {
         const mExp = document.getElementById('mode-export')
         const mSync = document.getElementById('mode-sync')
-        if (mExp) mExp.onclick = () => { uiMode = 'export'; try { LS.setItem('ui.mode', 'export') } catch(_) {}; refreshModeUI() }
-        if (mSync) mSync.onclick = () => { uiMode = 'sync'; try { LS.setItem('ui.mode', 'sync') } catch(_) {}; refreshModeUI() }
+        if (mExp) mExp.onclick = () => { uiMode = 'export'; try { LS.setItem('ui.mode', 'export') } catch(_) {}; refreshModeUI(); refreshRunUI() }
+        if (mSync) mSync.onclick = () => { uiMode = 'sync'; try { LS.setItem('ui.mode', 'sync') } catch(_) {}; refreshModeUI(); refreshRunUI() }
       }
 
-      // Controls
-      document.getElementById('extract').onclick = () => { log('click: extract')
-        setStatus('Extracting…')
-        pendingAction = ''
-        parent.postMessage({ pluginMessage: { type: 'extract' } }, '*')
+      // Primary Run button (context-aware)
+      function refreshRunUI(){
+        const btn = document.getElementById('run')
+        if (!btn) return
+        btn.onclick = null
+        const mode = (uiMode||'export')
+        if (mode === 'export'){
+          if (!lastPayload){
+            btn.textContent = 'Extract'
+            btn.onclick = () => { log('run: extract'); setStatus('Extracting…'); pendingAction=''; parent.postMessage({ pluginMessage: { type: 'extract' } }, '*') }
+          } else {
+            btn.textContent = 'Generate Tailwind'
+            btn.onclick = () => { log('run: generate tailwind'); try { lastIR = Transformer.resolveAliases(Transformer.buildIR(lastPayload)); const cfg = Transformer.generateTailwindConfig(lastIR); mountVirtualFromText(cfg, 'tailwind.tokens.config.js', 'js', 'Tailwind Tokens Config'); lastTextStr = cfg; downloadName = 'tailwind.tokens.config.js'; setStatus('Tailwind config ready') } catch (e){ setStatus('Config failed') } }
+          }
+        } else {
+          if (!isLinked()){
+            btn.textContent = 'Link'
+            btn.onclick = () => { try { openLinkModal() } catch(_) { setStatus('Link UI unavailable') } }
+          } else {
+            btn.textContent = 'Pull from Server'
+            btn.onclick = async () => {
+              const creds = getCreds(); const base = getBase()
+              try {
+                const res = await fetch(base.replace(/\/$/, '') + '/api/codesync/tokens/pull', { method: 'GET', headers: { 'X-Installation-Id': creds.installationId, 'X-Access-Token': creds.token } })
+                const data = await res.json().catch(()=>null)
+                if (!res.ok) throw new Error(data?.error || 'pull_failed')
+                if (!data?.payload) { setStatus('No server tokens'); return }
+                const json = JSON.stringify(data.payload, null, 2)
+                mountVirtualFromText(json, 'server-tokens.json', 'json', 'Server Tokens')
+                lastTextStr = json
+                setStatus('Pulled from server')
+                setTimeout(()=>setStatus('Ready.'), 1200)
+              } catch (e){ setStatus('Pull failed'); setTimeout(()=>setStatus('Ready.'), 1200) }
+            }
+          }
+        }
       }
+
+      // Header More menu (context-aware)
+      ;(function(){
+        const btn = document.getElementById('hdr-more')
+        const menu = document.getElementById('hdr-menu')
+        function close(){ if (menu) menu.style.display='none' }
+        function add(label, id, onclick, show){ if (!menu) return; if (show===false) return; const b=document.createElement('button'); b.className='btn'; b.style.cssText='display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--border);border-radius:0;background:transparent'; b.id=id; b.textContent=label; b.onclick=()=>{ close(); onclick&&onclick() }; menu.appendChild(b) }
+        function render(){ if (!menu) return; menu.innerHTML=''; const mode=(uiMode||'export'); const linked=isLinked(); const hasPayload=!!lastPayload; const hasText=!!(lastTextStr||lastJsonStr)
+          if (mode==='export'){
+            add('Tokens CSS', 'm-css', () => { function build(){ try { lastIR = Transformer.resolveAliases(Transformer.buildIR(lastPayload)); const css = Transformer.buildCssFromIR(lastIR); mountVirtualFromText(css, 'tokens.css', 'css', 'Tokens CSS'); lastTextStr = css; downloadName = 'tokens.css'; setStatus('Tokens CSS ready') } catch(e){ setStatus('CSS failed') } } if (hasPayload) build(); else { setStatus('Extracting…'); pendingAction='export_css'; parent.postMessage({ pluginMessage: { type: 'extract' } }, '*') } }, true)
+            add('Flat Tokens (tokens.json)', 'm-flat', () => { try { lastIR = Transformer.resolveAliases(Transformer.buildIR(lastPayload)); const flat = Transformer.toFlatTokens(lastIR); const json = JSON.stringify(flat, null, 2); mountVirtualFromText(json, 'tokens.json', 'json', 'Flat Tokens'); lastTextStr = json; downloadName = 'tokens.json'; setStatus('Flat tokens ready') } catch(e){ setStatus('Flat tokens failed') } }, hasPayload)
+            add('W3C Tokens', 'm-dt', () => { try { lastIR = Transformer.resolveAliases(Transformer.buildIR(lastPayload)); const dt = Transformer.toDesignTokens(lastIR); const json = JSON.stringify(dt, null, 2); mountVirtualFromText(json, 'design-tokens.json', 'json', 'W3C Tokens'); lastTextStr = json; downloadName = 'design-tokens.json'; setStatus('W3C tokens ready') } catch(e){ setStatus('W3C tokens failed') } }, hasPayload)
+            add('Export All…', 'm-export-all', () => { openExportModal() }, true)
+            add('Copy', 'm-copy', async () => { const text = viewKind==='text'? lastTextStr: lastJsonStr; if (!text) return; const ok = await copyText(text); setStatus(ok? 'Copied to clipboard':'Copy failed'); if (ok) setTimeout(()=>setStatus('Ready.'),1200) }, hasText)
+            add('Download', 'm-download', () => { const text = viewKind==='text'? lastTextStr: lastJsonStr; if (!text) return; const ok = downloadText(downloadName, text); setStatus(ok? 'Download started':'Download blocked'); if (ok) setTimeout(()=>setStatus('Ready.'),1200) }, hasText)
+            add('Clear', 'm-clear', () => { document.getElementById('clear')?.click() }, hasPayload||hasText)
+          } else {
+            add(linked? 'Unlink':'Link', 'm-link', () => { if (linked) { clearCreds(); try { parent.postMessage({ pluginMessage: { type: 'clearCreds' } }, '*') } catch(_) {}; refreshLinkUI(); refreshRunUI(); setStatus('Unlinked'); setTimeout(()=>setStatus('Ready.'),1000) } else { openLinkModal() } }, true)
+            add('Push to Server', 'm-push', async () => { const creds=getCreds(); const base=getBase(); if (!creds){ setStatus('Link first'); return } if (!lastPayload){ setStatus('Extract first'); return } try { const res = await fetch(base.replace(/\/$/, '') + '/api/codesync/tokens/push', { method:'POST', headers:{ 'Content-Type':'application/json', 'X-Installation-Id':creds.installationId, 'X-Access-Token':creds.token }, body: JSON.stringify(lastPayload) }); if (!res.ok) throw new Error('push_failed'); setStatus('Pushed to server ✔'); setTimeout(()=>setStatus('Ready.'),1200) } catch(e){ setStatus('Push failed'); setTimeout(()=>setStatus('Ready.'),1200) } }, linked)
+            add('Apply to Figma', 'm-apply', () => { try { const text=lastTextStr||''; if (!text){ setStatus('Pull tokens first'); return } const payload=JSON.parse(text); parent.postMessage({ pluginMessage: { type:'applyDesignTokens', payload } }, '*'); setStatus('Apply requested'); setTimeout(()=>setStatus('Ready.'),1200) } catch(e){ setStatus('Apply failed'); setTimeout(()=>setStatus('Ready.'),1200) } }, true)
+            add('Export All…', 'm-export-all', () => { openExportModal() }, linked)
+          }
+        }
+        if (btn && menu){ btn.addEventListener('click', (e)=>{ e.stopPropagation(); menu.style.display = (menu.style.display||'none')==='none' ? 'block':'none'; render() }); window.addEventListener('click', ()=>{ close() }) }
+      })()
+
       // Export All (write to folder via server)
-      {
-        const btn = document.getElementById('export-all')
-        if (btn) btn.onclick = () => {
+      function openExportModal(){
+        const modal = document.getElementById('export-modal')
+        const dirInput = document.getElementById('export-dir')
+        const cancel = document.getElementById('export-cancel')
+        const submit = document.getElementById('export-submit')
+        if (!modal || !dirInput || !cancel || !submit) { setStatus('Export UI unavailable'); return }
+        modal.style.display = 'flex'
+        dirInput.value = LS.getItem('export.outdir') || 'public/snippets'
+        const close = () => { modal.style.display = 'none'; cancel.onclick = null; submit.onclick = null }
+        cancel.onclick = () => { close(); setStatus('Ready.') }
+        submit.onclick = async () => {
+          const outDir = String(dirInput.value || '').trim() || 'public/snippets'
+          try { LS.setItem('export.outdir', outDir) } catch(_) {}
+          const creds = getCreds(); const base = getBase()
+          async function doExport(payload){
+            try {
+              const res = await fetch(base.replace(/\/$/, '') + '/api/codesync/export/write', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Installation-Id': creds.installationId, 'X-Access-Token': creds.token }, body: JSON.stringify({ outDir, payload })
+              })
+              const data = await res.json().catch(()=>null)
+              if (!res.ok) throw new Error(data?.error || 'export_failed')
+              setStatus('Exported to ' + (data?.dest || outDir))
+              close()
+              setTimeout(()=>setStatus('Ready.'), 1500)
+            } catch (e){ setStatus('Export failed'); setTimeout(()=>setStatus('Ready.'), 1500) }
+          }
+          if (lastPayload) return doExport(lastPayload)
+          setStatus('Extracting…')
+          pendingAction = 'export_all'
+          parent.postMessage({ pluginMessage: { type: 'extract' } }, '*')
+          close()
+        }
+      }
+
           if (!isLinked()) { setStatus('Link first'); return }
           const modal = document.getElementById('export-modal')
           const dirInput = document.getElementById('export-dir')
