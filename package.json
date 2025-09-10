@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:plugin": "jest --config plugins/figma-token-extractor/jest.config.js",
+    "test:codesync": "jest --config tools/codesync/jest.config.js",
     "codesync": "node tools/codesync/cli.js"
   },
   "keywords": [],
