@@ -95,32 +95,35 @@ async function cmd_pair_confirm(args){
   info('✔ Paired. Credentials saved to .codesync/installation.json')
 }
 
-function writeOutputs(ir, transformer){
-  ensureDir(OUT_DIR)
+function writeOutputs(ir, transformer, outDir){
+  const dest = outDir || OUT_DIR
+  ensureDir(dest)
   // W3C tokens
   const dt = transformer.toDesignTokens(ir)
-  fs.writeFileSync(path.join(OUT_DIR, 'design-tokens.json'), JSON.stringify(dt, null, 2))
+  fs.writeFileSync(path.join(dest, 'design-tokens.json'), JSON.stringify(dt, null, 2))
   // Flat tokens
   const flat = transformer.toFlatTokens(ir)
-  fs.writeFileSync(path.join(OUT_DIR, 'tokens.flat.json'), JSON.stringify(flat, null, 2))
+  fs.writeFileSync(path.join(dest, 'tokens.flat.json'), JSON.stringify(flat, null, 2))
   // Tokens CSS
   const css = transformer.buildCssFromIR(ir)
-  fs.writeFileSync(path.join(OUT_DIR, 'tokens.css'), css)
+  fs.writeFileSync(path.join(dest, 'tokens.css'), css)
   // shadcn CSS
   const scss = transformer.buildShadcnCss(ir)
-  fs.writeFileSync(path.join(OUT_DIR, 'shadcn.css'), scss)
+  fs.writeFileSync(path.join(dest, 'shadcn.css'), scss)
   // Tailwind config extension
   const cfg = transformer.generateTailwindConfig(ir)
-  fs.writeFileSync(path.join(OUT_DIR, 'tailwind.tokens.config.js'), cfg)
+  fs.writeFileSync(path.join(dest, 'tailwind.tokens.config.js'), cfg)
 }
 
 async function cmd_pull(args){
   const plan = args.includes('--plan')
+  const outArg = (args.find(a => a.startsWith('--out=')) || '')
+  const outDir = outArg ? outArg.split('=')[1] : ''
   const cfg = readConfig() || {}
   if (!cfg.figmaFileKey) exit('Not linked. Run: codesync link <figma-url>')
   const inst = readInstallation()
   if (!inst) exit('Not paired. Run: codesync pair start -> enter code in plugin -> codesync pair confirm <code>')
-  if (plan){ info('Plan: would fetch tokens and write outputs under public/snippets/'); return }
+  if (plan){ info(`Plan: would fetch tokens and write outputs under ${outDir||'public/snippets'}/`); return }
   const data = await tokensPull()
   const payload = data?.payload
   if (!payload) exit('No tokens available from server. Push from plugin first.')
@@ -128,10 +131,10 @@ async function cmd_pull(args){
   const { TokenTransformer } = require('../../plugins/figma-token-extractor/transformer.class.js')
   const transformer = new TokenTransformer()
   const ir = transformer.resolveAliases(transformer.buildIR(payload))
-  writeOutputs(ir, transformer)
+  writeOutputs(ir, transformer, outDir)
   ensureDir(STATE_DIR)
   fs.writeFileSync(LAST_SYNC_PATH, JSON.stringify({ at: new Date().toISOString(), dir: 'figma->code' }, null, 2))
-  info('✔ Tokens pulled and written to public/snippets')
+  info(`✔ Tokens pulled and written to ${outDir||'public/snippets'}/`)
 }
 
 async function cmd_push(args){

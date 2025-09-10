@@ -1,0 +1,14 @@
+{
+  "name": "tailwind-demo",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "build": "tailwindcss -c tailwind.config.js -i ./src/input.css -o ./dist/output.css",
+    "watch": "tailwindcss -c tailwind.config.js -i ./src/input.css -o ./dist/output.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17",
+    "postcss": "^8.5.6",
+    "autoprefixer": "^10.4.21"
+  }
+}

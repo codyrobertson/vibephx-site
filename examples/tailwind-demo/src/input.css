@@ -1,0 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Use exported tokens */
+@import "../styles/tokens.css";
