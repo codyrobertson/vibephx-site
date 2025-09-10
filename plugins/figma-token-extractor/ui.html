@@ -102,6 +102,7 @@
           <button id="clear" class="btn ghost">Clear</button>
           <button id="link" class="btn">Link</button>
           <button id="advanced" class="btn">Advanced</button>
+          <button id="export-all" class="btn primary">Export All</button>
         </div>
       </header>
 
@@ -145,6 +146,19 @@
           <pre id="full" class="code-full" hidden><code id="full-code"></code></pre>
         </div>
       </section>
+    </div>
+
+    <!-- Export modal -->
+    <div id="export-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:10000;align-items:center;justify-content:center;">
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:12px;min-width:280px;max-width:90vw;width:420px;">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Export All (write to folder)</div>
+        <label style="display:block;font-size:12px;margin-bottom:4px;">Output Folder (relative to project root)</label>
+        <input id="export-dir" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--panel-contrast);color:var(--fg);font-size:12px;" placeholder="public/snippets" />
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+          <button id="export-cancel" class="btn ghost">Cancel</button>
+          <button id="export-submit" class="btn primary">Export</button>
+        </div>
+      </div>
     </div>
 
     <!-- Link modal -->
@@ -712,6 +726,47 @@
         pendingAction = ''
         parent.postMessage({ pluginMessage: { type: 'extract' } }, '*')
       }
+      // Export All (write to folder via server)
+      {
+        const btn = document.getElementById('export-all')
+        if (btn) btn.onclick = () => {
+          if (!isLinked()) { setStatus('Link first'); return }
+          const modal = document.getElementById('export-modal')
+          const dirInput = document.getElementById('export-dir')
+          const cancel = document.getElementById('export-cancel')
+          const submit = document.getElementById('export-submit')
+          if (!modal || !dirInput || !cancel || !submit) { setStatus('Export UI unavailable'); return }
+          modal.style.display = 'flex'
+          dirInput.value = LS.getItem('export.outdir') || 'public/snippets'
+          const close = () => { modal.style.display = 'none'; cancel.onclick = null; submit.onclick = null }
+          cancel.onclick = () => { close(); setStatus('Ready.') }
+          submit.onclick = async () => {
+            const outDir = String(dirInput.value || '').trim() || 'public/snippets'
+            try { LS.setItem('export.outdir', outDir) } catch(_) {}
+            const creds = getCreds(); const base = getBase()
+            async function doExport(payload){
+              try {
+                const res = await fetch(base.replace(/\/$/, '') + '/api/codesync/export/write', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'X-Installation-Id': creds.installationId, 'X-Access-Token': creds.token },
+                  body: JSON.stringify({ outDir, payload })
+                })
+                const data = await res.json().catch(()=>null)
+                if (!res.ok) throw new Error(data?.error || 'export_failed')
+                setStatus('Exported to ' + (data?.dest || outDir))
+                close()
+                setTimeout(()=>setStatus('Ready.'), 1500)
+              } catch (e){ setStatus('Export failed'); setTimeout(()=>setStatus('Ready.'), 1500) }
+            }
+            if (lastPayload) return doExport(lastPayload)
+            setStatus('Extracting…')
+            pendingAction = 'export_all'
+            parent.postMessage({ pluginMessage: { type: 'extract' } }, '*')
+            // Continue in onmessage when extracted
+            close()
+          }
+        }
+      }
       {
         const tw = document.getElementById('tw-export')
         if (tw) tw.onclick = () => {
@@ -1061,6 +1116,19 @@
               downloadName = 'tokens.css'
               setStatus('Tokens CSS ready')
             } catch (e){ setStatus('CSS failed: ' + (e?.message || e)) }
+          } else if (pendingAction === 'export_all') {
+            try {
+              const creds = getCreds(); const base = getBase()
+              const outDir = LS.getItem('export.outdir') || 'public/snippets'
+              const res = await fetch(base.replace(/\/$/, '') + '/api/codesync/export/write', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Installation-Id': creds.installationId, 'X-Access-Token': creds.token },
+                body: JSON.stringify({ outDir, payload: msg.payload })
+              })
+              const data = await res.json().catch(()=>null)
+              if (!res.ok) throw new Error(data?.error || 'export_failed')
+              setStatus('Exported to ' + (data?.dest || outDir))
+            } catch (e){ setStatus('Export failed') }
           } else {
             setStatus('Extraction complete')
           }
