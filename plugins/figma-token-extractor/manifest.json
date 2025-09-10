@@ -1,0 +1,12 @@
+{
+  "name": "Tokens → Tailwind & shadcn (Extractor)",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "reasoning": "Sync design tokens with CodeSync server.",
+    "allowedDomains": ["none"],
+    "devAllowedDomains": ["http://localhost:3000", "http://localhost:3004"]
+  }
+}

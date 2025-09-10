@@ -143,13 +143,45 @@
       </section>
     </div>
 
+    <!-- Link modal -->
+    <div id="link-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:10000;align-items:center;justify-content:center;">
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:12px;min-width:280px;max-width:90vw;width:360px;">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Link CodeSync</div>
+        <label style="display:block;font-size:12px;margin-bottom:4px;">Server URL</label>
+        <input id="link-base" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--panel-contrast);color:var(--fg);font-size:12px;margin-bottom:10px;" placeholder="http://localhost:3000" />
+        <label style="display:block;font-size:12px;margin-bottom:4px;">Pairing Code</label>
+        <input id="link-code" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--panel-contrast);color:var(--fg);font-size:12px;" placeholder="123456" />
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+          <button id="link-cancel" class="btn ghost">Cancel</button>
+          <button id="link-submit" class="btn primary">Link</button>
+        </div>
+      </div>
+    </div>
+
     <script>
       const statusEl = document.getElementById('status')
       const metaTs = document.getElementById('meta-ts')
       const viewTitle = document.getElementById('view-title')
       function setTitle(t){ if (viewTitle) viewTitle.textContent = t }
-      const LS = window.localStorage
-      function getBase(){ return LS.getItem('codesync.base') || 'http://localhost:3000' }
+      const LS = (() => {
+        try {
+          if (typeof window !== 'undefined' && 'localStorage' in window) {
+            const ls = window.localStorage
+            const k = '__ls_test__'
+            ls.setItem(k, '1')
+            ls.removeItem(k)
+            return ls
+          }
+        } catch (_) {}
+        const mem = {}
+        return {
+          getItem: (key) => (Object.prototype.hasOwnProperty.call(mem, key) ? mem[key] : null),
+          setItem: (key, val) => { mem[key] = String(val) },
+          removeItem: (key) => { delete mem[key] },
+          clear: () => { for (const k in mem) delete mem[k] }
+        }
+      })()
+      function getBase(){ return LS.getItem('codesync.base') || 'http://localhost:3004' }
       function setBase(url){ try { LS.setItem('codesync.base', url) } catch(_){} }
       function getCreds(){ try { return JSON.parse(LS.getItem('codesync.install')||'null') } catch { return null } }
       function setCreds(c){ try { LS.setItem('codesync.install', JSON.stringify(c)) } catch(_){} }
@@ -638,24 +670,47 @@
         parent.postMessage({ pluginMessage: { type: 'extract' } }, '*')
       }
 
-      // Link flow
-      document.getElementById('link').onclick = async () => {
+      // Link flow (modal-based; prompts blocked in plugin sandbox)
+      document.getElementById('link').onclick = () => {
+        log('click: link')
         try {
-          let base = getBase()
-          if (!base || base.startsWith('http://localhost')) {
-            const u = prompt('Server base URL for CodeSync', base)
-            if (u) { base = u; setBase(u) }
+          const modal = document.getElementById('link-modal')
+          const baseInput = document.getElementById('link-base')
+          const codeInput = document.getElementById('link-code')
+          const cancelBtn = document.getElementById('link-cancel')
+          const submitBtn = document.getElementById('link-submit')
+          if (!modal || !baseInput || !codeInput || !cancelBtn || !submitBtn) { setStatus('Link UI unavailable'); return }
+          modal.style.display = 'flex'
+          baseInput.value = getBase()
+          codeInput.value = ''
+          codeInput.focus()
+          const close = () => {
+            modal.style.display = 'none'
+            cancelBtn.onclick = null
+            submitBtn.onclick = null
           }
-          const code = prompt('Enter 6-digit pairing code')
-          if (!code) return
-          const res = await fetch(base.replace(/\/$/, '') + '/api/codesync/pair/confirm', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code })
-          })
-          const data = await res.json().catch(()=>null)
-          if (!res.ok) throw new Error(data?.error || 'pair_failed')
-          setCreds({ installationId: data.installationId, token: data.token })
-          setStatus('Linked ✔')
-          setTimeout(() => setStatus('Ready.'), 1200)
+          cancelBtn.onclick = () => { close(); setStatus('Ready.') }
+          submitBtn.onclick = async () => {
+            let base = String(baseInput.value || '').trim() || getBase()
+            const code = String(codeInput.value || '').trim()
+            if (!code) { setStatus('Enter code'); return }
+            setBase(base)
+            setStatus('Linking…')
+            try {
+              const res = await fetch(base.replace(/\/$/, '') + '/api/codesync/pair/confirm', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code })
+              })
+              const data = await res.json().catch(()=>null)
+              if (!res.ok) throw new Error(data?.error || 'pair_failed')
+              setCreds({ installationId: data.installationId, token: data.token })
+              setStatus('Linked ✔')
+              close()
+              setTimeout(() => setStatus('Ready.'), 1200)
+            } catch (e) {
+              setStatus('Link failed')
+              setTimeout(() => setStatus('Ready.'), 1200)
+            }
+          }
         } catch (e){ setStatus('Link failed'); setTimeout(()=>setStatus('Ready.'), 1200) }
       }
 
