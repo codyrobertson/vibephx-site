@@ -99,6 +99,8 @@
             <button id="hdr-more" class="btn">More ▾</button>
             <div id="hdr-menu" style="display:none;position:absolute;left:0;top:110%;min-width:220px;background:var(--panel);border:1px solid var(--border);border-radius:8px;box-shadow:0 10px 20px rgba(0,0,0,.15);z-index:9999;pointer-events:auto;overflow:hidden;"></div>
           </div>
+          <button id="link" class="btn">Link</button>
+          <span id="linked-pill" style="display:none;font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:var(--panel-contrast);color:var(--muted);">Linked ✓</span>
         </div>
       </header>
 
@@ -202,7 +204,7 @@
       function setCreds(c){ try { LS.setItem('codesync.install', JSON.stringify(c)) } catch(_){} }
       function clearCreds(){ try { LS.removeItem('codesync.install') } catch(_){} }
       function isLinked(){ const c = getCreds(); return !!(c && c.installationId && c.token) }
-      function refreshLinkUI(){ const btn = document.getElementById('link'); if (!btn) return; if (isLinked()){ btn.textContent = 'Linked ✓'; btn.classList.add('primary') } else { btn.textContent = 'Link'; btn.classList.remove('primary') } }
+      function refreshLinkUI(){ const btn = document.getElementById('link'); const pill = document.getElementById('linked-pill'); if (!btn || !pill) return; if (isLinked()){ btn.style.display='none'; pill.style.display='inline-block' } else { btn.style.display=''; pill.style.display='none'; btn.textContent='Link'; btn.classList.remove('primary') } }
       function refreshModeUI(){
         const mExp = document.getElementById('mode-export');
         const mSync = document.getElementById('mode-sync');
@@ -211,6 +213,15 @@
             mExp.classList.add('primary'); mSync.classList.remove('primary')
           } else { mSync.classList.add('primary'); mExp.classList.remove('primary') }
         }
+      }
+      function refreshHeaderUI(){
+        const mExp = document.getElementById('mode-export');
+        const mSync = document.getElementById('mode-sync');
+        const more = document.getElementById('hdr-more');
+        const linked = isLinked(); const hasPayload = !!lastPayload
+        if (mExp) mExp.style.display = hasPayload ? '' : 'none'
+        if (more) more.style.display = hasPayload ? '' : 'none'
+        if (mSync) mSync.style.display = linked ? '' : 'none'
       }
       function setRunStyle(btn, primary){ if (!btn) return; if (primary){ btn.classList.add('primary') } else { btn.classList.remove('primary') } }
       function clearView(){ lastPayload=null; lastJsonStr=''; lastIR=null; lastTextStr=''; viewKind='json'; downloadName='figma-tokens-extract.json'; vState.lines=[]; vState.height=0; virt.virtual.style.height='0px'; virt.slice.innerHTML=''; virt.scroll.scrollTop=0; if (full && full.pre) full.pre.hidden=true; document.getElementById('virt').hidden=false; setStatus('Cleared'); setTimeout(()=>setStatus('Ready.'),800); refreshRunUI() }
@@ -256,6 +267,7 @@
        try { refreshLinkUI() } catch(_) {}
        try { refreshModeUI() } catch(_) {}
        try { refreshRunUI() } catch(_) {}
+       try { refreshHeaderUI() } catch(_) {}
        try { parent.postMessage({ pluginMessage: { type: 'getCreds' } }, '*') } catch(_) {}
        try { parent.postMessage({ pluginMessage: { type: 'getBase' } }, '*') } catch(_) {}
 
@@ -1206,6 +1218,7 @@
           log('message: extracted', { payloadKeys: msg?.payload? Object.keys(msg.payload).slice(0,6): [] })
           mountVirtualFromPayload(msg.payload, 'Extraction output (JSON)')
           refreshRunUI()
+          refreshHeaderUI()
           if (pendingAction === 'export_tailwind') {
             try { lastIR = Transformer.resolveAliases(Transformer.buildIR(msg.payload)); const cfg = Transformer.generateTailwindConfig(lastIR); mountVirtualFromText(cfg, 'tailwind.tokens.config.js', 'js', 'Tailwind Tokens Config'); lastTextStr = cfg; downloadName = 'tailwind.tokens.config.js'; setStatus('Tailwind config ready') } catch (e){ setStatus('Config failed') }
           } else if (pendingAction === 'export_css') {
