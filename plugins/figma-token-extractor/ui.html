@@ -97,6 +97,9 @@
           <button id="download" class="btn">Download</button>
           <button id="clear" class="btn ghost">Clear</button>
           <button id="link" class="btn">Link</button>
+          <button id="pull" class="btn">Pull</button>
+          <button id="push" class="btn">Push</button>
+          <button id="apply" class="btn">Apply</button>
           <button id="advanced" class="btn">Advanced</button>
         </div>
       </header>
@@ -194,6 +197,8 @@
       function log(){ try { if (DEBUG) console.log('[UI]', ...arguments) } catch(_) {} }
        log('bootstrap: DOM ready')
        try { refreshLinkUI() } catch(_) {}
+       try { parent.postMessage({ pluginMessage: { type: 'getCreds' } }, '*') } catch(_) {}
+       try { parent.postMessage({ pluginMessage: { type: 'getBase' } }, '*') } catch(_) {}
 
  
       // Virtualization elements
@@ -699,12 +704,12 @@
             if (unlinkBtn) unlinkBtn.onclick = null
           }
           cancelBtn.onclick = () => { close(); setStatus('Ready.') }
-          if (unlinkBtn) unlinkBtn.onclick = () => { clearCreds(); refreshLinkUI(); setStatus('Unlinked'); close(); setTimeout(()=>setStatus('Ready.'), 1000) }
+          if (unlinkBtn) unlinkBtn.onclick = () => { clearCreds(); try { parent.postMessage({ pluginMessage: { type: 'clearCreds' } }, '*') } catch(_) {} ; refreshLinkUI(); setStatus('Unlinked'); close(); setTimeout(()=>setStatus('Ready.'), 1000) }
           submitBtn.onclick = async () => {
             let base = String(baseInput.value || '').trim() || getBase()
             const code = String(codeInput.value || '').trim()
             if (!code) { setStatus('Enter code'); return }
-            setBase(base)
+            setBase(base); try { parent.postMessage({ pluginMessage: { type: 'setBase', payload: base } }, '*') } catch(_) {}
             setStatus('Linking…')
             try {
               const res = await fetch(base.replace(/\/$/, '') + '/api/codesync/pair/confirm', {
@@ -712,7 +717,9 @@
               })
               const data = await res.json().catch(()=>null)
               if (!res.ok) throw new Error(data?.error || 'pair_failed')
-              setCreds({ installationId: data.installationId, token: data.token })
+              const creds = { installationId: data.installationId, token: data.token }
+              setCreds(creds)
+              try { parent.postMessage({ pluginMessage: { type: 'setCreds', payload: creds } }, '*') } catch(_) {}
               refreshLinkUI()
               setStatus('Linked ✔')
               close()
@@ -806,10 +813,60 @@
             setTimeout(()=>setStatus('Ready.'), 1200)
           } catch (e){ setStatus('Pull failed'); setTimeout(()=>setStatus('Ready.'), 1200) }
         }
-      }
+       }
 
-      // Advanced actions
-      document.getElementById('adv-ir').onclick = () => { log('click: adv-ir', { hasPayload: !!lastPayload })
+       // Toolbar sync actions (Pull/Push/Apply)
+       {
+         const tbPull = document.getElementById('pull')
+         const tbPush = document.getElementById('push')
+         const tbApply = document.getElementById('apply')
+         if (tbPush) tbPush.onclick = async () => {
+           const creds = getCreds(); const base = getBase()
+           if (!creds) { setStatus('Link first'); return }
+           if (!lastPayload) { setStatus('Extract first'); return }
+           try {
+             const res = await fetch(base.replace(/\/$/, '') + '/api/codesync/tokens/push', {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json', 'X-Installation-Id': creds.installationId, 'X-Access-Token': creds.token },
+               body: JSON.stringify(lastPayload)
+             })
+             if (!res.ok) throw new Error('push_failed')
+             setStatus('Pushed to server ✔')
+             setTimeout(()=>setStatus('Ready.'), 1200)
+           } catch (e){ setStatus('Push failed'); setTimeout(()=>setStatus('Ready.'), 1200) }
+         }
+         if (tbPull) tbPull.onclick = async () => {
+           const creds = getCreds(); const base = getBase()
+           if (!creds) { setStatus('Link first'); return }
+           try {
+             const res = await fetch(base.replace(/\/$/, '') + '/api/codesync/tokens/pull', {
+               method: 'GET', headers: { 'X-Installation-Id': creds.installationId, 'X-Access-Token': creds.token }
+             })
+             const data = await res.json().catch(()=>null)
+             if (!res.ok) throw new Error(data?.error || 'pull_failed')
+             if (!data?.payload) { setStatus('No server tokens'); return }
+             const json = JSON.stringify(data.payload, null, 2)
+             mountVirtualFromText(json, 'server-tokens.json', 'json', 'Server Tokens')
+             lastTextStr = json
+             setStatus('Pulled from server')
+             setTimeout(()=>setStatus('Ready.'), 1200)
+           } catch (e){ setStatus('Pull failed'); setTimeout(()=>setStatus('Ready.'), 1200) }
+         }
+         if (tbApply) tbApply.onclick = async () => {
+           try {
+             const text = lastTextStr || ''
+             if (!text) { setStatus('Pull tokens first'); return }
+             const payload = JSON.parse(text)
+             parent.postMessage({ pluginMessage: { type: 'applyDesignTokens', payload } }, '*')
+             setStatus('Apply requested')
+             setTimeout(()=>setStatus('Ready.'), 1200)
+           } catch (e){ setStatus('Apply failed'); setTimeout(()=>setStatus('Ready.'), 1200) }
+         }
+       }
+
+       // Advanced actions
+       document.getElementById('adv-ir').onclick = () => { log('click: adv-ir', { hasPayload: !!lastPayload })
+
         if (!lastPayload) { setStatus('Extract first'); return }
         try {
           lastIR = Transformer.resolveAliases(Transformer.buildIR(lastPayload))
@@ -910,14 +967,22 @@
         if (el) el.onclick = () => { log('click: close'); parent.postMessage({ pluginMessage: { type: 'close' } }, '*') }
       }
 
-      onmessage = (event) => { log('onmessage', { hasData: !!event?.data, keys: event?.data? Object.keys(event.data).slice(0,6): [] })
+       onmessage = (event) => { log('onmessage', { hasData: !!event?.data, keys: event?.data? Object.keys(event.data).slice(0,6): [] })
         const msg = event.data && event.data.pluginMessage
         if (!msg) return
         if (msg.type === 'extracted') { log('message: extracted', { payloadKeys: msg?.payload? Object.keys(msg.payload).slice(0,6): [] })
           mountVirtualFromPayload(msg.payload, 'Extraction output (JSON)')
           setStatus('Extraction complete')
+        } else if (msg.type === 'creds') {
+          if (msg.payload && typeof msg.payload === 'object') setCreds(msg.payload); else clearCreds()
+          refreshLinkUI()
+          log('message: creds sync', { has: !!msg.payload })
+        } else if (msg.type === 'base') {
+          if (typeof msg.payload === 'string' && msg.payload) setBase(msg.payload)
+          log('message: base sync', { base: getBase() })
         }
       }
+
     </script>
   </body>
 </html>
