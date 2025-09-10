@@ -6,7 +6,28 @@ const CONFIG_PATH = path.join(ROOT, 'codesync.yml')
 const STATE_DIR = path.join(ROOT, '.codesync')
 const INSTALL_PATH = path.join(STATE_DIR, 'installation.json')
 
-function getBaseUrl(){ return process.env.CODESYNC_BASE_URL || 'http://localhost:3000' }
+let __BASE_CACHE = null
+async function resolveBaseUrl(){
+  if (process.env.CODESYNC_BASE_URL) { __BASE_CACHE = process.env.CODESYNC_BASE_URL; return __BASE_CACHE }
+  if (__BASE_CACHE) return __BASE_CACHE
+  const candidates = [
+    'http://localhost:3004', 'http://127.0.0.1:3004',
+    'http://localhost:3000', 'http://127.0.0.1:3000'
+  ]
+  const timeoutMs = 500
+  for (const base of candidates){
+    try {
+      const ctrl = new AbortController()
+      const t = setTimeout(() => ctrl.abort(), timeoutMs)
+      const res = await fetch(base.replace(/\/$/, '') + '/api/test', { method: 'GET', signal: ctrl.signal })
+      clearTimeout(t)
+      if (res.ok) { __BASE_CACHE = base; return base }
+    } catch (_) {}
+  }
+  __BASE_CACHE = 'http://localhost:3000'
+  return __BASE_CACHE
+}
+function getBaseUrl(){ return __BASE_CACHE || process.env.CODESYNC_BASE_URL || 'http://localhost:3000' }
 
 function ensureDir(p){ if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true }) }
 
@@ -52,7 +73,7 @@ function saveInstallation(inst){ ensureDir(STATE_DIR); fs.writeFileSync(INSTALL_
 function readInstallation(){ try { return JSON.parse(fs.readFileSync(INSTALL_PATH, 'utf8')) } catch { return null } }
 
 async function api(pathname, opts = {}){
-  const base = getBaseUrl()
+  const base = await resolveBaseUrl()
   const url = base.replace(/\/$/, '') + pathname
   const res = await fetch(url, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opts))
   const data = await res.json().catch(() => ({}))
@@ -60,21 +81,41 @@ async function api(pathname, opts = {}){
   return data
 }
 
-async function pairStart(){ return api('/api/codesync/pair/start', { method: 'POST' }) }
-async function pairConfirm(code){ return api('/api/codesync/pair/confirm', { method: 'POST', body: JSON.stringify({ code }) }) }
+async function attemptApi(pathname, opts = {}){
+  const explicit = process.env.CODESYNC_BASE_URL ? [process.env.CODESYNC_BASE_URL] : []
+  const bases = explicit.concat([
+    'http://localhost:3004','http://127.0.0.1:3004',
+    'http://localhost:3000','http://127.0.0.1:3000'
+  ])
+  let lastErr = null
+  for (const base of bases){
+    try {
+      const url = base.replace(/\/$/, '') + pathname
+      const res = await fetch(url, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opts))
+      const data = await res.json().catch(() => ({}))
+      if (res.ok){ __BASE_CACHE = base; return data }
+      lastErr = new Error(data?.error || `HTTP ${res.status}`)
+      if (res.status >= 500) break
+    } catch (e) { lastErr = e }
+  }
+  throw lastErr || new Error('Failed to reach CodeSync API')
+}
+
+async function pairStart(){ return attemptApi('/api/codesync/pair/start', { method: 'POST' }) }
+async function pairConfirm(code){ return attemptApi('/api/codesync/pair/confirm', { method: 'POST', body: JSON.stringify({ code }) }) }
 
 async function tokensPull(){
   const inst = readInstallation()
   if (!inst) throw new Error('Not paired. Run: codesync pair confirm <code>')
   const headers = { 'X-Installation-Id': inst.installationId, 'X-Access-Token': inst.token }
-  return api('/api/codesync/tokens/pull', { method: 'GET', headers })
+  return attemptApi('/api/codesync/tokens/pull', { method: 'GET', headers })
 }
 
 async function tokensPush(payload){
   const inst = readInstallation()
   if (!inst) throw new Error('Not paired. Run: codesync pair confirm <code>')
   const headers = { 'X-Installation-Id': inst.installationId, 'X-Access-Token': inst.token, 'Content-Type': 'application/json' }
-  return api('/api/codesync/tokens/push', { method: 'POST', headers, body: JSON.stringify(payload) })
+  return attemptApi('/api/codesync/tokens/push', { method: 'POST', headers, body: JSON.stringify(payload) })
 }
 
 module.exports = {

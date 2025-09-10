@@ -25,21 +25,27 @@ function exit(msg, code = 1){ if (msg) console.error(msg); process.exit(code) }
 function info(msg){ console.log(msg) }
 function ensureDir(p){ if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true }) }
 
-function cmd_link(args){
+async function cmd_link(args){
   const figma = args[0]
-  if (!figma) exit('Usage: codesync link <figma-url-or-key> [--project=<id>] [--source-of-truth=code|figma]')
-  const projectArg = (args.find(a => a.startsWith('--project=')) || '')
-  const sourceArg = (args.find(a => a.startsWith('--source-of-truth=')) || '')
-  const projectId = projectArg.split('=')[1] || 'proj_local'
-  const sourceOfTruth = (sourceArg.split('=')[1] || 'code').toLowerCase()
-  const figmaFileKey = extractFigmaKey(figma)
-  const cfg = readConfig() || {}
-  cfg.projectId = projectId
-  cfg.figmaFileKey = figmaFileKey
-  cfg.sourceOfTruth = (sourceOfTruth === 'figma') ? 'figma' : 'code'
-  cfg.lastSync = cfg.lastSync || ''
-  writeConfig(cfg)
-  info(`✔ Linked to Figma file ${figmaFileKey} (project: ${projectId}, sourceOfTruth: ${cfg.sourceOfTruth})`)
+  if (figma) {
+    const projectArg = (args.find(a => a.startsWith('--project=')) || '')
+    const sourceArg = (args.find(a => a.startsWith('--source-of-truth=')) || '')
+    const projectId = projectArg.split('=')[1] || 'proj_local'
+    const sourceOfTruth = (sourceArg.split('=')[1] || 'code').toLowerCase()
+    const figmaFileKey = extractFigmaKey(figma)
+    const cfg = readConfig() || {}
+    cfg.projectId = projectId
+    cfg.figmaFileKey = figmaFileKey
+    cfg.sourceOfTruth = (sourceOfTruth === 'figma') ? 'figma' : 'code'
+    cfg.lastSync = cfg.lastSync || ''
+    writeConfig(cfg)
+    info(`✔ Linked to Figma file ${figmaFileKey} (project: ${projectId}, sourceOfTruth: ${cfg.sourceOfTruth})`)
+  }
+  const res = await pairStart()
+  info(`Pairing code: ${res.code}`)
+  info(`Installation ID (preview): ${res.installationId}`)
+  info(`Expires: ${new Date(res.expiresAt).toLocaleString()}`)
+  info('Next: In the Figma plugin UI, click Link and enter this code.')
 }
 
 async function cmd_pair_start(){
@@ -110,13 +116,13 @@ async function cmd_push(args){
   info('✔ Tokens pushed to server')
 }
 
-function main(){
+async function main(){
   const [, , cmd, ...rest] = process.argv
   switch ((cmd||'').toLowerCase()){
-    case 'link': return cmd_link(rest)
+    case 'link': return await cmd_link(rest)
     case 'pair':
-      if ((rest[0]||'') === 'start') return cmd_pair_start()
-      if ((rest[0]||'') === 'confirm') return cmd_pair_confirm(rest.slice(1))
+      if ((rest[0]||'') === 'start') return await cmd_pair_start()
+      if ((rest[0]||'') === 'confirm') return await cmd_pair_confirm(rest.slice(1))
       return exit('Usage: codesync pair start | codesync pair confirm <code>')
     case 'status':
       const cfg = readConfig(); const inst = readInstallation()
@@ -131,15 +137,15 @@ function main(){
       info(`  - paired: ${inst ? 'yes' : 'no'}`)
       return
     case 'pull':
-      if ((rest[0]||'') === 'tokens') return cmd_pull(rest.slice(1))
+      if ((rest[0]||'') === 'tokens') return await cmd_pull(rest.slice(1))
       return exit('Usage: codesync pull tokens [--plan]')
     case 'push':
-      if ((rest[0]||'') === 'tokens') return cmd_push(rest.slice(1))
+      if ((rest[0]||'') === 'tokens') return await cmd_push(rest.slice(1))
       return exit('Usage: codesync push tokens [--plan]')
     default:
       info('CodeSync CLI')
       info('Usage:')
-      info('  codesync link <figma-url-or-key> [--project=<id>] [--source-of-truth=code|figma]')
+      info('  codesync link [<figma-url-or-key>] [--project=<id>] [--source-of-truth=code|figma]')
       info('  codesync pair start | codesync pair confirm <code>')
       info('  codesync status')
       info('  codesync pull tokens [--plan]')
@@ -147,4 +153,4 @@ function main(){
   }
 }
 
-main()
+main().catch(err => { console.error(err); process.exit(1) })
