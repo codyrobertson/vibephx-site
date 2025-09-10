@@ -206,19 +206,48 @@
       function refreshModeUI(){
         const mExp = document.getElementById('mode-export');
         const mSync = document.getElementById('mode-sync');
-        const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none' }
         if (mExp && mSync){
           if ((uiMode||'export') === 'export'){
             mExp.classList.add('primary'); mSync.classList.remove('primary')
           } else { mSync.classList.add('primary'); mExp.classList.remove('primary') }
         }
-        const isExp = (uiMode||'export') === 'export'
-        show('tw-export', isExp)
-        show('css-export', isExp)
-        show('pull', !isExp)
-        show('push', !isExp)
-        show('apply', !isExp)
-        // Keep Extract, Copy, Download visible in both
+      }
+      function setRunStyle(btn, primary){ if (!btn) return; if (primary){ btn.classList.add('primary') } else { btn.classList.remove('primary') } }
+      function clearView(){ lastPayload=null; lastJsonStr=''; lastIR=null; lastTextStr=''; viewKind='json'; downloadName='figma-tokens-extract.json'; vState.lines=[]; vState.height=0; virt.virtual.style.height='0px'; virt.slice.innerHTML=''; virt.scroll.scrollTop=0; if (full && full.pre) full.pre.hidden=true; document.getElementById('virt').hidden=false; setStatus('Cleared'); setTimeout(()=>setStatus('Ready.'),800); refreshRunUI() }
+      function openLinkModal(){
+        const modal = document.getElementById('link-modal')
+        const baseInput = document.getElementById('link-base')
+        const codeInput = document.getElementById('link-code')
+        const cancelBtn = document.getElementById('link-cancel')
+        const submitBtn = document.getElementById('link-submit')
+        const unlinkBtn = document.getElementById('link-unlink')
+        if (!modal || !baseInput || !codeInput || !cancelBtn || !submitBtn) { setStatus('Link UI unavailable'); return }
+        modal.style.display = 'flex'
+        baseInput.value = getBase()
+        codeInput.value = ''
+        codeInput.focus()
+        if (unlinkBtn) unlinkBtn.style.display = isLinked() ? 'inline-block' : 'none'
+        const close = () => { modal.style.display = 'none'; cancelBtn.onclick=null; submitBtn.onclick=null; if (unlinkBtn) unlinkBtn.onclick=null }
+        cancelBtn.onclick = () => { close(); setStatus('Ready.') }
+        if (unlinkBtn) unlinkBtn.onclick = () => { clearCreds(); try { parent.postMessage({ pluginMessage: { type: 'clearCreds' } }, '*') } catch(_) {} ; refreshLinkUI(); refreshRunUI(); setStatus('Unlinked'); close(); setTimeout(()=>setStatus('Ready.'), 1000) }
+        submitBtn.onclick = async () => {
+          let base = String(baseInput.value || '').trim() || getBase()
+          const code = String(codeInput.value || '').trim()
+          if (!code) { setStatus('Enter code'); return }
+          setBase(base); try { parent.postMessage({ pluginMessage: { type: 'setBase', payload: base } }, '*') } catch(_) {}
+          setStatus('Linking…')
+          try {
+            const res = await fetch(base.replace(/\/$/, '') + '/api/codesync/pair/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) })
+            const data = await res.json().catch(()=>null)
+            if (!res.ok) throw new Error(data?.error || 'pair_failed')
+            const creds = { installationId: data.installationId, token: data.token }
+            setCreds(creds)
+            try { parent.postMessage({ pluginMessage: { type: 'setCreds', payload: creds } }, '*') } catch(_) {}
+            refreshLinkUI(); refreshRunUI()
+            setStatus('Linked ✔')
+            close(); setTimeout(() => setStatus('Ready.'), 1200)
+          } catch (e) { setStatus('Link failed'); setTimeout(() => setStatus('Ready.'), 1200) }
+        }
       }
 
       const DEBUG = true
@@ -723,17 +752,21 @@
         if (mode === 'export'){
           if (!lastPayload){
             btn.textContent = 'Extract'
+            setRunStyle(btn, false)
             btn.onclick = () => { log('run: extract'); setStatus('Extracting…'); pendingAction=''; parent.postMessage({ pluginMessage: { type: 'extract' } }, '*') }
           } else {
-            btn.textContent = 'Generate Tailwind'
-            btn.onclick = () => { log('run: generate tailwind'); try { lastIR = Transformer.resolveAliases(Transformer.buildIR(lastPayload)); const cfg = Transformer.generateTailwindConfig(lastIR); mountVirtualFromText(cfg, 'tailwind.tokens.config.js', 'js', 'Tailwind Tokens Config'); lastTextStr = cfg; downloadName = 'tailwind.tokens.config.js'; setStatus('Tailwind config ready') } catch (e){ setStatus('Config failed') } }
+            btn.textContent = 'Export Tailwind'
+            setRunStyle(btn, true)
+            btn.onclick = () => { log('run: export tailwind'); try { lastIR = Transformer.resolveAliases(Transformer.buildIR(lastPayload)); const cfg = Transformer.generateTailwindConfig(lastIR); mountVirtualFromText(cfg, 'tailwind.tokens.config.js', 'js', 'Tailwind Tokens Config'); lastTextStr = cfg; downloadName = 'tailwind.tokens.config.js'; setStatus('Tailwind config ready') } catch (e){ setStatus('Config failed') } }
           }
         } else {
           if (!isLinked()){
             btn.textContent = 'Link'
+            setRunStyle(btn, true)
             btn.onclick = () => { try { openLinkModal() } catch(_) { setStatus('Link UI unavailable') } }
           } else {
             btn.textContent = 'Pull from Server'
+            setRunStyle(btn, true)
             btn.onclick = async () => {
               const creds = getCreds(); const base = getBase()
               try {
@@ -766,7 +799,7 @@
             add('Export All…', 'm-export-all', () => { openExportModal() }, true)
             add('Copy', 'm-copy', async () => { const text = viewKind==='text'? lastTextStr: lastJsonStr; if (!text) return; const ok = await copyText(text); setStatus(ok? 'Copied to clipboard':'Copy failed'); if (ok) setTimeout(()=>setStatus('Ready.'),1200) }, hasText)
             add('Download', 'm-download', () => { const text = viewKind==='text'? lastTextStr: lastJsonStr; if (!text) return; const ok = downloadText(downloadName, text); setStatus(ok? 'Download started':'Download blocked'); if (ok) setTimeout(()=>setStatus('Ready.'),1200) }, hasText)
-            add('Clear', 'm-clear', () => { document.getElementById('clear')?.click() }, hasPayload||hasText)
+            add('Clear', 'm-clear', () => { clearView() }, hasPayload||hasText)
           } else {
             add(linked? 'Unlink':'Link', 'm-link', () => { if (linked) { clearCreds(); try { parent.postMessage({ pluginMessage: { type: 'clearCreds' } }, '*') } catch(_) {}; refreshLinkUI(); refreshRunUI(); setStatus('Unlinked'); setTimeout(()=>setStatus('Ready.'),1000) } else { openLinkModal() } }, true)
             add('Push to Server', 'm-push', async () => { const creds=getCreds(); const base=getBase(); if (!creds){ setStatus('Link first'); return } if (!lastPayload){ setStatus('Extract first'); return } try { const res = await fetch(base.replace(/\/$/, '') + '/api/codesync/tokens/push', { method:'POST', headers:{ 'Content-Type':'application/json', 'X-Installation-Id':creds.installationId, 'X-Access-Token':creds.token }, body: JSON.stringify(lastPayload) }); if (!res.ok) throw new Error('push_failed'); setStatus('Pushed to server ✔'); setTimeout(()=>setStatus('Ready.'),1200) } catch(e){ setStatus('Push failed'); setTimeout(()=>setStatus('Ready.'),1200) } }, linked)
@@ -849,8 +882,9 @@
           }
         }
       }
+      /* removed old top-level export buttons bindings */
       {
-        const tw = document.getElementById('tw-export')
+        const tw = null
         if (tw) tw.onclick = () => {
           log('click: export tailwind')
           function build(){
@@ -868,7 +902,7 @@
           pendingAction = 'export_tailwind'
           parent.postMessage({ pluginMessage: { type: 'extract' } }, '*')
         }
-        const cs = document.getElementById('css-export')
+        const cs = null
         if (cs) cs.onclick = () => {
           log('click: export css')
           function build(){
@@ -889,8 +923,9 @@
         }
       }
 
-      // Link flow (modal-based; prompts blocked in plugin sandbox)
-      document.getElementById('link').onclick = () => {
+      // Link flow (exposed via Run or More)
+      /* link button removed */
+      /* document.getElementById('link').onclick = () => { ... } */
         log('click: link')
         try {
           const modal = document.getElementById('link-modal')
@@ -940,21 +975,8 @@
         } catch (e){ setStatus('Link failed'); setTimeout(()=>setStatus('Ready.'), 1200) }
       }
 
-      document.getElementById('copy').onclick = async () => { log('click: copy', { viewKind, length: (viewKind==='text'? lastTextStr.length: lastJsonStr.length) })
-        const text = viewKind === 'text' ? lastTextStr : lastJsonStr
-        if (!text) return
-        const ok = await copyText(text)
-        setStatus(ok ? 'Copied to clipboard' : 'Copy failed — permissions blocked')
-        if (ok) setTimeout(() => setStatus('Ready.'), 1200)
-      }
+      /* copy/download now live under header More menu */
 
-      document.getElementById('download').onclick = () => { log('click: download', { viewKind, filename: downloadName })
-        const text = viewKind === 'text' ? lastTextStr : lastJsonStr
-        if (!text) return
-        const ok = downloadText(downloadName, text)
-        setStatus(ok ? 'Download started' : 'Download blocked by sandbox')
-        if (ok) setTimeout(() => setStatus('Ready.'), 1200)
-      }
 
       // Advanced subnav + dropdown (guarded)
       {
@@ -1175,55 +1197,31 @@
         if (el) el.onclick = () => { log('click: close'); parent.postMessage({ pluginMessage: { type: 'close' } }, '*') }
       }
 
-       onmessage = (event) => { log('onmessage', { hasData: !!event?.data, keys: event?.data? Object.keys(event.data).slice(0,6): [] })
+      // Message handler from plugin code
+      window.addEventListener('message', async (event) => {
+        log('onmessage', { hasData: !!event?.data, keys: event?.data? Object.keys(event.data).slice(0,6): [] })
         const msg = event.data && event.data.pluginMessage
         if (!msg) return
-        if (msg.type === 'extracted') { log('message: extracted', { payloadKeys: msg?.payload? Object.keys(msg.payload).slice(0,6): [] })
+        if (msg.type === 'extracted') {
+          log('message: extracted', { payloadKeys: msg?.payload? Object.keys(msg.payload).slice(0,6): [] })
           mountVirtualFromPayload(msg.payload, 'Extraction output (JSON)')
+          refreshRunUI()
           if (pendingAction === 'export_tailwind') {
-            try {
-              lastIR = Transformer.resolveAliases(Transformer.buildIR(msg.payload))
-              const cfg = Transformer.generateTailwindConfig(lastIR)
-              mountVirtualFromText(cfg, 'tailwind.tokens.config.js', 'js', 'Tailwind Tokens Config')
-              lastTextStr = cfg
-              downloadName = 'tailwind.tokens.config.js'
-              setStatus('Tailwind config ready')
-            } catch (e){ setStatus('Config failed: ' + (e?.message || e)) }
+            try { lastIR = Transformer.resolveAliases(Transformer.buildIR(msg.payload)); const cfg = Transformer.generateTailwindConfig(lastIR); mountVirtualFromText(cfg, 'tailwind.tokens.config.js', 'js', 'Tailwind Tokens Config'); lastTextStr = cfg; downloadName = 'tailwind.tokens.config.js'; setStatus('Tailwind config ready') } catch (e){ setStatus('Config failed') }
           } else if (pendingAction === 'export_css') {
-            try {
-              lastIR = Transformer.resolveAliases(Transformer.buildIR(msg.payload))
-              const css = Transformer.buildCssFromIR(lastIR)
-              mountVirtualFromText(css, 'tokens.css', 'css', 'Tokens CSS')
-              lastTextStr = css
-              downloadName = 'tokens.css'
-              setStatus('Tokens CSS ready')
-            } catch (e){ setStatus('CSS failed: ' + (e?.message || e)) }
+            try { lastIR = Transformer.resolveAliases(Transformer.buildIR(msg.payload)); const css = Transformer.buildCssFromIR(lastIR); mountVirtualFromText(css, 'tokens.css', 'css', 'Tokens CSS'); lastTextStr = css; downloadName = 'tokens.css'; setStatus('Tokens CSS ready') } catch (e){ setStatus('CSS failed') }
           } else if (pendingAction === 'export_all') {
-            try {
-              const creds = getCreds(); const base = getBase()
-              const outDir = LS.getItem('export.outdir') || 'public/snippets'
-              const res = await fetch(base.replace(/\/$/, '') + '/api/codesync/export/write', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Installation-Id': creds.installationId, 'X-Access-Token': creds.token },
-                body: JSON.stringify({ outDir, payload: msg.payload })
-              })
-              const data = await res.json().catch(()=>null)
-              if (!res.ok) throw new Error(data?.error || 'export_failed')
-              setStatus('Exported to ' + (data?.dest || outDir))
-            } catch (e){ setStatus('Export failed') }
+            try { const creds = getCreds(); const base = getBase(); const outDir = LS.getItem('export.outdir') || 'public/snippets'; const res = await fetch(base.replace(/\/$/, '') + '/api/codesync/export/write', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Installation-Id': creds.installationId, 'X-Access-Token': creds.token }, body: JSON.stringify({ outDir, payload: msg.payload }) }); const data = await res.json().catch(()=>null); if (!res.ok) throw new Error(data?.error || 'export_failed'); setStatus('Exported to ' + (data?.dest || outDir)) } catch (e){ setStatus('Export failed') }
           } else {
             setStatus('Extraction complete')
           }
           pendingAction = ''
         } else if (msg.type === 'creds') {
-          if (msg.payload && typeof msg.payload === 'object') setCreds(msg.payload); else clearCreds()
-          refreshLinkUI()
-          log('message: creds sync', { has: !!msg.payload })
+          if (msg.payload && typeof msg.payload === 'object') setCreds(msg.payload); else clearCreds(); refreshLinkUI(); refreshRunUI(); log('message: creds sync', { has: !!msg.payload })
         } else if (msg.type === 'base') {
-          if (typeof msg.payload === 'string' && msg.payload) setBase(msg.payload)
-          log('message: base sync', { base: getBase() })
+          if (typeof msg.payload === 'string' && msg.payload) setBase(msg.payload); log('message: base sync', { base: getBase() })
         }
-      }
+      })
 
     </script>
   </body>
