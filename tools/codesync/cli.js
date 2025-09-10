@@ -22,8 +22,45 @@ const LAST_SYNC_PATH = path.join(STATE_DIR, 'last-sync.json')
 const OUT_DIR = path.join(ROOT, 'public', 'snippets')
 
 function exit(msg, code = 1){ if (msg) console.error(msg); process.exit(code) }
-function info(msg){ console.log(msg) }
 function ensureDir(p){ if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true }) }
+
+const USE_COLOR = process.stdout.isTTY && !process.env.NO_COLOR
+const C = USE_COLOR ? {
+  reset:'\x1b[0m', bold:'\x1b[1m', dim:'\x1b[2m',
+  red:(s)=>"\x1b[31m"+s+"\x1b[0m", green:(s)=>"\x1b[32m"+s+"\x1b[0m",
+  yellow:(s)=>"\x1b[33m"+s+"\x1b[0m", blue:(s)=>"\x1b[34m"+s+"\x1b[0m",
+  magenta:(s)=>"\x1b[35m"+s+"\x1b[0m", cyan:(s)=>"\x1b[36m"+s+"\x1b[0m",
+  bold:(s)=>"\x1b[1m"+s+"\x1b[0m", dim:(s)=>"\x1b[2m"+s+"\x1b[0m"
+} : {
+  red:(s)=>s, green:(s)=>s, yellow:(s)=>s, blue:(s)=>s, magenta:(s)=>s, cyan:(s)=>s, bold:(s)=>s, dim:(s)=>s
+}
+function info(msg){ console.log(msg) }
+function lineLen(s){ return String(s||'').replace(/\x1b\[[0-9;]*m/g,'').length }
+function padRight(s, n){ const len=lineLen(s); return s + ' '.repeat(Math.max(0, n-len)) }
+function boxPrint(title, rows){
+  const content = rows.filter(Boolean)
+  let width = Math.max(lineLen(title||''), ...content.map(lineLen))
+  width = Math.min(Math.max(width, 28), 78)
+  const top = '┌' + '─'.repeat(width + 2) + '┐'
+  const mid = '├' + '─'.repeat(width + 2) + '┤'
+  const bot = '└' + '─'.repeat(width + 2) + '┘'
+  info(C.cyan(top))
+  info(C.cyan('│ ') + C.bold(padRight(title||'', width)) + C.cyan(' │'))
+  info(C.cyan(mid))
+  for (const r of content){ info(C.cyan('│ ') + padRight(r, width) + C.cyan(' │')) }
+  info(C.cyan(bot))
+}
+function prettyPairing(res){
+  const code = String(res.code||'').trim()
+  const codeFmt = code.length===6 ? code.slice(0,3)+' '+code.slice(3) : code
+  const lines = [
+    `${C.magenta('Pairing code')}: ${C.bold(C.yellow(codeFmt))}`,
+    `${C.magenta('Installation')}: ${C.dim(res.installationId||'—')}`,
+    `${C.magenta('Expires')}: ${new Date(res.expiresAt).toLocaleString()}`
+  ]
+  boxPrint('🔗 CodeSync Pairing', lines)
+  info(C.dim('Next: Open the Figma plugin, click ') + C.bold('Link') + C.dim(' and paste the code.'))
+}
 
 async function cmd_link(args){
   const figma = args[0]
@@ -42,17 +79,12 @@ async function cmd_link(args){
     info(`✔ Linked to Figma file ${figmaFileKey} (project: ${projectId}, sourceOfTruth: ${cfg.sourceOfTruth})`)
   }
   const res = await pairStart()
-  info(`Pairing code: ${res.code}`)
-  info(`Installation ID (preview): ${res.installationId}`)
-  info(`Expires: ${new Date(res.expiresAt).toLocaleString()}`)
-  info('Next: In the Figma plugin UI, click Link and enter this code.')
+  prettyPairing(res)
 }
 
 async function cmd_pair_start(){
   const res = await pairStart()
-  info(`Pairing code: ${res.code}`)
-  info(`Installation ID (preview): ${res.installationId}`)
-  info(`Expires: ${new Date(res.expiresAt).toLocaleString()}`)
+  prettyPairing(res)
 }
 
 async function cmd_pair_confirm(args){
