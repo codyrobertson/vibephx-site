@@ -152,6 +152,7 @@
         <label style="display:block;font-size:12px;margin-bottom:4px;">Pairing Code</label>
         <input id="link-code" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--panel-contrast);color:var(--fg);font-size:12px;" placeholder="123456" />
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+          <button id="link-unlink" class="btn ghost">Unlink</button>
           <button id="link-cancel" class="btn ghost">Cancel</button>
           <button id="link-submit" class="btn primary">Link</button>
         </div>
@@ -185,10 +186,15 @@
       function setBase(url){ try { LS.setItem('codesync.base', url) } catch(_){} }
       function getCreds(){ try { return JSON.parse(LS.getItem('codesync.install')||'null') } catch { return null } }
       function setCreds(c){ try { LS.setItem('codesync.install', JSON.stringify(c)) } catch(_){} }
+      function clearCreds(){ try { LS.removeItem('codesync.install') } catch(_){} }
+      function isLinked(){ const c = getCreds(); return !!(c && c.installationId && c.token) }
+      function refreshLinkUI(){ const btn = document.getElementById('link'); if (!btn) return; if (isLinked()){ btn.textContent = 'Linked ✓'; btn.classList.add('primary') } else { btn.textContent = 'Link'; btn.classList.remove('primary') } }
 
       const DEBUG = true
       function log(){ try { if (DEBUG) console.log('[UI]', ...arguments) } catch(_) {} }
-      log('bootstrap: DOM ready')
+       log('bootstrap: DOM ready')
+       try { refreshLinkUI() } catch(_) {}
+
  
       // Virtualization elements
       const virt = { scroll: document.getElementById('virt-scroll'), virtual: document.getElementById('virt-virtual'), slice: document.getElementById('virt-slice') }
@@ -679,17 +685,21 @@
           const codeInput = document.getElementById('link-code')
           const cancelBtn = document.getElementById('link-cancel')
           const submitBtn = document.getElementById('link-submit')
+          const unlinkBtn = document.getElementById('link-unlink')
           if (!modal || !baseInput || !codeInput || !cancelBtn || !submitBtn) { setStatus('Link UI unavailable'); return }
           modal.style.display = 'flex'
           baseInput.value = getBase()
           codeInput.value = ''
           codeInput.focus()
+          if (unlinkBtn) unlinkBtn.style.display = isLinked() ? 'inline-block' : 'none'
           const close = () => {
             modal.style.display = 'none'
             cancelBtn.onclick = null
             submitBtn.onclick = null
+            if (unlinkBtn) unlinkBtn.onclick = null
           }
           cancelBtn.onclick = () => { close(); setStatus('Ready.') }
+          if (unlinkBtn) unlinkBtn.onclick = () => { clearCreds(); refreshLinkUI(); setStatus('Unlinked'); close(); setTimeout(()=>setStatus('Ready.'), 1000) }
           submitBtn.onclick = async () => {
             let base = String(baseInput.value || '').trim() || getBase()
             const code = String(codeInput.value || '').trim()
@@ -703,6 +713,7 @@
               const data = await res.json().catch(()=>null)
               if (!res.ok) throw new Error(data?.error || 'pair_failed')
               setCreds({ installationId: data.installationId, token: data.token })
+              refreshLinkUI()
               setStatus('Linked ✔')
               close()
               setTimeout(() => setStatus('Ready.'), 1200)
