@@ -203,4 +203,11 @@ figma.ui.onmessage = async (msg) => {
     await setStored('codesync.tokens.latest', msg.payload || null)
     figma.notify('Saved tokens for application (stub).')
   }
-}
+  if (msg.type === 'resize') {
+    try {
+      const w = Math.max(600, Math.min(1600, parseInt(msg.payload && msg.payload.width, 10) || 900))
+      const h = Math.max(400, Math.min(1200, parseInt(msg.payload && msg.payload.height, 10) || 650))
+      figma.ui.resize(w, h)
+    } catch (e) { /* ignore */ }
+  }
+ }
