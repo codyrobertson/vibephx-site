@@ -59,12 +59,20 @@ export function AudiencePhase() {
     const words = refined.split(' ').slice(0, 14).join(' ')
     const sda = audience ? `${words} for ${audience}` : words
     setSda(sda.charAt(0).toUpperCase() + sda.slice(1))
-    
-    addMessages([{
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: `Solid. So you want to **${sda}** for **${audience}** because **${motivation}**.\nIs that right, or am I missing anything?`
-    }])
+
+    // Add user's response to conversation
+    addMessages([
+      {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: `**Who it's for:** ${audience}\n\n**Why build it now:** ${motivation}`
+      },
+      {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `Got it. So you're building **${sda}** for **${audience}**.\n\nYour timing makes sense—${motivation.charAt(0).toLowerCase() + motivation.slice(1)}\n\nDoes that capture it, or should we refine anything?`
+      }
+    ])
     setPhase('confirmIdea')
   }
 

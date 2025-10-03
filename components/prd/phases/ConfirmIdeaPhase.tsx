@@ -16,11 +16,18 @@ export function ConfirmIdeaPhase() {
       </div>
       <ConfirmButtons
         onContinue={() => {
-          addMessages([{
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            content: "Great. Let's lock the MVP features (just the essentials for today)."
-          }])
+          addMessages([
+            {
+              id: crypto.randomUUID(),
+              role: 'user',
+              content: "Yes, that's exactly right. Let's continue."
+            },
+            {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content: "Great. Let's lock the MVP features (just the essentials for today)."
+            }
+          ])
           setPhase('features')
         }}
         onMore={() => setPhase('audience')}

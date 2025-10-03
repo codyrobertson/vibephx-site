@@ -73,11 +73,20 @@ export function FeaturesPhase() {
     const stretch = uniq.slice(4)
     setFeaturesMvp(mvp)
     setFeaturesStretch(stretch)
-    addMessages([{
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: `For **today** I recommend:\n• MVP: ${mvp.join(', ')}\n• Stretch: ${stretch.length ? stretch.join(', ') : '—'}`
-    }])
+
+    // Add user's features to conversation
+    addMessages([
+      {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: `**Features I want to include:**\n${uniq.map(f => `• ${f}`).join('\n')}`
+      },
+      {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `For **today** I recommend:\n\n**MVP:** ${mvp.map(f => `\n• ${f}`).join('')}\n\n**Stretch:** ${stretch.length ? stretch.map(f => `\n• ${f}`).join('') : ' —'}`
+      }
+    ])
     setPhase('providers')
   }
 

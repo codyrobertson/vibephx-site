@@ -9,7 +9,7 @@ import { getCachedLogoUrl } from '@/lib/logoCache'
 import { inferConnectors } from '@/lib/prd-ai-helpers'
 
 export function IntegrationsPhase() {
-  const { featuresMvp, selectedIntegrations, toggleIntegration, setPhase, selectedStack, dbChoice, name, saveToDatabase } = usePRDStore()
+  const { featuresMvp, selectedIntegrations, toggleIntegration, setPhase, selectedStack, dbChoice, name, saveToDatabase, addMessages } = usePRDStore()
   const integrationCards = (() => {
     // Helper to add unique suggestions
     const out: Array<{ id: string; title: string; description: string }> = [...inferConnectors(featuresMvp)]
@@ -170,6 +170,28 @@ export function IntegrationsPhase() {
       <div className="flex justify-end mt-3">
         <Button
           onClick={async () => {
+            // Add integrations to conversation
+            const integrationNames = integrationCards
+              .filter(c => selectedIntegrations.includes(c.id))
+              .map(c => c.title)
+
+            addMessages([
+              {
+                id: crypto.randomUUID(),
+                role: 'user',
+                content: integrationNames.length > 0
+                  ? `**Integrations:** ${integrationNames.join(', ')}`
+                  : `No integrations needed for MVP`
+              },
+              {
+                id: crypto.randomUUID(),
+                role: 'assistant',
+                content: integrationNames.length > 0
+                  ? `Nice. We'll wire up **${integrationNames.join(', ')}** after the core MVP is working.`
+                  : `Smart. Let's ship the core first, add integrations later if needed.`
+              }
+            ])
+
             try { await saveToDatabase() } catch {}
             setPhase('summary')
           }}

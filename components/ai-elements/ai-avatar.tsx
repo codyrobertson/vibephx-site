@@ -14,7 +14,7 @@ export function AIAvatar({ size = 'md', className, ...props }: AIAvatarProps) {
   }
 
   return (
-    <div className={cn('flex items-center justify-center', sizeClasses[size], className)} {...props}>
+    <div className={cn('flex items-center justify-center rounded-full border-2 border-gray-700 bg-black', sizeClasses[size], className)} {...props}>
       <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
         {/* Outer circle */}
         <circle cx="50" cy="50" r="45" stroke="#FF6900" strokeWidth="3" fill="none"/>

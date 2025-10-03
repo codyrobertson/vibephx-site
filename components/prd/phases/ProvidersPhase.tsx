@@ -20,11 +20,20 @@ export function ProvidersPhase() {
 
   const handleContinue = () => {
     setSelectedStack(`${uiChoices.join(' + ')} • ${hostingChoice}`)
-    addMessages([{
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: `Locked. Stack: ${uiChoices.join(' + ')} • ${hostingChoice} • ${dbChoice}`
-    }])
+
+    // Add user's stack choices to conversation
+    addMessages([
+      {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: `**My stack:** ${uiChoices.join(' + ')} • ${hostingChoice} • ${dbChoice}`
+      },
+      {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `Perfect. Locked in: **${uiChoices.join(' + ')}** • **${hostingChoice}** • **${dbChoice}**`
+      }
+    ])
     setPhase('integrations')
   }
 

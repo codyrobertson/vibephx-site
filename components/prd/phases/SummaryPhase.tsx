@@ -13,7 +13,8 @@ export function SummaryPhase() {
     featuresStretch,
     dbChoice,
     selectedIntegrations,
-    setPhase
+    setPhase,
+    addMessages
   } = usePRDStore()
 
   return (
@@ -53,7 +54,21 @@ export function SummaryPhase() {
         </div>
       </div>
       <ConfirmButtons
-        onContinue={() => setPhase('outputs')}
+        onContinue={() => {
+          addMessages([
+            {
+              id: crypto.randomUUID(),
+              role: 'user',
+              content: `Looks good. Let's generate the PRD.`
+            },
+            {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content: `Perfect. Generating your PRD now...`
+            }
+          ])
+          setPhase('outputs')
+        }}
         onMore={() => setPhase('features')}
         onNotQuite={() => setPhase('audience')}
       />
