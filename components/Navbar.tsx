@@ -27,16 +27,13 @@ export default function Navbar() {
             {/* Left - Logo/Brand */}
             <Link href="/" className="flex items-center gap-2">
               <Image
-                src="/logo.svg"
+                src="/logo.png"
                 alt="VibePHX"
-                width={32}
-                height={32}
-                className="w-8 h-8"
+                width={160}
+                height={30}
+                className="h-7 w-auto"
+                priority
               />
-              <div className="flex items-center gap-0 text-xl font-bold">
-                <span className="text-orange-400">Vibe</span>
-                <span className="text-white">PHX</span>
-              </div>
             </Link>
 
             {/* Center - Builder Title (only on builder page) */}
@@ -56,10 +53,10 @@ export default function Navbar() {
             <div className="flex items-center gap-4">
               {!isBuilderPage && (
                 <Link 
-                  href="/builder"
+                  href="/dashboard"
                   className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-black font-semibold rounded-lg transition-colors"
                 >
-                  Try Builder
+                  Dashboard
                 </Link>
               )}
               {isBuilderPage && (

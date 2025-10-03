@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run build:*)",
+      "Bash(ls:*)",
+      "Bash(identify:*)",
+      "Bash(lsof:*)",
+      "Bash(kill:*)",
+      "Bash(npm run dev:*)",
+      "Bash(xargs kill:*)",
+      "Bash(npx tsc:*)",
+      "Bash(curl:*)",
+      "Bash(npm install:*)",
+      "Bash(cat:*)",
+      "Bash(pkill:*)",
+      "WebSearch",
+      "WebFetch(domain:ai-sdk.dev)",
+      "WebFetch(domain:sdk.vercel.ai)",
+      "Bash(npx ai-elements@latest add:*)",
+      "Bash(yes)",
+      "WebFetch(domain:github.com)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

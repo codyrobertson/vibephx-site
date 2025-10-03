@@ -12,6 +12,7 @@ import OutputDashboard from './OutputDashboard'
 export type ProjectData = {
   template?: string
   customIdea?: string
+  projectId?: string
   stack: {
     frontend?: string
     backend?: string

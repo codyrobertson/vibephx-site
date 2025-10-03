@@ -9,7 +9,7 @@ export const stackServerApp = new StackServerApp({
     home: '/',
     signIn: '/handler/signin',
     signUp: '/handler/signup',
-    afterSignIn: '/builder',
+    afterSignIn: '/dashboard',
     afterSignOut: '/',
   },
 });

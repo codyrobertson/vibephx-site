@@ -1,0 +1,727 @@
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { useStreamingChat } from '@/hooks/useStreamingChat'
+import { Conversation, ConversationContent, ConversationEmptyState } from '@/components/ai-elements/conversation'
+import { Message, MessageContent, MessageAvatar } from '@/components/ai-elements/message'
+import { Response } from '@/components/ai-elements/response'
+import { Button } from '@/components/ui/button'
+import { PaperPlaneIcon, MagicWandIcon } from '@radix-ui/react-icons'
+import { usePRDStore } from '@/lib/stores/usePRDStore'
+import { AudiencePhase } from './phases/AudiencePhase'
+import { ConfirmIdeaPhase } from './phases/ConfirmIdeaPhase'
+import { FeaturesPhase } from './phases/FeaturesPhase'
+import { ProvidersPhase } from './phases/ProvidersPhase'
+import { IntegrationsPhase } from './phases/IntegrationsPhase'
+import { SummaryPhase } from './phases/SummaryPhase'
+import { OutputsPhase } from './phases/OutputsPhase'
+
+type Phase = 'intro' | 'audience' | 'confirmIdea' | 'features' | 'providers' | 'stack' | 'integrations' | 'summary' | 'outputs' | 'final'
+
+function PRDMessage({ message, isPRDArtifact, shouldAutoCollapse }: { 
+  message: { id: string; role: 'user' | 'assistant'; content: string; images?: string[] }
+  isPRDArtifact: boolean
+  shouldAutoCollapse: boolean
+}) {
+  const [isCollapsed, setIsCollapsed] = useState(shouldAutoCollapse)
+  
+  useEffect(() => {
+    if (shouldAutoCollapse) setIsCollapsed(true)
+  }, [shouldAutoCollapse])
+  
+  return (
+    <div className="group">
+      <Message from={message.role}>
+        {message.role === 'assistant' && <MessageAvatar name="AI" className="bg-black border-2 border-gray-700 text-gray-400" />}
+        <MessageContent
+          variant="contained"
+          className={message.role === 'user'
+            ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
+            : 'bg-black text-white border border-gray-700'}
+          data-role={message.role}
+        >
+          {message.images && message.images.length > 0 && (
+            <div className="flex gap-2 mb-2 flex-wrap">
+              {message.images.map((img, idx) => (
+                <img key={idx} src={img} alt="" className="max-w-xs h-40 object-cover rounded border border-gray-700" />
+              ))}
+            </div>
+          )}
+          {isPRDArtifact && isCollapsed ? (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">✅ PRD Generated</span>
+                <button
+                  onClick={() => setIsCollapsed(false)}
+                  className="text-xs text-orange-400 hover:text-orange-300"
+                >
+                  Expand PRD
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {isPRDArtifact && !isCollapsed && (
+                <button
+                  onClick={() => setIsCollapsed(true)}
+                  className="text-xs text-orange-400 hover:text-orange-300 mb-2"
+                >
+                  Collapse PRD
+                </button>
+              )}
+              <Response>{message.content}</Response>
+            </>
+          )}
+        </MessageContent>
+      </Message>
+      {/* Hover actions: icon row below message */}
+      <div className={`flex gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity ${message.role === 'user' ? 'justify-end' : 'justify-start ml-10'}`}>
+        <button
+          onClick={() => navigator.clipboard.writeText(message.content)}
+          className="p-1.5 bg-gray-900 border border-gray-800 rounded hover:bg-gray-800 hover:border-gray-700 transition-colors"
+          title="Copy"
+        >
+          <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export default function ConversationalPRDBuilder() {
+  const { messages, send, status, error, setMessages } = useStreamingChat('/api/chat-plain')
+  
+  // Zustand store
+  const phase = usePRDStore(state => state.phase)
+  const setPhase = usePRDStore(state => state.setPhase)
+  const setInitialIntent = usePRDStore(state => state.setInitialIntent)
+  const setSda = usePRDStore(state => state.setSda)
+  const addMessages = usePRDStore(state => state.addMessages)
+  const finalFollowupDone = usePRDStore(state => state.finalFollowupDone)
+  const setFinalFollowupDone = usePRDStore(state => state.setFinalFollowupDone)
+  const saveToDatabase = usePRDStore(state => state.saveToDatabase)
+  const initialIntent = usePRDStore(state => state.initialIntent)
+  const loadFromDatabase = usePRDStore(state => state.loadFromDatabase)
+  const storeMessages = usePRDStore(state => state.messages)
+  const setStoreMessages = usePRDStore(state => state.setMessages)
+  const sessionId = usePRDStore(state => state.sessionId)
+
+  // Local UI state
+  const [showInitialPrompt, setShowInitialPrompt] = useState(true)
+  const [input, setInput] = useState('')
+  const [projectSuggestions, setProjectSuggestions] = useState<Array<{emoji: string; text: string}>>([])
+  const [isChatStreaming, setIsChatStreaming] = useState(false)
+  const [uploadedImages, setUploadedImages] = useState<Array<{id: string; url: string}>>([])
+  const [currentTask, setCurrentTask] = useState<{type: 'search' | 'vision' | null; label: string} | null>(null)
+
+  const endRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const searchParams = useSearchParams()
+  const loadedSidRef = useRef<string | null>(null)
+  const loadSeqRef = useRef<number>(0)
+  const isLoadingRef = useRef<boolean>(false)
+  const pendingSaveRef = useRef<number | null>(null)
+  const hasLoadedOnMountRef = useRef<boolean>(false)
+
+  // Load session strictly from the URL ONCE on mount; ignore late/out-of-order responses
+  useEffect(() => {
+    // Only run this effect on mount, not when searchParams updates from our own URL write
+    if (hasLoadedOnMountRef.current) return
+    hasLoadedOnMountRef.current = true
+    
+    const sid = searchParams.get('session')
+    if (!sid) {
+      // Fresh PRD: ensure suggestions are visible
+      setShowInitialPrompt(true)
+      if (typeof window !== 'undefined') {
+        try { localStorage.removeItem('last_prd_session') } catch {}
+      }
+      return
+    }
+    if (loadedSidRef.current === sid) return
+    loadedSidRef.current = sid
+    const seq = ++loadSeqRef.current
+    isLoadingRef.current = true
+    ;(async () => {
+      try {
+        await loadFromDatabase(sid)
+        // Ignore if another load started since
+        if (loadSeqRef.current !== seq) return
+        setShowInitialPrompt(false)
+      } catch (err) {
+        // If session doesn't exist (404), clear the URL and restart fresh
+        console.error('Failed to load session:', err)
+        if (typeof window !== 'undefined') {
+          window.history.replaceState({}, '', '/builder/prd-builder')
+          setShowInitialPrompt(true)
+        }
+      }
+      finally {
+        isLoadingRef.current = false
+      }
+    })()
+  }, [searchParams, loadFromDatabase])
+
+  // When we get a sessionId, persist it to URL and localStorage for reload continuity
+  useEffect(() => {
+    if (!sessionId) return
+    try {
+      const url = new URL(window.location.href)
+      if (url.searchParams.get('session') !== sessionId) {
+        url.searchParams.set('session', sessionId)
+        // Use replaceState to avoid triggering a re-render that hides suggestions prematurely
+        window.history.replaceState({}, '', url.toString())
+      }
+      localStorage.setItem('last_prd_session', sessionId)
+    } catch {}
+  }, [sessionId])
+
+  // Load personalized project suggestions
+  useEffect(() => {
+    let cancelled = false
+    const CACHE_KEY = 'prd_project_suggestions_v1'
+    const SUGGESTIONS_TTL_MS = 12 * 60 * 60 * 1000 // 12 hours
+
+    const tryLoadFromCache = () => {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY)
+        if (!raw) return false
+        const parsed = JSON.parse(raw)
+        if (!parsed?.ts || !Array.isArray(parsed?.data)) return false
+        if (Date.now() - parsed.ts > SUGGESTIONS_TTL_MS) return false
+        if (!cancelled) setProjectSuggestions(parsed.data)
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    const loadSuggestions = async () => {
+      // Use cache first
+      if (tryLoadFromCache()) return
+      try {
+        const res = await fetch('/api/user/project-suggestions', { method: 'POST', cache: 'no-store' })
+        if (res.ok) {
+          const data = await res.json()
+          const suggestions = (data.suggestions || []).slice(0, 4)
+          if (!cancelled) setProjectSuggestions(suggestions)
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: suggestions }))
+          } catch {}
+        } else {
+          throw new Error('Failed')
+        }
+      } catch (err) {
+        const defaults = [
+          { emoji: '🧱', text: 'PRD generator for workshops' },
+          { emoji: '📋', text: 'Viral waitlist landing page' },
+          { emoji: '📊', text: 'CRM dashboard with sales tracking' },
+          { emoji: '📅', text: 'Booking system with calendar sync' }
+        ]
+        if (!cancelled) setProjectSuggestions(defaults)
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: defaults }))
+        } catch {}
+      }
+    }
+    loadSuggestions()
+    return () => { cancelled = true }
+  }, [])
+
+  // Progress
+  const phaseLabels: Record<Phase, string> = {
+    intro: 'Intro',
+    audience: 'Who & Why',
+    confirmIdea: 'Confirm',
+    features: 'Features',
+    providers: 'Stack',
+    stack: 'Frontend',
+    integrations: 'Integrations',
+    summary: 'Review',
+    outputs: 'Export',
+    final: 'Done'
+  }
+  const phaseOrder: Phase[] = ['intro', 'audience', 'confirmIdea', 'features', 'providers', 'stack', 'integrations', 'summary', 'outputs', 'final']
+  const progress = ((phaseOrder.indexOf(phase) + 1) / phaseOrder.length) * 100
+
+  // Auto-scroll
+  useEffect(() => {
+    setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100)
+  }, [messages.length, storeMessages.length, phase])
+
+  // Sync hook messages into persistent store so sessions can be resumed
+  useEffect(() => {
+    // Only sync when there are hook messages AND we're not in a resumed session
+    if (messages && messages.length > 0 && storeMessages.length === 0) {
+      try {
+        setStoreMessages(messages as any)
+      } catch {}
+    }
+  }, [messages, setStoreMessages, storeMessages.length])
+
+  // Debounced save wrapper (blocks while loading)
+  const requestSave = () => {
+    if (isLoadingRef.current) return
+    if (pendingSaveRef.current) {
+      window.clearTimeout(pendingSaveRef.current)
+      pendingSaveRef.current = null
+    }
+    pendingSaveRef.current = window.setTimeout(() => {
+      pendingSaveRef.current = null
+      saveToDatabase().catch(() => {})
+    }, 500)
+  }
+
+  // Auto-save on phase change (skip intro phase to avoid creating empty sessions)
+  useEffect(() => {
+    if (phase === 'intro') return
+    requestSave()
+  }, [phase])
+
+  // Save when the tab is hidden or unloading
+  useEffect(() => {
+    const handler = () => { requestSave() }
+    document.addEventListener('visibilitychange', handler)
+    window.addEventListener('beforeunload', handler)
+    return () => {
+      document.removeEventListener('visibilitychange', handler)
+      window.removeEventListener('beforeunload', handler)
+    }
+  }, [saveToDatabase])
+
+  // Realtime autosave every 5s once there is an idea and we're past intro
+  useEffect(() => {
+    if (!initialIntent || phase === 'intro') return
+    const id = setInterval(() => {
+      requestSave()
+    }, 5000)
+    return () => clearInterval(id)
+  }, [initialIntent, phase, saveToDatabase])
+
+  // Save when store messages change (debounced) - watch the actual messages array
+  useEffect(() => {
+    if (storeMessages.length > 0 && phase !== 'intro') {
+      requestSave()
+    }
+  }, [storeMessages])
+
+  // Final follow-up & mark completion
+  useEffect(() => {
+    const last = messages[messages.length - 1] as any
+    if (phase === 'final' && status === 'ready' && !finalFollowupDone && last?.role === 'assistant' && last?.content?.length > 50) {
+      addMessages([{
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: 'Want me to take the next step? I can (1) turn this into an engineering task list, (2) ask 3 clarifying questions and update the spec, or (3) scaffold a starter repo structure.'
+      }])
+      setFinalFollowupDone(true)
+      // best-effort: update project status to COMPLETED
+      ;(async () => {
+        try {
+          const sid = (window.location.search.match(/session=([^&]+)/)?.[1]) || undefined
+          if (sid) {
+            const res = await fetch(`/api/prd/session?id=${sid}`)
+            if (res.ok) {
+              const data = await res.json()
+              const pid = data.session?.projectId
+              if (pid) {
+                fetch('/api/projects', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: pid, status: 'COMPLETED' }) }).catch(() => {})
+              }
+            }
+          }
+        } catch {}
+      })()
+    }
+  }, [phase, status, messages, finalFollowupDone, addMessages, setFinalFollowupDone])
+
+  const refineOneLiner = (idea: string) => {
+    const clean = idea.replace(/\s+/g, ' ').replace(/^I\s+want\s+to\s+build\s+/i, '').replace(/^I\s+need\s+to\s+create\s+/i, '').trim()
+    const words = clean.split(' ')
+    const trimmed = words.length > 14 ? words.slice(0, 14).join(' ') : clean
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
+  }
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!input.trim()) return
+    setShowInitialPrompt(false)
+
+    if (phase === 'intro') {
+      const idea = input.trim()
+      setInitialIntent(idea)
+      setSda(refineOneLiner(idea))
+      addMessages([
+        { id: crypto.randomUUID(), role: 'user', content: idea },
+        { id: crypto.randomUUID(), role: 'assistant', content: 'Great idea. Before we start, who is this for and why build it now?' }
+      ])
+      setPhase('audience')
+      // Don't save yet; let the phase change trigger the save
+      setInput('')
+      return
+    }
+
+    // In final phase, chat with AI about the PRD/project
+    if (phase === 'final') {
+      const userMsg = input.trim()
+      const hasImages = uploadedImages.length > 0
+      const shouldSearch = /search|look up|find|research|examples?|show me|screenshots?|images?.*of/i.test(userMsg)
+      
+      const assistantId = crypto.randomUUID()
+      addMessages([
+        { 
+          id: crypto.randomUUID(), 
+          role: 'user', 
+          content: userMsg,
+          images: hasImages ? uploadedImages.map(i => i.url) : undefined
+        },
+        { id: assistantId, role: 'assistant', content: '' }
+      ])
+      setInput('')
+      setIsChatStreaming(true)
+      
+      // Handle vision or search
+      if (hasImages || shouldSearch) {
+        setCurrentTask({ type: hasImages ? 'vision' : 'search', label: hasImages ? 'Analyzing images...' : 'Searching the web...' })
+        try {
+          const res = await fetch('/api/prd/multimodal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message: userMsg,
+              images: hasImages ? uploadedImages.map(i => i.url) : undefined,
+              shouldSearch,
+              sessionId,
+              projectId: usePRDStore.getState().projectId
+            })
+          })
+          if (res.ok) {
+            const data = await res.json()
+            const current = usePRDStore.getState().messages
+            setStoreMessages(current.map(m => m.id === assistantId ? { 
+              ...m, 
+              content: data.response,
+              images: data.images || undefined
+            } : m))
+          }
+          setUploadedImages([])
+        } catch (err) {
+          console.error('Multimodal failed:', err)
+        } finally {
+          setCurrentTask(null)
+          setIsChatStreaming(false)
+        }
+        return
+      }
+      
+      // Stream AI response with PRD context (last 20 messages + PRD artifact if present)
+      try {
+        // Get fresh messages from store after adding user message
+        await new Promise(resolve => setTimeout(resolve, 100))
+        const allMsgs = usePRDStore.getState().messages
+        
+        // Find the PRD artifact (large assistant message with "PRD Generated")
+        const prdArtifact = allMsgs.find(m => m.role === 'assistant' && m.content.includes('PRD Generated'))
+        
+        // Take last 20 messages for recent context
+        const recentMsgs = allMsgs.slice(-20)
+        
+        // Build context: PRD (if exists and not in recent) + recent messages
+        const contextMessages = [
+          ...(prdArtifact && !recentMsgs.find(m => m.id === prdArtifact.id) ? [{ role: prdArtifact.role, content: prdArtifact.content }] : []),
+          ...recentMsgs.map(m => ({ role: m.role, content: m.content }))
+        ]
+        console.log('Chat context includes', contextMessages.length, 'messages with', contextMessages.reduce((sum, m) => sum + m.content.length, 0), 'total chars')
+        
+        const res = await fetch('/api/prd/inference', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: contextMessages,
+            purpose: 'post_prd_chat',
+            stream: true,
+            maxTokens: 2000,
+            temperature: 0.7
+          })
+        })
+        if (!res.ok || !res.body) throw new Error('Failed')
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+        let updateCount = 0
+        
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          updateCount++
+          // Only update UI every 3 chunks or on done for better performance
+          if (updateCount % 3 === 0 || done) {
+            const current = usePRDStore.getState().messages
+            setStoreMessages(current.map(m => m.id === assistantId ? { ...m, content: buffer } : m))
+          }
+        }
+        // Final update
+        const current = usePRDStore.getState().messages
+        setStoreMessages(current.map(m => m.id === assistantId ? { ...m, content: buffer } : m))
+      } catch (err) {
+        console.error('Chat failed:', err)
+      } finally {
+        setIsChatStreaming(false)
+      }
+      return
+    }
+
+    addMessages([{ id: crypto.randomUUID(), role: 'user', content: input }])
+    setInput('')
+  }
+
+  const handleSuggestedPrompt = (prompt: string) => {
+    setShowInitialPrompt(false)
+    if (phase === 'intro') {
+      setInitialIntent(prompt)
+      setSda(refineOneLiner(prompt))
+      addMessages([
+        { id: crypto.randomUUID(), role: 'user', content: prompt },
+        { id: crypto.randomUUID(), role: 'assistant', content: 'Awesome. Who is this for and why does it matter to them?' }
+      ])
+      setPhase('audience')
+    } else {
+      addMessages([{ id: crypto.randomUUID(), role: 'user', content: prompt }])
+    }
+  }
+
+  const hasAnyMessages = (messages.length > 0) || (storeMessages.length > 0)
+  // Deduplicate messages by id to avoid React key warnings and filter out empty streaming placeholders
+  const allMessages = storeMessages.length > 0 ? storeMessages : messages
+  const seen = new Set<string>()
+  const displayMessages: Array<{ id: string; role: 'user' | 'assistant'; content: string; images?: string[] }> = (allMessages as any[])
+    .filter((m: any) => {
+      if (!m?.id || seen.has(m.id)) return false
+      // Hide empty assistant messages (streaming placeholders)
+      if (m.role === 'assistant' && !m.content?.trim()) return false
+      seen.add(m.id)
+      return true
+    })
+
+  return (
+    <div className="max-w-5xl mx-auto h-[calc(100vh-8rem)] flex flex-col">
+      {/* Header */}
+      <div className={`sticky top-16 md:top-20 z-20 bg-black/95 backdrop-blur border-b border-gray-800 transition-all duration-300 ${!hasAnyMessages ? 'py-12' : 'py-4'}`}>
+        <div className={`${!hasAnyMessages ? 'text-center' : 'flex items-center justify-between'} max-w-5xl mx-auto px-4 transition-all duration-300`}>
+          <div className={!hasAnyMessages ? '' : 'flex items-center gap-4'}>
+            <h1 className={`font-bold text-white transition-all duration-300 ${!hasAnyMessages ? 'text-4xl mb-2' : 'text-2xl'}`}>
+              PRD Builder
+            </h1>
+            {!hasAnyMessages && <p className="text-gray-400 text-lg">Plan → Loop → Ship. Let's turn your idea into a shippable PRD.</p>}
+          </div>
+          {phase !== 'intro' && hasAnyMessages && (
+            <div className="flex items-center gap-4">
+              <div className="text-xs text-gray-400">{phaseLabels[phase]}</div>
+              <div className="w-32 h-1 bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-orange-500 to-orange-400 transition-all duration-500" style={{ width: `${progress}%` }} />
+              </div>
+              <div className="text-xs text-gray-400">{Math.round(progress)}%</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Conversation className="flex-1 mb-6">
+        <ConversationContent className="space-y-6">
+          {/* Empty state removed - just show quick-start cards */}
+
+          {/* Thinking indicator */}
+          {isChatStreaming && (
+            <div className="flex items-start gap-3 mb-4">
+              <div className="bg-black border-2 border-gray-700 text-gray-400 rounded-full w-8 h-8 flex items-center justify-center text-xs font-medium">AI</div>
+              <div className="flex items-center gap-2 text-gray-400 text-sm bg-black border border-gray-700 rounded-lg px-4 py-3">
+                <div className="flex gap-1">
+                  <span className="inline-block w-2 h-2 bg-orange-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                  <span className="inline-block w-2 h-2 bg-orange-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                  <span className="inline-block w-2 h-2 bg-orange-400 rounded-full animate-bounce" />
+                </div>
+                <span>AI is typing...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Messages */}
+          {displayMessages.map((m, idx) => {
+            const isPRDArtifact = m.content.includes('✅ **PRD Generated**')
+            const hasFollowupAfter = idx < displayMessages.length - 1
+            // Auto-collapse PRD if there are messages after it
+            const shouldCollapse = isPRDArtifact && hasFollowupAfter
+            
+            return (
+              <PRDMessage 
+                key={m.id} 
+                message={m} 
+                isPRDArtifact={isPRDArtifact}
+                shouldAutoCollapse={shouldCollapse}
+              />
+            )
+          })}
+
+          {/* Phase components */}
+          {phase === 'audience' && <AudiencePhase />}
+          {phase === 'confirmIdea' && <ConfirmIdeaPhase />}
+          {phase === 'features' && <FeaturesPhase />}
+          {phase === 'providers' && <ProvidersPhase />}
+          {phase === 'integrations' && <IntegrationsPhase />}
+          {phase === 'summary' && <SummaryPhase />}
+          {phase === 'outputs' && <OutputsPhase />}
+
+          {/* Error display */}
+          {error && (
+            <div className="p-5 rounded-xl border border-red-500/50 bg-red-900/20">
+              <div className="text-sm text-red-300">
+                {(() => {
+                  try {
+                    const parsed = JSON.parse((error as any)?.message || '{}')
+                    if (parsed?.error?.type === 'authentication_error') {
+                      return (
+                        <span>
+                          OAuth token expired. Please re-login. Run <code className="bg-gray-800 px-1 py-0.5 rounded">/login</code> then retry.
+                        </span>
+                      )
+                    }
+                  } catch {}
+                  return String((error as any)?.message || error)
+                })()}
+              </div>
+            </div>
+          )}
+
+          {/* Scroll anchor */}
+          <div ref={endRef} />
+        </ConversationContent>
+      </Conversation>
+
+      {/* Quick-start cards */}
+      {showInitialPrompt && !hasAnyMessages && (
+        <div className="mb-6 px-4">
+          <p className="text-sm text-gray-400 mb-4 text-center">Quick start with these examples:</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {projectSuggestions.map((item, idx) => (
+            <button
+                key={idx}
+              className="text-left p-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-orange-500 hover:bg-gray-800 transition-all text-sm text-gray-300 group"
+                onClick={() => handleSuggestedPrompt(`I want to build a ${item.text}`)}
+            >
+                <span className="text-lg mb-1 block">{item.emoji}</span>
+                <span className="group-hover:text-white transition-colors">{item.text}</span>
+            </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Task indicator */}
+      {currentTask && (
+        <div className="mb-4 px-4">
+          <div className="flex items-center gap-2 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300">
+            <svg className="w-4 h-4 animate-spin text-orange-400" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>{currentTask.label}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Input form */}
+      <div className="sticky bottom-0 bg-black border-t border-gray-800 pt-6 px-4 pb-4">
+        {uploadedImages.length > 0 && (
+          <div className="flex gap-2 mb-3 flex-wrap">
+            {uploadedImages.map(img => (
+              <div key={img.id} className="relative group/img">
+                <img src={img.url} alt="" className="h-20 w-20 object-cover rounded border border-gray-700" />
+                <button
+                  onClick={() => setUploadedImages(uploadedImages.filter(i => i.id !== img.id))}
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-white text-xs opacity-0 group-hover/img:opacity-100 transition-opacity"
+                >×</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <form onSubmit={onSubmit} className="relative">
+          <div className="relative flex items-end gap-3 bg-gray-800/50 border border-gray-700 rounded-2xl p-4 focus-within:border-orange-500 focus-within:bg-gray-800 transition-all">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files || [])
+                files.forEach(file => {
+                  const reader = new FileReader()
+                  reader.onload = () => {
+                    setUploadedImages(prev => [...prev, { id: crypto.randomUUID(), url: reader.result as string }])
+                  }
+                  reader.readAsDataURL(file)
+                })
+                e.target.value = ''
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 hover:bg-gray-700 rounded transition-colors"
+              title="Upload image"
+            >
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </button>
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={phase === 'intro' ? 'Describe your project idea in your own words…' : 'Type a message, paste an image, or ask me to search…'}
+              disabled={status === 'streaming' || isChatStreaming}
+              className="flex-1 resize-none bg-transparent border-none outline-none text-white placeholder:text-gray-500 min-h-[60px] max-h-[200px] disabled:opacity-50"
+              rows={2}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  if ((input?.trim() || uploadedImages.length > 0) && status !== 'streaming' && !isChatStreaming) onSubmit(e as any)
+                }
+              }}
+              onPaste={(e) => {
+                const items = e.clipboardData?.items
+                if (!items) return
+                for (let i = 0; i < items.length; i++) {
+                  if (items[i].type.indexOf('image') !== -1) {
+                    const blob = items[i].getAsFile()
+                    if (blob) {
+                      const reader = new FileReader()
+                      reader.onload = () => {
+                        setUploadedImages(prev => [...prev, { id: crypto.randomUUID(), url: reader.result as string }])
+                      }
+                      reader.readAsDataURL(blob)
+                    }
+                  }
+                }
+              }}
+            />
+            <Button
+              type="submit"
+              disabled={(!input?.trim() && uploadedImages.length === 0) || status === 'streaming' || isChatStreaming}
+              className="rounded-xl h-11 w-11 p-0 flex items-center justify-center bg-orange-500 hover:bg-orange-600 shrink-0"
+            >
+              <PaperPlaneIcon className="w-5 h-5" />
+            </Button>
+          </div>
+          <p className="text-xs text-gray-400 mt-3 text-center">
+            Press <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-xs">Enter</kbd> to send,{' '}
+            <kbd className="px-1.5 py-0.5 bg-gray-800 rounded text-xs">Shift + Enter</kbd> for new line
+          </p>
+        </form>
+      </div>
+    </div>
+  )
+}
+

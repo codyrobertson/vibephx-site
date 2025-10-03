@@ -163,6 +163,22 @@ async function extractAll() {
 
 figma.showUI(__html__, { width: 900, height: 650 })
 
+// Auto-extract on plugin run to validate message flow
+try {
+  figma.notify('Plugin ready')
+  figma.on('run', async () => {
+    try {
+      figma.notify('Auto-extracting…')
+      const payload = await extractAll()
+      figma.ui["postMessage"]({ type: 'extracted', payload })
+      figma.notify('Auto-extraction complete')
+    } catch (e) {
+      figma.notify('Auto-extract failed')
+    }
+  })
+} catch (_) {}
+
+
 async function getStored(key){ try { return await figma.clientStorage.getAsync(key) } catch (e) { return null } }
 async function setStored(key, val){ try { await figma.clientStorage.setAsync(key, val); return true } catch (e) { return false } }
 async function delStored(key){ try { await figma.clientStorage.deleteAsync(key); return true } catch (e) { return false } }
@@ -197,6 +213,9 @@ figma.ui.onmessage = async (msg) => {
   if (msg.type === 'setBase') {
     await setStored('codesync.base', msg.payload || null)
     figma.ui["postMessage"]({ type: 'base', payload: msg.payload || null })
+  }
+  if (msg.type === 'ping') {
+    try { figma.ui["postMessage"]({ type: 'pong' }) } catch (e) {}
   }
   if (msg.type === 'applyDesignTokens') {
     // Stub: persist last pulled tokens for later application; show a notice

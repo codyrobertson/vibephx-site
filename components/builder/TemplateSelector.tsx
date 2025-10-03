@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { RocketIcon, TargetIcon, MagicWandIcon, PlusIcon } from '@radix-ui/react-icons'
-import { Card, CardIcon, CardBadge, CardHeader, CardTitle, CardDescription, CardMeta, CardTags } from '@/components/ui/Card'
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card'
 
 const TEMPLATES = [
   {
@@ -139,11 +139,7 @@ export default function TemplateSelector({
             return (
               <Card
                 key={template.id}
-                background="code"
-                overlay="code"
-                state={selectedTemplate === template.id ? 'selected' : 'default'}
-                interactive="clickable"
-                size="lg"
+                
                 onClick={() => {
                   console.log('Template clicked:', template.id)
                   selectTemplate(template.id)
@@ -156,29 +152,33 @@ export default function TemplateSelector({
                 }}
                 role="button"
                 tabIndex={0}
-                className="group hover:border-orange-500/50 transition-all duration-200 flex flex-col min-h-[220px] relative"
+                className={`group hover:border-orange-500/50 transition-all duration-200 flex flex-col min-h-[220px] relative ${selectedTemplate === template.id ? 'border-orange-500' : ''}`}
                 aria-label={`Select ${template.title} template`}
                 aria-selected={selectedTemplate === template.id}
               >
-                {/* Top Right: Badge */}
+                {/* Top Right: Badge (inline replacement) */}
                 <div className="absolute top-4 right-4 z-30">
-                  <CardBadge 
-                    variant={template.difficulty === 'Beginner-friendly' ? 'success' : 'warning'}
+                  <span
+                    className={`px-2 py-1 text-xs rounded-md font-medium ${
+                      template.difficulty === 'Beginner-friendly'
+                        ? 'bg-green-500/15 text-green-400 border border-green-600/40'
+                        : 'bg-yellow-500/15 text-yellow-400 border border-yellow-600/40'
+                    }`}
                   >
                     {template.difficulty}
-                  </CardBadge>
+                  </span>
                 </div>
 
-                {/* Top Left: Icon */}
+                {/* Top Left: Icon (inline replacement) */}
                 <div className="flex justify-start px-6 pt-6">
-                  <CardIcon color="orange">
-                    <IconComponent className="w-full h-full" />
-                  </CardIcon>
+                  <div className="w-10 h-10 rounded-lg bg-orange-500/15 border border-orange-600/30 text-orange-400 flex items-center justify-center">
+                    <IconComponent className="w-6 h-6" />
+                  </div>
                 </div>
                 
                 {/* Middle: Title and Subtitle with more spacing */}
                 <div className="text-left space-y-3 px-6 pt-4 pb-6 flex-1">
-                  <CardTitle size="lg">
+                  <CardTitle>
                     {template.title}
                   </CardTitle>
                   

@@ -88,6 +88,28 @@
       .resize-handle { position: fixed; right: 6px; bottom: 6px; width: 12px; height: 12px; border-right: 2px solid var(--border); border-bottom: 2px solid var(--border); border-radius: 2px; cursor: se-resize; opacity: .6; }
       .resize-handle:hover { opacity: 1 }
     </style>
+    <script>
+      // Capture plugin messages early to avoid host onmessage errors
+      (function(){
+        try {
+          window.__pendingPluginMessages = []
+          window.addEventListener('message', function(e){
+            try {
+              const pm = e && e.data && e.data.pluginMessage
+              if (!pm) return
+              if (window.__handlePluginMessage) {
+                window.__handlePluginMessage(pm)
+              } else {
+                window.__pendingPluginMessages.push(pm)
+              }
+              e.stopImmediatePropagation && e.stopImmediatePropagation()
+              e.stopPropagation && e.stopPropagation()
+              try { e.preventDefault && e.preventDefault() } catch(_) {}
+            } catch(_) {}
+          }, true)
+        } catch (_) {}
+      })()
+    </script>
     <script src="transformer.class.js"></script>
     <script src="transform.js"></script>
   </head>
@@ -104,6 +126,9 @@
             <div id="convert-menu" style="display:none;position:absolute;left:0;top:110%;min-width:220px;background:var(--panel);border:1px solid var(--border);border-radius:8px;box-shadow:0 10px 20px rgba(0,0,0,.15);z-index:9999;pointer-events:auto;overflow:hidden;"></div>
           </div>
           <button id="export" class="btn" style="display:none;">Export</button>
+          <button id="link" class="btn ghost">Link</button>
+          <span id="linked-pill" style="display:none;padding:4px 8px;border:1px solid var(--border);border-radius:999px;font-size:11px;background:var(--panel-contrast);">Linked</span>
+          <button id="diag-toggle" class="btn ghost">Diagnostics</button>
         </div>
       </header>
 
@@ -128,6 +153,14 @@
       </div>
 
       <div id="status">Ready.</div>
+      <div id="diag" style="display:none;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--panel);font-size:12px;">
+        <div>Linked: <span id="diag-linked">no</span></div>
+        <div>Base: <span id="diag-base"></span></div>
+        <div>pendingAction: <span id="diag-pa"></span></div>
+        <div>hasPayload: <span id="diag-payload">no</span></div>
+        <div>hasIR: <span id="diag-ir">no</span></div>
+        <div>viewKind: <span id="diag-view">json</span></div>
+      </div>
 
       <section class="surface" aria-label="Extraction Viewer">
         <div class="surface-header">
@@ -180,6 +213,7 @@
     </div>
 
     <script>
+      // Disabled previous hardening (caused message issues).
       const statusEl = document.getElementById('status')
       const metaTs = document.getElementById('meta-ts')
       const viewTitle = document.getElementById('view-title')
@@ -232,6 +266,7 @@ let pendingAction = ''
         if (bConvert) bConvert.style.display = hasPayload ? '' : 'none'
         if (bExport) bExport.style.display = hasPayload ? '' : 'none'
       }
+      function refreshDiagnosticsUI(){ const d=document.getElementById('diag'); if (!d || (d.style.display||'none')==='none') return; const set=(id,val)=>{ const el=document.getElementById(id); if (el) el.textContent=String(val) }; set('diag-linked', isLinked()? 'yes':'no'); set('diag-base', getBase()); set('diag-pa', pendingAction||''); set('diag-payload', lastPayload? 'yes':'no'); set('diag-ir', lastIR? 'yes':'no'); set('diag-view', viewKind||''); }
       function setRunStyle(btn, primary){ if (!btn) return; if (primary){ btn.classList.add('primary') } else { btn.classList.remove('primary') } }
       function clearView(){ lastPayload=null; lastJsonStr=''; lastIR=null; lastTextStr=''; viewKind='json'; downloadName='figma-tokens-extract.json'; vState.lines=[]; vState.height=0; virt.virtual.style.height='0px'; virt.slice.innerHTML=''; virt.scroll.scrollTop=0; if (full && full.pre) full.pre.hidden=true; document.getElementById('virt').hidden=false; setStatus('Cleared'); setTimeout(()=>setStatus('Ready.'),800); refreshHeaderUI() }
       function openLinkModal(){
@@ -249,7 +284,7 @@ let pendingAction = ''
         if (unlinkBtn) unlinkBtn.style.display = isLinked() ? 'inline-block' : 'none'
         const close = () => { modal.style.display = 'none'; cancelBtn.onclick=null; submitBtn.onclick=null; if (unlinkBtn) unlinkBtn.onclick=null }
         cancelBtn.onclick = () => { close(); setStatus('Ready.') }
-        if (unlinkBtn) unlinkBtn.onclick = () => { clearCreds(); try { parent.postMessage({ pluginMessage: { type: 'clearCreds' } }, '*') } catch(_) {} ; refreshHeaderUI(); setStatus('Unlinked'); close(); setTimeout(()=>setStatus('Ready.'), 1000) }
+         if (unlinkBtn) unlinkBtn.onclick = () => { clearCreds(); try { parent.postMessage({ pluginMessage: { type: 'clearCreds' } }, '*') } catch(_) {} ; refreshHeaderUI(); try { refreshLinkUI() } catch(_) {}; try { refreshDiagnosticsUI() } catch(_) {}; setStatus('Unlinked'); close(); setTimeout(()=>setStatus('Ready.'), 1000) }
         submitBtn.onclick = async () => {
           let base = String(baseInput.value || '').trim() || getBase()
           const code = String(codeInput.value || '').trim()
@@ -263,7 +298,7 @@ let pendingAction = ''
             const creds = { installationId: data.installationId, token: data.token }
             setCreds(creds)
             try { parent.postMessage({ pluginMessage: { type: 'setCreds', payload: creds } }, '*') } catch(_) {}
-            refreshLinkUI(); refreshHeaderUI()
+            refreshLinkUI(); refreshHeaderUI(); try { refreshDiagnosticsUI() } catch(_) {}
             setStatus('Linked ✔')
             close(); setTimeout(() => setStatus('Ready.'), 1200)
           } catch (e) { setStatus('Link failed'); setTimeout(() => setStatus('Ready.'), 1200) }
@@ -273,9 +308,27 @@ let pendingAction = ''
       const DEBUG = true
       function log(){ try { if (DEBUG) console.log('[UI]', ...arguments) } catch(_) {} }
        log('bootstrap: DOM ready')
+       // Mitigate Figma-injected onmessage document.write errors in sandboxed UI
+       try {
+         // Swallow specific document.write onmessage handler if present
+         if (typeof window.onmessage === 'function') {
+           const src = Function.prototype.toString.call(window.onmessage || function(){})
+           if (src && /document\.write\(/.test(src)) {
+             window.onmessage = function(_) { /* neutralized */ }
+           }
+         }
+         window.addEventListener('error', function(e){
+           if (e && /Failed to execute 'write' on 'Document'/.test(String(e.message||''))) {
+             try { e.preventDefault() } catch(_) {}
+             return false
+           }
+         }, true)
+       } catch (_) {}
+
        try { refreshHeaderUI() } catch(_) {}
        try { parent.postMessage({ pluginMessage: { type: 'getCreds' } }, '*') } catch(_) {}
        try { parent.postMessage({ pluginMessage: { type: 'getBase' } }, '*') } catch(_) {}
+       try { parent.postMessage({ pluginMessage: { type: 'ping' } }, '*') } catch(_) {}
 
  
       // Virtualization elements
@@ -774,11 +827,15 @@ let pendingAction = ''
       // Header buttons
       {
         const extractBtn = document.getElementById('extract')
-        if (extractBtn) extractBtn.onclick = () => { log('click: extract'); setStatus('Extracting…'); pendingAction=''; parent.postMessage({ pluginMessage: { type: 'extract' } }, '*') }
+        if (extractBtn) extractBtn.onclick = () => { log('click: extract'); setStatus('Extracting…'); pendingAction=''; try { refreshDiagnosticsUI() } catch(_) {} ; parent.postMessage({ pluginMessage: { type: 'extract' } }, '*') }
         const copyBtn = document.getElementById('copy')
         if (copyBtn) copyBtn.onclick = async () => { const text = viewKind==='text'? lastTextStr : lastJsonStr; if (!text) { setStatus('Nothing to copy'); return } const ok = await copyText(text); setStatus(ok? 'Copied to clipboard':'Copy failed'); if (ok) setTimeout(()=>setStatus('Ready.'), 1200) }
         const exportBtn = document.getElementById('export')
         if (exportBtn) exportBtn.onclick = () => { openExportModal() }
+        const linkBtn = document.getElementById('link')
+        if (linkBtn) linkBtn.onclick = () => { openLinkModal() }
+        const diagToggle = document.getElementById('diag-toggle')
+        if (diagToggle) diagToggle.onclick = () => { const d=document.getElementById('diag'); if (!d) return; d.style.display = (d.style.display||'none')==='none' ? 'block' : 'none'; try { refreshDiagnosticsUI() } catch(_) {} }
       }
 
 
@@ -1135,52 +1192,70 @@ let pendingAction = ''
         if (el) el.onclick = () => { log('click: close'); parent.postMessage({ pluginMessage: { type: 'close' } }, '*') }
       }
 
-      // Message handler from plugin code
-      window.addEventListener('message', async (event) => {
-        log('onmessage', { hasData: !!event?.data, keys: event?.data? Object.keys(event.data).slice(0,6): [] })
-        const msg = event.data && event.data.pluginMessage
-        if (!msg) return
-        if (msg.type === 'extracted') {
-          log('message: extracted', { payloadKeys: msg?.payload? Object.keys(msg.payload).slice(0,6): [] })
-          mountVirtualFromPayload(msg.payload, 'Extraction output (JSON)')
-          refreshHeaderUI()
-          if (pendingAction === 'export_tailwind') {
-            try { lastIR = Transformer.resolveAliases(Transformer.buildIR(msg.payload)); const cfg = Transformer.generateTailwindConfig(lastIR); mountVirtualFromText(cfg, 'tailwind.tokens.config.js', 'js', 'Tailwind Tokens Config'); lastTextStr = cfg; downloadName = 'tailwind.tokens.config.js'; setStatus('Tailwind config ready') } catch (e){ setStatus('Config failed') }
-          } else if (pendingAction === 'export_css') {
-            try { lastIR = Transformer.resolveAliases(Transformer.buildIR(msg.payload)); const css = Transformer.buildCssFromIR(lastIR); mountVirtualFromText(css, 'tokens.css', 'css', 'Tokens CSS'); lastTextStr = css; downloadName = 'tokens.css'; setStatus('Tokens CSS ready') } catch (e){ setStatus('CSS failed') }
-          } else if (pendingAction === 'export_all') {
-            try { const creds = getCreds(); const base = getBase(); const outDir = LS.getItem('export.outdir') || 'public/snippets'; const res = await fetch(base.replace(/\/$/, '') + '/api/codesync/export/write', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Installation-Id': creds.installationId, 'X-Access-Token': creds.token }, body: JSON.stringify({ outDir, payload: msg.payload }) }); const data = await res.json().catch(()=>null); if (!res.ok) throw new Error(data?.error || 'export_failed'); setStatus('Exported to ' + (data?.dest || outDir)) } catch (e){ setStatus('Export failed') }
-          } else if (pendingAction === 'export_all_local') {
-            try {
-              const ir = Transformer.resolveAliases(Transformer.buildIR(msg.payload))
-              const outputs = [
-                { name: 'design-tokens.json', text: JSON.stringify(Transformer.toDesignTokens(ir), null, 2) },
-                { name: 'tokens.flat.json', text: JSON.stringify(Transformer.toFlatTokens(ir), null, 2) },
-                { name: 'tokens.css', text: Transformer.buildCssFromIR(ir) },
-                { name: 'shadcn.css', text: Transformer.buildShadcnCss(ir) },
-                { name: 'tailwind.tokens.config.js', text: Transformer.generateTailwindConfig(ir) }
-              ]
-              let okCount = 0, idx = 0
-              const tick = () => {
-                if (idx >= outputs.length) { setStatus('Downloaded ' + okCount + ' files'); return }
-                const f = outputs[idx++]
-                const ok = downloadText(f.name, f.text)
-                if (ok) okCount++
-                setTimeout(tick, 120)
-              }
-              setStatus('Preparing downloads…')
-              tick()
-            } catch (e) { setStatus('Export failed') }
-          } else {
-            setStatus('Extraction complete')
+      // Message handler from plugin code (safe, capture-friendly)
+      window.__handlePluginMessage = async function(msg){
+        try {
+          if (!msg) return
+          if (msg.type === 'extracted') {
+            log('message: extracted', { payloadKeys: msg?.payload? Object.keys(msg.payload).slice(0,6): [] })
+            mountVirtualFromPayload(msg.payload, 'Extraction output (JSON)')
+            refreshHeaderUI()
+            if (pendingAction === 'export_tailwind') {
+              try { lastIR = Transformer.resolveAliases(Transformer.buildIR(msg.payload)); const cfg = Transformer.generateTailwindConfig(lastIR); mountVirtualFromText(cfg, 'tailwind.tokens.config.js', 'js', 'Tailwind Tokens Config'); lastTextStr = cfg; downloadName = 'tailwind.tokens.config.js'; setStatus('Tailwind config ready') } catch (e){ setStatus('Config failed') }
+            } else if (pendingAction === 'export_css') {
+              try { lastIR = Transformer.resolveAliases(Transformer.buildIR(msg.payload)); const css = Transformer.buildCssFromIR(lastIR); mountVirtualFromText(css, 'tokens.css', 'css', 'Tokens CSS'); lastTextStr = css; downloadName = 'tokens.css'; setStatus('Tokens CSS ready') } catch (e){ setStatus('CSS failed') }
+            } else if (pendingAction === 'export_all') {
+              try { const creds = getCreds(); const base = getBase(); const outDir = LS.getItem('export.outdir') || 'public/snippets'; const res = await fetch(base.replace(/\/$/, '') + '/api/codesync/export/write', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Installation-Id': creds.installationId, 'X-Access-Token': creds.token }, body: JSON.stringify({ outDir, payload: msg.payload }) }); const data = await res.json().catch(()=>null); if (!res.ok) throw new Error(data?.error || 'export_failed'); setStatus('Exported to ' + (data?.dest || outDir)) } catch (e){ setStatus('Export failed') }
+            } else if (pendingAction === 'export_all_local') {
+              try {
+                const ir = Transformer.resolveAliases(Transformer.buildIR(msg.payload))
+                const outputs = [
+                  { name: 'design-tokens.json', text: JSON.stringify(Transformer.toDesignTokens(ir), null, 2) },
+                  { name: 'tokens.flat.json', text: JSON.stringify(Transformer.toFlatTokens(ir), null, 2) },
+                  { name: 'tokens.css', text: Transformer.buildCssFromIR(ir) },
+                  { name: 'shadcn.css', text: Transformer.buildShadcnCss(ir) },
+                  { name: 'tailwind.tokens.config.js', text: Transformer.generateTailwindConfig(ir) }
+                ]
+                let okCount = 0, idx = 0
+                const tick = () => {
+                  if (idx >= outputs.length) { setStatus('Downloaded ' + okCount + ' files'); return }
+                  const f = outputs[idx++]
+                  const ok = downloadText(f.name, f.text)
+                  if (ok) okCount++
+                  setTimeout(tick, 120)
+                }
+                setStatus('Preparing downloads…')
+                tick()
+              } catch (e) { setStatus('Export failed') }
+            } else {
+              setStatus('Extraction complete')
+            }
+            pendingAction = ''
+          } else if (msg.type === 'creds') {
+            if (msg.payload && typeof msg.payload === 'object') setCreds(msg.payload); else clearCreds(); refreshHeaderUI(); try { refreshLinkUI() } catch(_) {}; try { refreshDiagnosticsUI() } catch(_) {}; log('message: creds sync', { has: !!msg.payload })
+          } else if (msg.type === 'pong') {
+            log('message: pong (message loop OK)')
+            setStatus('UI ↔ Code link OK')
+            setTimeout(()=>setStatus('Ready.'),1000)
+          } else if (msg.type === 'base') {
+            if (typeof msg.payload === 'string' && msg.payload) setBase(msg.payload); try { refreshDiagnosticsUI() } catch(_) {}; log('message: base sync', { base: getBase() })
           }
-          pendingAction = ''
-        } else if (msg.type === 'creds') {
-          if (msg.payload && typeof msg.payload === 'object') setCreds(msg.payload); else clearCreds(); refreshHeaderUI(); log('message: creds sync', { has: !!msg.payload })
-        } else if (msg.type === 'base') {
-          if (typeof msg.payload === 'string' && msg.payload) setBase(msg.payload); log('message: base sync', { base: getBase() })
-        }
+        } catch (e) { /* swallow */ }
+      }
+
+      // Capture fallback already forwards to __handlePluginMessage; keep bubble as backup
+      window.addEventListener('message', (event) => {
+        const msg = event.data && event.data.pluginMessage
+        if (!msg) { log('message: (no pluginMessage)'); return }
+        window.__handlePluginMessage && window.__handlePluginMessage(msg)
       })
+
+      // Drain any captured messages queued before handler was ready
+      try {
+        if (Array.isArray(window.__pendingPluginMessages) && window.__pendingPluginMessages.length) {
+          window.__pendingPluginMessages.splice(0).forEach(m => { try { window.__handlePluginMessage && window.__handlePluginMessage(m) } catch(_) {} })
+        }
+      } catch (_) {}
 
     </script>
   </body>
