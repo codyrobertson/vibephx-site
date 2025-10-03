@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { CheckIcon, MagicWandIcon, ComponentInstanceIcon, TableIcon, GlobeIcon, LightningBoltIcon, ReloadIcon } from '@radix-ui/react-icons'
-import { Card, CardIcon, CardBadge, CardHeader, CardTitle, CardDescription, CardMeta } from '@/components/ui/Card'
+import { Card,   CardHeader, CardTitle, CardDescription } from '@/components/ui/Card'
 import BrandLogo from '../ui/BrandLogo'
 import { getRelevantStackOptions, getAIRecommendation, getAIStackSuggestions, TEMPLATE_STACK_MAPPINGS, type StackItem } from '@/lib/stackDatabase'
 import type { ProjectData } from './BuilderWizard'
@@ -628,11 +628,11 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
                 return (
                   <Card
                     key={tech.id}
-                    background="code"
-                    overlay="code"
-                    state={cardState}
-                    interactive="clickable"
-                    size="md"
+                   
+                   
+
+                   
+                   
                     onClick={() => selectTech(category as keyof typeof techStacks, tech.id)}
                     role="button"
                     tabIndex={0}
@@ -646,7 +646,7 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
                           fallbackIcon={tech.fallbackIcon}
                           className="w-6 h-6"
                         />
-                        <CardTitle size="base">{tech.name}</CardTitle>
+                        <CardTitle>{tech.name}</CardTitle>
                       </div>
                       
                       <div className="flex flex-col gap-1">
@@ -656,11 +656,6 @@ export default function SoftwareStackPicker({ projectData, updateProjectData }: 
                             {isAITemplate(projectData.template) ? '🎯 AI Pick' : '⭐ Recommended'}
                           </span>
                         )}
-                        <CardBadge
-                          variant={tech.difficulty === 'Beginner' ? 'success' : 'warning'}
-                        >
-                          {tech.difficulty}
-                        </CardBadge>
                       </div>
                     </CardHeader>
                     

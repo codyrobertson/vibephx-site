@@ -24,7 +24,7 @@ export default function AuthPageWrapper({ children }: AuthPageWrapperProps) {
     // Loading state
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <Card className="border-gray-800 bg-gray-900/50" size="lg">
+        <Card className="border-gray-800 bg-gray-900/50">
           <div className="text-center p-8">
             <div className="w-12 h-12 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">Loading...</h3>
@@ -39,7 +39,7 @@ export default function AuthPageWrapper({ children }: AuthPageWrapperProps) {
     // User is signed in, will redirect via useEffect
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <Card className="border-green-800/30 bg-green-950/20" size="lg">
+        <Card className="border-green-800/30 bg-green-950/20">
           <div className="text-center p-8">
             <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">✓</span>

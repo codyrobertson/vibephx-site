@@ -12,7 +12,7 @@ export default function ProjectDashboard() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[...Array(6)].map((_, i) => (
-          <Card key={i} className="border-gray-800 bg-gray-900/50" size="lg">
+          <Card key={i} className="border-gray-800 bg-gray-900/50">
             <div className="animate-pulse">
               <div className="h-4 bg-gray-700 rounded mb-3"></div>
               <div className="h-3 bg-gray-700 rounded mb-2"></div>
@@ -26,7 +26,7 @@ export default function ProjectDashboard() {
 
   if (error) {
     return (
-      <Card className="border-red-800/30 bg-red-950/20" size="lg">
+      <Card className="border-red-800/30 bg-red-950/20">
         <div className="text-center p-8">
           <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-black text-xl">⚠️</span>
@@ -84,7 +84,7 @@ export default function ProjectDashboard() {
       </div>
 
       {projects.length === 0 ? (
-        <Card className="border-gray-800 bg-gray-900/50" size="lg">
+        <Card className="border-gray-800 bg-gray-900/50">
           <div className="text-center p-12">
             <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
               <RocketIcon className="w-12 h-12 text-gray-400" />
@@ -108,7 +108,7 @@ export default function ProjectDashboard() {
             <Card
               key={project.id}
               className="border-gray-800 bg-gray-900/50 hover:border-orange-500/50 hover:bg-gray-800/50 transition-all duration-200"
-              size="lg"
+             
             >
               <div className="space-y-4">
                 <div className="flex items-start justify-between">

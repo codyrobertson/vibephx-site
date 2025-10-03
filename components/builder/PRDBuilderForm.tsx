@@ -241,7 +241,7 @@ function Step1Basics({ formData, updateField }: any) {
 
       <div className="space-y-2">
         <Label htmlFor="projectType">Project Type</Label>
-        <Select
+        <select
           id="projectType"
           value={formData.projectType || ''}
           onChange={e => updateField('projectType', e.target.value)}
@@ -250,7 +250,7 @@ function Step1Basics({ formData, updateField }: any) {
           {PROJECT_TYPES.map(type => (
             <option key={type} value={type}>{type}</option>
           ))}
-        </Select>
+        </select>
       </div>
 
       <div className="space-y-2">
@@ -326,7 +326,7 @@ function Step2Purpose({ formData, updateField, getAISuggestion, aiLoading }: any
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label>Project Goals (at least 3)</Label>
-          <Button size="sm" variant="outline" onClick={addGoal}>
+          <Button variant="outline" onClick={addGoal}>
             <PlusIcon className="w-4 h-4 mr-1" /> Add Goal
           </Button>
         </div>
@@ -339,7 +339,7 @@ function Step2Purpose({ formData, updateField, getAISuggestion, aiLoading }: any
             />
             {localGoals.length > 1 && (
               <Button
-                size="sm"
+               
                 variant="ghost"
                 onClick={() => removeGoal(index)}
               >
@@ -498,7 +498,7 @@ function Step3Data({ formData, updateField }: any) {
                 </span>
               ))}
             </div>
-            <Button size="sm" onClick={suggestDataSources}>
+            <Button onClick={suggestDataSources}>
               Apply AI Suggestions
             </Button>
           </div>
@@ -564,7 +564,7 @@ function Step3Data({ formData, updateField }: any) {
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Storage</Label>
-                      <Select
+                      <select
                         value={dataDetails[source]?.storage || ''}
                         onChange={e => updateDataDetail(source, 'storage', e.target.value)}
                       >
@@ -572,7 +572,7 @@ function Step3Data({ formData, updateField }: any) {
                         {STORAGE_OPTIONS.map(option => (
                           <option key={option} value={option}>{option}</option>
                         ))}
-                      </Select>
+                      </select>
                     </div>
                   </div>
                 </Card>
@@ -633,7 +633,7 @@ function Step4Features({ formData, updateField }: any) {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label>Core Features (Must Have)</Label>
-          <Button size="sm" variant="outline" onClick={addCoreFeature}>
+          <Button variant="outline" onClick={addCoreFeature}>
             <PlusIcon className="w-4 h-4 mr-1" /> Add Feature
           </Button>
         </div>
@@ -651,18 +651,18 @@ function Step4Features({ formData, updateField }: any) {
                 </div>
                 <div className="w-32 space-y-1">
                   <Label className="text-xs">Priority</Label>
-                  <Select
+                  <select
                     value={feature.priority}
                     onChange={e => updateCoreFeature(index, 'priority', parseInt(e.target.value))}
                   >
                     <option value={1}>1 (High)</option>
                     <option value={2}>2 (Med)</option>
                     <option value={3}>3 (Low)</option>
-                  </Select>
+                  </select>
                 </div>
                 {coreFeatures.length > 1 && (
                   <Button
-                    size="sm"
+                   
                     variant="ghost"
                     onClick={() => removeCoreFeature(index)}
                     className="mt-auto"
@@ -687,7 +687,7 @@ function Step4Features({ formData, updateField }: any) {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label>Nice-to-Have Features (Optional)</Label>
-          <Button size="sm" variant="outline" onClick={addNiceToHave}>
+          <Button variant="outline" onClick={addNiceToHave}>
             <PlusIcon className="w-4 h-4 mr-1" /> Add Feature
           </Button>
         </div>
@@ -706,7 +706,7 @@ function Step4Features({ formData, updateField }: any) {
               className="flex-1"
             />
             <Button
-              size="sm"
+             
               variant="ghost"
               onClick={() => removeNiceToHave(index)}
             >
@@ -731,7 +731,7 @@ function Step5TechStack({ formData, updateField }: any) {
 
       <div className="space-y-2">
         <Label htmlFor="frontend">Frontend Framework</Label>
-        <Select
+        <select
           id="frontend"
           value={formData.frontend || ''}
           onChange={e => updateField('frontend', e.target.value)}
@@ -740,12 +740,12 @@ function Step5TechStack({ formData, updateField }: any) {
           {TECH_STACKS.frontend.map(tech => (
             <option key={tech} value={tech}>{tech}</option>
           ))}
-        </Select>
+        </select>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="backend">Backend / API</Label>
-        <Select
+        <select
           id="backend"
           value={formData.backend || ''}
           onChange={e => updateField('backend', e.target.value)}
@@ -754,12 +754,12 @@ function Step5TechStack({ formData, updateField }: any) {
           {TECH_STACKS.backend.map(tech => (
             <option key={tech} value={tech}>{tech}</option>
           ))}
-        </Select>
+        </select>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="database">Database</Label>
-        <Select
+        <select
           id="database"
           value={formData.database || ''}
           onChange={e => updateField('database', e.target.value)}
@@ -768,12 +768,12 @@ function Step5TechStack({ formData, updateField }: any) {
           {TECH_STACKS.database.map(tech => (
             <option key={tech} value={tech}>{tech}</option>
           ))}
-        </Select>
+        </select>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="deployment">Deployment Platform</Label>
-        <Select
+        <select
           id="deployment"
           value={formData.deployment || ''}
           onChange={e => updateField('deployment', e.target.value)}
@@ -782,7 +782,7 @@ function Step5TechStack({ formData, updateField }: any) {
           {TECH_STACKS.deployment.map(tech => (
             <option key={tech} value={tech}>{tech}</option>
           ))}
-        </Select>
+        </select>
       </div>
     </div>
   )

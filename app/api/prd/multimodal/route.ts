@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
               image_url: { url: img }
             })),
             { type: 'text', text: message || 'What do you see in these images?' }
-          ]
+          ] as any
         }],
         purpose: 'vision_analysis',
         userId: user.id,

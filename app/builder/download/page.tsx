@@ -178,7 +178,7 @@ Happy building! 🚀
           </div>
 
           {/* Project Summary */}
-          <Card className="mb-8 border-green-800/30 bg-green-950/10" size="lg">
+          <Card className="mb-8 border-green-800/30 bg-green-950/10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h3 className="text-lg font-semibold text-white mb-4">Project Configuration</h3>
@@ -233,7 +233,7 @@ Happy building! 🚀
               const content = projectData.generated?.[docType] || ''
               
               return (
-                <Card key={docType} className="border-gray-700" size="sm">
+                <Card key={docType} className="border-gray-700">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
                       <IconComponent className="w-5 h-5 text-black" />
@@ -254,7 +254,7 @@ Happy building! 🚀
           </div>
 
           {/* Download Section */}
-          <Card className="text-center border-blue-800/30 bg-blue-950/10" size="lg">
+          <Card className="text-center border-blue-800/30 bg-blue-950/10">
             <div className="mb-6">
               <DownloadIcon className="w-16 h-16 text-blue-400 mx-auto mb-4" />
               <h3 className="text-2xl font-bold text-white mb-2">Download Your Project</h3>

@@ -74,12 +74,12 @@ const Timeline3 = ({
               {description}
             </p>
             <div className="mt-8 flex flex-col gap-4 lg:flex-row">
-              <Button variant="primary" size="lg" className="gap-2" asChild>
+              <Button variant="default" className="gap-2" asChild>
                 <a href={buttons.primary.url} target="_blank" rel="noopener noreferrer">
                   {buttons.primary.text}
                 </a>
               </Button>
-              <Button variant="outline" size="lg" className="gap-2" asChild>
+              <Button variant="outline" className="gap-2" asChild>
                 <a href={buttons.secondary.url}>{buttons.secondary.text}</a>
               </Button>
             </div>

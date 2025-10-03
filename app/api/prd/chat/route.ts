@@ -61,8 +61,7 @@ Be conversational, friendly, and guide the user through creating their PRD.`,
     //     parameters: suggestStackSchema,
     //     execute: async (params) => params
     //   })
-    // },
-    maxTokens: 1000
+    // }
   })
 
   console.log('[SERVER] Returning UI message stream response with originalMessages')

@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { Button } from '@/components/ui/button'
 import { usePRDStore } from '@/lib/stores/usePRDStore'
+import { Artifact } from '@/components/ai-elements/artifact'
+import { OpenInChat } from '@/components/ai-elements/open-in-chat'
 
 async function streamPRD(prompt: string, onChunk: (text: string) => void): Promise<void> {
   const res = await fetch('/api/prd/inference', {
@@ -123,8 +125,6 @@ Ensure proper spacing between sections, use bullet lists for readability, and ke
     try {
       await streamPRD(prompt, (text) => setMarkdown(text))
       setHasGenerated(true)
-      // Auto-finish after generation completes
-      setTimeout(() => handleFinish(), 500)
     } finally {
       setIsGenerating(false)
     }
@@ -142,61 +142,39 @@ Ensure proper spacing between sections, use bullet lists for readability, and ke
             {isGenerating ? 'Generating…' : 'Generate PRD'}
           </Button>
         )}
-        <Button variant="outline" onClick={() => navigator.clipboard.writeText(markdown)} disabled={!markdown}>Copy</Button>
-        <Button
-          variant="outline"
-          onClick={() => {
-            const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' })
-            const url = URL.createObjectURL(blob)
-            const a = document.createElement('a')
-            a.href = url
-            a.download = 'mvp-prd.md'
-            a.click()
-            URL.revokeObjectURL(url)
-          }}
-          disabled={!markdown}
-        >
-          Download
-        </Button>
         <Button variant="outline" onClick={handleFinish} disabled={!markdown}>Finish</Button>
       </div>
-      <div className="rounded-lg border border-gray-800 bg-black p-6 text-sm overflow-y-auto max-h-[60vh] prose prose-invert max-w-none">
-        {markdown ? (
-          <ReactMarkdown
-            components={{
-              h1: ({node, ...props}) => <h1 className="text-2xl font-bold text-white mb-4 mt-6 border-b border-gray-800 pb-2" {...props} />,
-              h2: ({node, ...props}) => <h2 className="text-xl font-semibold text-white mb-3 mt-6" {...props} />,
-              h3: ({node, ...props}) => <h3 className="text-lg font-medium text-white mb-2 mt-4" {...props} />,
-              p: ({node, ...props}) => <p className="text-gray-300 mb-4 leading-relaxed" {...props} />,
-              ul: ({node, ...props}) => <ul className="list-disc list-inside text-gray-300 mb-4 space-y-1.5" {...props} />,
-              ol: ({node, ...props}) => <ol className="list-decimal list-inside text-gray-300 mb-4 space-y-1.5" {...props} />,
-              li: ({node, ...props}) => <li className="text-gray-300 ml-2" {...props} />,
-              code: ({node, inline, className, children, ...props}: any) => {
-                if (inline) {
-                  return <code className="bg-gray-800 text-orange-400 px-1.5 py-0.5 rounded text-xs font-mono" {...props}>{children}</code>
-                }
-                return (
-                  <div className="my-4 rounded-lg overflow-hidden border border-gray-800">
-                    <div className="bg-gray-800 px-3 py-1 text-xs text-gray-400 font-mono">
-                      {className?.replace('language-', '') || 'code'}
-                    </div>
-                    <pre className="bg-gray-950 p-4 overflow-x-auto m-0">
-                      <code className="text-white font-mono text-xs leading-relaxed" {...props}>{children}</code>
-                    </pre>
-                  </div>
-                )
-              },
-              pre: ({node, ...props}) => <div {...props} />,
-              hr: ({node, ...props}) => <hr className="border-gray-800 my-6" {...props} />,
-              strong: ({node, ...props}) => <strong className="text-white font-semibold" {...props} />
-            }}
-          >
-            {markdown}
-          </ReactMarkdown>
-        ) : (
-          <div className="text-gray-500">Click "Generate PRD" to stream the document here.</div>
-        )}
-      </div>
+
+      {markdown ? (
+        <Artifact
+          title={sda || 'Product Requirements Document'}
+          type="prd"
+          content={markdown}
+          actions={
+            <>
+              <OpenInChat content={markdown} platform="v0" />
+              <button
+                onClick={() => {
+                  const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' })
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = `${sda?.toLowerCase().replace(/\s+/g, '-') || 'prd'}.md`
+                  a.click()
+                  URL.revokeObjectURL(url)
+                }}
+                className="text-xs text-gray-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-gray-700/50"
+              >
+                Download
+              </button>
+            </>
+          }
+        />
+      ) : (
+        <div className="rounded-lg border border-gray-700 bg-gray-900/50 p-8 text-center">
+          <div className="text-gray-500">Click "Generate PRD" to create your document.</div>
+        </div>
+      )}
     </div>
   )
 }

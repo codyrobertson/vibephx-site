@@ -6,6 +6,9 @@ import { useStreamingChat } from '@/hooks/useStreamingChat'
 import { Conversation, ConversationContent, ConversationEmptyState } from '@/components/ai-elements/conversation'
 import { Message, MessageContent, MessageAvatar } from '@/components/ai-elements/message'
 import { Response } from '@/components/ai-elements/response'
+import { Artifact } from '@/components/ai-elements/artifact'
+import { OpenInChat } from '@/components/ai-elements/open-in-chat'
+import { ContextMeter } from '@/components/ai-elements/context-meter'
 import { Button } from '@/components/ui/button'
 import { PaperPlaneIcon, MagicWandIcon } from '@radix-ui/react-icons'
 import { usePRDStore } from '@/lib/stores/usePRDStore'
@@ -19,20 +22,40 @@ import { OutputsPhase } from './phases/OutputsPhase'
 
 type Phase = 'intro' | 'audience' | 'confirmIdea' | 'features' | 'providers' | 'stack' | 'integrations' | 'summary' | 'outputs' | 'final'
 
-function PRDMessage({ message, isPRDArtifact, shouldAutoCollapse }: { 
+function PRDMessage({ message, isPRDArtifact, shouldAutoCollapse }: {
   message: { id: string; role: 'user' | 'assistant'; content: string; images?: string[] }
   isPRDArtifact: boolean
   shouldAutoCollapse: boolean
 }) {
   const [isCollapsed, setIsCollapsed] = useState(shouldAutoCollapse)
-  
+
   useEffect(() => {
-    if (shouldAutoCollapse) setIsCollapsed(true)
+    setIsCollapsed(shouldAutoCollapse)
   }, [shouldAutoCollapse])
-  
+
+  // Extract PRD content from message
+  const prdContent = isPRDArtifact ? message.content.replace(/✅ \*\*PRD Generated\*\*\n\n/, '') : ''
+
   return (
     <div className="group">
-      <Message from={message.role}>
+      {isPRDArtifact ? (
+        <Message from={message.role}>
+          <MessageAvatar name="AI" className="bg-black border-2 border-gray-700 text-gray-400" />
+          <MessageContent>
+            <Artifact
+              title="Product Requirements Document"
+              type="prd"
+              content={prdContent}
+              actions={
+                <>
+                  <OpenInChat content={prdContent} platform="v0" />
+                </>
+              }
+            />
+          </MessageContent>
+        </Message>
+      ) : (
+        <Message from={message.role}>
         {message.role === 'assistant' && <MessageAvatar name="AI" className="bg-black border-2 border-gray-700 text-gray-400" />}
         <MessageContent
           variant="contained"
@@ -48,53 +71,18 @@ function PRDMessage({ message, isPRDArtifact, shouldAutoCollapse }: {
               ))}
             </div>
           )}
-          {isPRDArtifact && isCollapsed ? (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">✅ PRD Generated</span>
-                <button
-                  onClick={() => setIsCollapsed(false)}
-                  className="text-xs text-orange-400 hover:text-orange-300"
-                >
-                  Expand PRD
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              {isPRDArtifact && !isCollapsed && (
-                <button
-                  onClick={() => setIsCollapsed(true)}
-                  className="text-xs text-orange-400 hover:text-orange-300 mb-2"
-                >
-                  Collapse PRD
-                </button>
-              )}
-              <Response>{message.content}</Response>
-            </>
-          )}
+          <Response>{message.content}</Response>
         </MessageContent>
       </Message>
-      {/* Hover actions: icon row below message */}
-      <div className={`flex gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity ${message.role === 'user' ? 'justify-end' : 'justify-start ml-10'}`}>
-        <button
-          onClick={() => navigator.clipboard.writeText(message.content)}
-          className="p-1.5 bg-gray-900 border border-gray-800 rounded hover:bg-gray-800 hover:border-gray-700 transition-colors"
-          title="Copy"
-        >
-          <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-        </button>
-      </div>
+      )}
     </div>
   )
 }
 
 export default function ConversationalPRDBuilder() {
   const { messages, send, status, error, setMessages } = useStreamingChat('/api/chat-plain')
-  
-  // Zustand store
+
+  // Zustand store - all state management
   const phase = usePRDStore(state => state.phase)
   const setPhase = usePRDStore(state => state.setPhase)
   const setInitialIntent = usePRDStore(state => state.setInitialIntent)
@@ -105,17 +93,22 @@ export default function ConversationalPRDBuilder() {
   const saveToDatabase = usePRDStore(state => state.saveToDatabase)
   const initialIntent = usePRDStore(state => state.initialIntent)
   const loadFromDatabase = usePRDStore(state => state.loadFromDatabase)
+  const loadProjectSuggestions = usePRDStore(state => state.loadProjectSuggestions)
   const storeMessages = usePRDStore(state => state.messages)
   const setStoreMessages = usePRDStore(state => state.setMessages)
   const sessionId = usePRDStore(state => state.sessionId)
+  const projectSuggestions = usePRDStore(state => state.projectSuggestions)
+  const shouldShowSuggestions = usePRDStore(state => state.shouldShowSuggestions())
+  const isFreshProject = usePRDStore(state => state.isFreshProject())
+  const setHasLoadedSession = usePRDStore(state => state.setHasLoadedSession)
 
-  // Local UI state
-  const [showInitialPrompt, setShowInitialPrompt] = useState(true)
+  // Local UI state (transient, not persisted)
   const [input, setInput] = useState('')
-  const [projectSuggestions, setProjectSuggestions] = useState<Array<{emoji: string; text: string}>>([])
   const [isChatStreaming, setIsChatStreaming] = useState(false)
   const [uploadedImages, setUploadedImages] = useState<Array<{id: string; url: string}>>([])
   const [currentTask, setCurrentTask] = useState<{type: 'search' | 'vision' | null; label: string} | null>(null)
+  const [isLoadingSession, setIsLoadingSession] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const endRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -131,11 +124,12 @@ export default function ConversationalPRDBuilder() {
     // Only run this effect on mount, not when searchParams updates from our own URL write
     if (hasLoadedOnMountRef.current) return
     hasLoadedOnMountRef.current = true
-    
+
     const sid = searchParams.get('session')
     if (!sid) {
-      // Fresh PRD: ensure suggestions are visible
-      setShowInitialPrompt(true)
+      // Fresh PRD: load suggestions
+      setHasLoadedSession(false)
+      loadProjectSuggestions()
       if (typeof window !== 'undefined') {
         try { localStorage.removeItem('last_prd_session') } catch {}
       }
@@ -145,25 +139,36 @@ export default function ConversationalPRDBuilder() {
     loadedSidRef.current = sid
     const seq = ++loadSeqRef.current
     isLoadingRef.current = true
+    setIsLoadingSession(true)
+    setLoadError(null)
     ;(async () => {
       try {
         await loadFromDatabase(sid)
         // Ignore if another load started since
         if (loadSeqRef.current !== seq) return
-        setShowInitialPrompt(false)
+        setIsLoadingSession(false)
       } catch (err) {
-        // If session doesn't exist (404), clear the URL and restart fresh
-        console.error('Failed to load session:', err)
-        if (typeof window !== 'undefined') {
-          window.history.replaceState({}, '', '/builder/prd-builder')
-          setShowInitialPrompt(true)
-        }
+        // If session doesn't exist (404), show error and allow retry
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load session'
+        console.error('Failed to load session:', errorMessage)
+        setLoadError(`Unable to load session: ${errorMessage}`)
+        setIsLoadingSession(false)
+
+        // Don't auto-redirect - let user see the error
+        setTimeout(() => {
+          if (typeof window !== 'undefined') {
+            window.history.replaceState({}, '', '/builder/prd-builder')
+            setHasLoadedSession(false)
+            setLoadError(null)
+            loadProjectSuggestions()
+          }
+        }, 3000)
       }
       finally {
         isLoadingRef.current = false
       }
     })()
-  }, [searchParams, loadFromDatabase])
+  }, [searchParams, loadFromDatabase, loadProjectSuggestions, setHasLoadedSession])
 
   // When we get a sessionId, persist it to URL and localStorage for reload continuity
   useEffect(() => {
@@ -178,58 +183,6 @@ export default function ConversationalPRDBuilder() {
       localStorage.setItem('last_prd_session', sessionId)
     } catch {}
   }, [sessionId])
-
-  // Load personalized project suggestions
-  useEffect(() => {
-    let cancelled = false
-    const CACHE_KEY = 'prd_project_suggestions_v1'
-    const SUGGESTIONS_TTL_MS = 12 * 60 * 60 * 1000 // 12 hours
-
-    const tryLoadFromCache = () => {
-      try {
-        const raw = localStorage.getItem(CACHE_KEY)
-        if (!raw) return false
-        const parsed = JSON.parse(raw)
-        if (!parsed?.ts || !Array.isArray(parsed?.data)) return false
-        if (Date.now() - parsed.ts > SUGGESTIONS_TTL_MS) return false
-        if (!cancelled) setProjectSuggestions(parsed.data)
-        return true
-      } catch {
-        return false
-      }
-    }
-
-    const loadSuggestions = async () => {
-      // Use cache first
-      if (tryLoadFromCache()) return
-      try {
-        const res = await fetch('/api/user/project-suggestions', { method: 'POST', cache: 'no-store' })
-        if (res.ok) {
-          const data = await res.json()
-          const suggestions = (data.suggestions || []).slice(0, 4)
-          if (!cancelled) setProjectSuggestions(suggestions)
-          try {
-            localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: suggestions }))
-          } catch {}
-        } else {
-          throw new Error('Failed')
-        }
-      } catch (err) {
-        const defaults = [
-          { emoji: '🧱', text: 'PRD generator for workshops' },
-          { emoji: '📋', text: 'Viral waitlist landing page' },
-          { emoji: '📊', text: 'CRM dashboard with sales tracking' },
-          { emoji: '📅', text: 'Booking system with calendar sync' }
-        ]
-        if (!cancelled) setProjectSuggestions(defaults)
-        try {
-          localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: defaults }))
-        } catch {}
-      }
-    }
-    loadSuggestions()
-    return () => { cancelled = true }
-  }, [])
 
   // Progress
   const phaseLabels: Record<Phase, string> = {
@@ -250,17 +203,7 @@ export default function ConversationalPRDBuilder() {
   // Auto-scroll
   useEffect(() => {
     setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100)
-  }, [messages.length, storeMessages.length, phase])
-
-  // Sync hook messages into persistent store so sessions can be resumed
-  useEffect(() => {
-    // Only sync when there are hook messages AND we're not in a resumed session
-    if (messages && messages.length > 0 && storeMessages.length === 0) {
-      try {
-        setStoreMessages(messages as any)
-      } catch {}
-    }
-  }, [messages, setStoreMessages, storeMessages.length])
+  }, [storeMessages.length, phase])
 
   // Debounced save wrapper (blocks while loading)
   const requestSave = () => {
@@ -290,7 +233,7 @@ export default function ConversationalPRDBuilder() {
       document.removeEventListener('visibilitychange', handler)
       window.removeEventListener('beforeunload', handler)
     }
-  }, [saveToDatabase])
+  }, [])
 
   // Realtime autosave every 5s once there is an idea and we're past intro
   useEffect(() => {
@@ -299,7 +242,7 @@ export default function ConversationalPRDBuilder() {
       requestSave()
     }, 5000)
     return () => clearInterval(id)
-  }, [initialIntent, phase, saveToDatabase])
+  }, [initialIntent, phase])
 
   // Save when store messages change (debounced) - watch the actual messages array
   useEffect(() => {
@@ -321,16 +264,10 @@ export default function ConversationalPRDBuilder() {
       // best-effort: update project status to COMPLETED
       ;(async () => {
         try {
-          const sid = (window.location.search.match(/session=([^&]+)/)?.[1]) || undefined
-          if (sid) {
-            const res = await fetch(`/api/prd/session?id=${sid}`)
-            if (res.ok) {
-              const data = await res.json()
-              const pid = data.session?.projectId
-              if (pid) {
-                fetch('/api/projects', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: pid, status: 'COMPLETED' }) }).catch(() => {})
-              }
-            }
+          const state = usePRDStore.getState()
+          const pid = state.projectId
+          if (pid) {
+            fetch('/api/projects', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: pid, status: 'COMPLETED' }) }).catch(() => {})
           }
         } catch {}
       })()
@@ -347,7 +284,7 @@ export default function ConversationalPRDBuilder() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim()) return
-    setShowInitialPrompt(false)
+    setHasLoadedSession(true)
 
     if (phase === 'intro') {
       const idea = input.trim()
@@ -479,7 +416,8 @@ export default function ConversationalPRDBuilder() {
   }
 
   const handleSuggestedPrompt = (prompt: string) => {
-    setShowInitialPrompt(false)
+    // Mark that we're no longer fresh (user has interacted)
+    setHasLoadedSession(true)
     if (phase === 'intro') {
       setInitialIntent(prompt)
       setSda(refineOneLiner(prompt))
@@ -506,6 +444,37 @@ export default function ConversationalPRDBuilder() {
       return true
     })
 
+  // Show loading state
+  if (isLoadingSession) {
+    return (
+      <div className="max-w-5xl mx-auto h-[calc(100vh-8rem)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <h2 className="text-2xl font-bold text-white mb-2">Loading your project...</h2>
+          <p className="text-gray-400">This should only take a moment</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (loadError) {
+    return (
+      <div className="max-w-5xl mx-auto h-[calc(100vh-8rem)] flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Session Not Found</h2>
+          <p className="text-gray-400 mb-6">{loadError}</p>
+          <p className="text-sm text-gray-500">Redirecting to fresh session...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-5xl mx-auto h-[calc(100vh-8rem)] flex flex-col">
       {/* Header */}
@@ -519,6 +488,11 @@ export default function ConversationalPRDBuilder() {
           </div>
           {phase !== 'intro' && hasAnyMessages && (
             <div className="flex items-center gap-4">
+              <ContextMeter
+                currentTokens={Math.min(storeMessages.length * 100, 128000)}
+                maxTokens={128000}
+                className="w-48"
+              />
               <div className="text-xs text-gray-400">{phaseLabels[phase]}</div>
               <div className="w-32 h-1 bg-gray-800 rounded-full overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-orange-500 to-orange-400 transition-all duration-500" style={{ width: `${progress}%` }} />
@@ -601,7 +575,7 @@ export default function ConversationalPRDBuilder() {
       </Conversation>
 
       {/* Quick-start cards */}
-      {showInitialPrompt && !hasAnyMessages && (
+      {shouldShowSuggestions && projectSuggestions.length > 0 && (
         <div className="mb-6 px-4">
           <p className="text-sm text-gray-400 mb-4 text-center">Quick start with these examples:</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

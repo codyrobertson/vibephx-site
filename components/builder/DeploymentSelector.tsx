@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { CheckIcon, GlobeIcon, RocketIcon, LightningBoltIcon } from '@radix-ui/react-icons'
-import { Card, CardIcon, CardBadge, CardHeader, CardTitle, CardDescription, CardMeta } from '@/components/ui/Card'
+import { Card,   CardHeader, CardTitle, CardDescription } from '@/components/ui/Card'
 import BrandLogo from '../ui/BrandLogo'
 import type { ProjectData } from './BuilderWizard'
 
@@ -245,11 +245,11 @@ export default function DeploymentSelector({ projectData, updateProjectData }: D
               )}
               
               <Card
-                background="code"
-                overlay="code"
-                state={cardState}
-                interactive="clickable"
-                size="lg"
+               
+               
+
+               
+               
                 onClick={() => {
                   console.log('Platform clicked:', platform.id)
                   selectPlatform(platform.id)
@@ -259,14 +259,6 @@ export default function DeploymentSelector({ projectData, updateProjectData }: D
                 className={`transition-all duration-200 ${cardClassName}`}
               >
                 <CardHeader>
-                  <CardIcon color="orange">
-                    <BrandLogo 
-                      src={platform.logo}
-                      alt={platform.name}
-                      fallbackIcon={platform.icon}
-                      className="w-full h-full"
-                    />
-                  </CardIcon>
                   
                   <div className="flex items-center gap-2">
                     {isSelected && (
@@ -274,16 +266,11 @@ export default function DeploymentSelector({ projectData, updateProjectData }: D
                         <CheckIcon className="w-4 h-4 text-black" />
                       </div>
                     )}
-                    <CardBadge
-                      variant={platform.difficulty === 'Beginner' ? 'success' : 'warning'}
-                    >
-                      {platform.difficulty}
-                    </CardBadge>
                   </div>
                 </CardHeader>
 
                 <div className="space-y-4">
-                  <CardTitle size="xl">{platform.name}</CardTitle>
+                  <CardTitle>{platform.name}</CardTitle>
                   <CardDescription>{platform.description}</CardDescription>
 
                   <div className="space-y-3">

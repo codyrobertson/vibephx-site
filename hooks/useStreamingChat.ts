@@ -15,7 +15,12 @@ export function useStreamingChat(api: string = '/api/chat-plain') {
     setError(null)
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: text }
     const aiMsg: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: '' }
-    setMessages((prev) => [...prev, userMsg, aiMsg])
+
+    let messagesToSend: ChatMessage[] = []
+    setMessages((prev) => {
+      messagesToSend = [...prev, userMsg]
+      return [...prev, userMsg, aiMsg]
+    })
 
     const controller = new AbortController()
     controllerRef.current = controller
@@ -25,7 +30,7 @@ export function useStreamingChat(api: string = '/api/chat-plain') {
       const res = await fetch(api, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: messages.concat(userMsg) }),
+        body: JSON.stringify({ messages: messagesToSend }),
         signal: controller.signal,
       })
 
@@ -43,12 +48,14 @@ export function useStreamingChat(api: string = '/api/chat-plain') {
         setMessages((prev) => prev.map((m) => (m.id === aiMsg.id ? { ...m, content: m.content + chunk } : m)))
       }
     } catch (err: any) {
-      setError(err instanceof Error ? err : new Error(String(err)))
+      if (err.name !== 'AbortError') {
+        setError(err instanceof Error ? err : new Error(String(err)))
+      }
     } finally {
       setStatus('ready')
       controllerRef.current = null
     }
-  }, [api, messages, status])
+  }, [api, status])
 
   const stop = useCallback(() => {
     controllerRef.current?.abort()

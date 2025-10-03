@@ -283,7 +283,7 @@ export default function GenerationProgressV2({ projectData, updateProjectData, o
                   'border-gray-800 bg-gray-900/50'
                 }
               `}
-              size="lg"
+             
             >
               {/* Card Header */}
               <div className="flex items-center gap-4 mb-4">
@@ -358,7 +358,7 @@ export default function GenerationProgressV2({ projectData, updateProjectData, o
 
       {/* Error State */}
       {error && (
-        <Card className="border-red-800/30 bg-red-950/20" size="lg">
+        <Card className="border-red-800/30 bg-red-950/20">
           <div className="text-center p-6">
             <p className="text-red-400 mb-4">{error}</p>
             <button
@@ -373,7 +373,7 @@ export default function GenerationProgressV2({ projectData, updateProjectData, o
 
       {/* Completion State */}
       {completedCount >= totalCount && !error && (
-        <Card className="border-green-800/30 bg-green-950/20" size="lg">
+        <Card className="border-green-800/30 bg-green-950/20">
           <div className="text-center p-8">
             <CheckIcon className="w-16 h-16 text-green-400 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-green-400 mb-2">Queue Processing Complete!</h3>

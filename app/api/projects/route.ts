@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     const projects = await prisma.project.findMany({
       where: {
-        user: { email: user.primaryEmail }
+        userId: user.id
       },
       orderBy: { updatedAt: 'desc' },
     })
@@ -98,6 +98,20 @@ export async function PATCH(request: NextRequest) {
         image: user.profileImageUrl || null,
       },
     })
+
+    // Verify ownership before updating
+    const existingProject = await prisma.project.findUnique({
+      where: { id },
+      select: { userId: true }
+    })
+
+    if (!existingProject) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+    }
+
+    if (existingProject.userId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     const project = await prisma.project.update({
       where: { id },

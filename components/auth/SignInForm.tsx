@@ -23,7 +23,7 @@ export default function SignInForm() {
   if (user) {
     // User is already signed in, redirect or show signed in state
     return (
-      <Card className="border-green-800/30 bg-green-950/20" size="lg">
+      <Card className="border-green-800/30 bg-green-950/20">
         <div className="text-center p-8">
           <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">✓</span>
@@ -44,7 +44,7 @@ export default function SignInForm() {
   }
 
   return (
-    <Card className="border-gray-800 bg-gray-900/50" size="lg">
+    <Card className="border-gray-800 bg-gray-900/50">
       <div className="p-8 space-y-6">
         <div className="text-center">
           <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">

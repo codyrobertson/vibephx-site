@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import type { UIMessage } from "ai";
 import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentProps, HTMLAttributes } from "react";
+import { AIAvatar } from "./ai-avatar";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
@@ -75,11 +76,18 @@ export const MessageAvatar = ({
   name,
   className,
   ...props
-}: MessageAvatarProps) => (
-  <Avatar className={cn("size-8 ring-1 ring-border", className)} {...props}>
-    {src ? (
-      <AvatarImage alt="" className="mt-0 mb-0" src={src} />
-    ) : null}
-    <AvatarFallback>{name?.slice(0, 2) || "AI"}</AvatarFallback>
-  </Avatar>
-);
+}: MessageAvatarProps) => {
+  // Use custom AI avatar for AI messages
+  if (name === 'AI' || (!src && !name)) {
+    return <AIAvatar size="md" className={className} {...props} />
+  }
+
+  return (
+    <Avatar className={cn("size-8 ring-1 ring-border", className)} {...props}>
+      {src ? (
+        <AvatarImage alt="" className="mt-0 mb-0" src={src} />
+      ) : null}
+      <AvatarFallback>{name?.slice(0, 2) || "AI"}</AvatarFallback>
+    </Avatar>
+  )
+};

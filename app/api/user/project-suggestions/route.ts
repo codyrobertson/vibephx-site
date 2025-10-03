@@ -6,11 +6,22 @@ import { callLLM } from '@/lib/inference-gate'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+// Server-side cache: userId -> { suggestions, timestamp }
+const suggestionsCache = new Map<string, { suggestions: any[], timestamp: number }>()
+const CACHE_TTL_MS = 12 * 60 * 60 * 1000 // 12 hours
+
 export async function POST(req: NextRequest) {
   try {
     const user = await stackServerApp.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Check server-side cache first
+    const cached = suggestionsCache.get(user.id)
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      console.log('[Suggestions] Returning cached suggestions for user:', user.id)
+      return NextResponse.json({ suggestions: cached.suggestions })
     }
 
     const profile = await prisma.userProfile.findUnique({
@@ -19,14 +30,15 @@ export async function POST(req: NextRequest) {
 
     if (!profile || !profile.onboardingCompleted) {
       // Return default suggestions
-      return NextResponse.json({
-        suggestions: [
-          { emoji: '🧱', text: 'PRD generator for workshops' },
-          { emoji: '📋', text: 'Viral waitlist landing page' },
-          { emoji: '📊', text: 'CRM dashboard with sales tracking' },
-          { emoji: '📅', text: 'Booking system with calendar sync' }
-        ]
-      })
+      const defaults = [
+        { emoji: '🧱', text: 'PRD generator for workshops' },
+        { emoji: '📋', text: 'Viral waitlist landing page' },
+        { emoji: '📊', text: 'CRM dashboard with sales tracking' },
+        { emoji: '📅', text: 'Booking system with calendar sync' }
+      ]
+      // Cache defaults too
+      suggestionsCache.set(user.id, { suggestions: defaults, timestamp: Date.now() })
+      return NextResponse.json({ suggestions: defaults })
     }
 
     // Generate personalized suggestions using AI (optimized for fast, 1‑day MVPs)
@@ -59,6 +71,7 @@ Output ONLY JSON array (no prose, no markdown):
   {"emoji": "⚡", "text": "Verb phrase idea under 8 words"}
 ]`
 
+    console.log('[Suggestions] Generating personalized suggestions for user:', user.id)
     const result = await callLLM({
       model: 'anthropic/claude-3.5-sonnet',
       provider: 'openrouter',
@@ -73,6 +86,9 @@ Output ONLY JSON array (no prose, no markdown):
     const jsonMatch = result.content.match(/\[[\s\S]*\]/)
     if (jsonMatch) {
       const suggestions = JSON.parse(jsonMatch[0])
+      // Cache the generated suggestions
+      suggestionsCache.set(user.id, { suggestions, timestamp: Date.now() })
+      console.log('[Suggestions] Cached new suggestions for user:', user.id)
       return NextResponse.json({ suggestions })
     }
 
@@ -85,6 +101,8 @@ Output ONLY JSON array (no prose, no markdown):
       { emoji: '📊', text: 'Simple analytics dashboard' },
       { emoji: '📅', text: 'Calendar booking MVP' }
     ]
+    // Cache fallback too
+    suggestionsCache.set(user.id, { suggestions: fallback, timestamp: Date.now() })
     return NextResponse.json({ suggestions: fallback })
 
   } catch (error: any) {

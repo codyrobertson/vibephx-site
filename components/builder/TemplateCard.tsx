@@ -2,16 +2,17 @@
 
 import React from 'react'
 import { RocketIcon, TargetIcon, MagicWandIcon } from '@radix-ui/react-icons'
-import { 
-  Card, 
-  CardIcon, 
-  CardBadge, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription, 
-  CardMeta, 
-  CardTags 
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardTags,
+  CardIcon,
+  CardBadge,
+  CardMeta
 } from '@/components/ui/Card'
+import { cn } from '@/lib/utils'
 
 export interface Template {
   id: string
@@ -35,11 +36,6 @@ export function TemplateCard({ template, selected, onSelect }: TemplateCardProps
   
   return (
     <Card
-      background="code"
-      overlay="code"
-      state={selected ? 'selected' : 'default'}
-      interactive="clickable"
-      size="lg"
       onClick={() => onSelect(template.id)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -49,7 +45,10 @@ export function TemplateCard({ template, selected, onSelect }: TemplateCardProps
       }}
       role="button"
       tabIndex={0}
-      className="group hover:border-orange-500/50 transition-all duration-200"
+      className={cn(
+        "group hover:border-orange-500/50 transition-all duration-200 cursor-pointer p-4",
+        selected && "border-orange-500 bg-orange-500/5"
+      )}
       aria-label={`Select ${template.title} template`}
       aria-selected={selected}
     >
@@ -66,7 +65,7 @@ export function TemplateCard({ template, selected, onSelect }: TemplateCardProps
       </CardHeader>
       
       <div className="space-y-3">
-        <CardTitle size="lg">
+        <CardTitle>
           {template.title}
         </CardTitle>
         

@@ -30,9 +30,9 @@ export async function POST(req: NextRequest) {
         // Use a stronger model via OpenRouter
         model: 'anthropic/claude-4.5-sonnet',
         stream: true,
-        messages,
+        messages: messages.slice(-20), // Limit context to last 20 messages to prevent timeout
         temperature: 0.7,
-        max_tokens: 10000,
+        max_tokens: 4096, // Reduced from 10000 to prevent timeout
       }),
     })
 

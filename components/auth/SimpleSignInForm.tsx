@@ -69,7 +69,7 @@ export default function SimpleSignInForm() {
 
         {/* Sign-in form */}
         <div className={`w-full ${mounted ? 'animate-slide-up' : 'opacity-0'}`} style={{ animationDelay: '0.1s' }}>
-          <Card className="border-gray-800 bg-gray-900/95 backdrop-blur-md shadow-2xl" size="lg">
+          <Card className="border-gray-800 bg-gray-900/95 backdrop-blur-md shadow-2xl">
             <div className="p-8 space-y-6">
               <div className="text-center">
                 <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">

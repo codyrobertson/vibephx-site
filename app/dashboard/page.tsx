@@ -126,13 +126,13 @@ export default async function DashboardPage() {
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
                             <Link href={latestSession ? `/builder/prd-builder?session=${latestSession.id}` : `/builder/prd-builder`}>
-                              <Button variant="outline" size="sm" className="border-gray-700 text-gray-300 hover:border-orange-500">
+                              <Button variant="outline" className="border-gray-700 text-gray-300 hover:border-orange-500">
                                 Continue
                               </Button>
                             </Link>
                             {canView && (
                               <Link href={`/projects/${project.id}`}>
-                                <Button variant="outline" size="sm" className="border-gray-700 text-gray-300 hover:border-orange-500">
+                                <Button variant="outline" className="border-gray-700 text-gray-300 hover:border-orange-500">
                                   View
                                 </Button>
                               </Link>
