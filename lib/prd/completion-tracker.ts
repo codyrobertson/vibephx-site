@@ -113,11 +113,7 @@ export async function markPRDCompleted(sessionId: string) {
         })
       ] : [])
     ],
-    {
-      isolationLevel: 'ReadCommitted',
-      timeout: 10000,
-      maxWait: 5000
-    }
+    { isolationLevel: 'ReadCommitted' }
   )
 
   // 3) Generate tech details in background (non-blocking)
@@ -185,11 +181,7 @@ export async function markPRDGenerating(sessionId: string) {
         })
       ] : [])
     ],
-    {
-      isolationLevel: 'ReadCommitted',
-      timeout: 10000,
-      maxWait: 5000
-    }
+    { isolationLevel: 'ReadCommitted' }
   )
 
   return session
