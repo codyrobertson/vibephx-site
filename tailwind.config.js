@@ -71,10 +71,15 @@ module.exports = {
   		fontFamily: {
                 ...(tokenExtend.fontFamily || {}),
   			sans: [
-  				'Geist',
+  				'Instrument Sans',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif'
+  			],
+  			mono: [
+  				'var(--font-ibm-plex-mono)',
+  				'ui-monospace',
+  				'monospace'
   			]
   		},
   		animation: {

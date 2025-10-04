@@ -49,8 +49,8 @@ export function OpenInChat({
 
   const icons = {
     v0: (
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+      <svg className="w-4 h-4" viewBox="0 0 14 14" fill="none">
+        <path d="M7 0L14 12.25H0L7 0Z" fill="currentColor"/>
       </svg>
     ),
     claude: (
@@ -75,16 +75,17 @@ export function OpenInChat({
     <button
       onClick={handleOpen}
       className={cn(
-        'inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium',
-        'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white',
+        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium',
+        'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white',
         'border border-gray-700 hover:border-gray-600',
         'transition-colors duration-200',
+        'max-w-[140px]',
         className
       )}
       {...props}
     >
       {icons[platform]}
-      <span>{labels[platform]}</span>
+      <span className="truncate">{labels[platform]}</span>
     </button>
   )
 }

@@ -49,6 +49,10 @@ export async function callLLM(request: InferenceRequest): Promise<InferenceRespo
   let totalTokens = 0
 
   try {
+    // Add timeout to prevent hanging requests
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 60000) // 60 second timeout
+
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -63,8 +67,11 @@ export async function callLLM(request: InferenceRequest): Promise<InferenceRespo
         stream: false, // Non-streaming for logging; we'll add streaming variant separately
         max_tokens: request.maxTokens || 4096,
         temperature: request.temperature ?? 0.7
-      })
+      }),
+      signal: controller.signal
     })
+
+    clearTimeout(timeoutId)
 
     if (!res.ok) {
       const text = await res.text()
@@ -81,8 +88,13 @@ export async function callLLM(request: InferenceRequest): Promise<InferenceRespo
 
   } catch (err: any) {
     success = false
-    errorMessage = err.message || String(err)
-    throw err
+    // Improve timeout error messages
+    if (err.name === 'AbortError') {
+      errorMessage = 'Request timeout - LLM took too long to respond'
+    } else {
+      errorMessage = err.message || String(err)
+    }
+    throw new Error(errorMessage)
   } finally {
     const durationMs = Date.now() - startTime
     const costUsd = estimateCost(request.model, promptTokens, completionTokens)
@@ -164,6 +176,10 @@ export async function streamLLM(
   let fullResponse = ''
 
   try {
+    // Add timeout to prevent hanging requests
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 120000) // 120 second timeout for streaming
+
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -178,8 +194,11 @@ export async function streamLLM(
         stream: true,
         max_tokens: request.maxTokens || 4096,
         temperature: request.temperature ?? 0.7
-      })
+      }),
+      signal: controller.signal
     })
+
+    clearTimeout(timeoutId)
 
     if (!res.ok || !res.body) throw new Error(`OpenRouter error: ${res.status}`)
 
@@ -247,8 +266,13 @@ export async function streamLLM(
 
   } catch (err: any) {
     success = false
-    errorMessage = err.message || String(err)
-    
+    // Improve timeout error messages
+    if (err.name === 'AbortError') {
+      errorMessage = 'Streaming timeout - LLM took too long to respond'
+    } else {
+      errorMessage = err.message || String(err)
+    }
+
     const durationMs = Date.now() - startTime
     logLLMCall({
       ...request,
@@ -262,7 +286,7 @@ export async function streamLLM(
       errorMessage
     }).catch(console.error)
 
-    throw err
+    throw new Error(errorMessage)
   }
 }
 

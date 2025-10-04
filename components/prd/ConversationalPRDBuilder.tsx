@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { useStreamingChat } from '@/hooks/useStreamingChat'
 import { Conversation, ConversationContent, ConversationEmptyState } from '@/components/ai-elements/conversation'
 import { Message, MessageContent, MessageAvatar } from '@/components/ai-elements/message'
 import { Response } from '@/components/ai-elements/response'
 import { Artifact } from '@/components/ai-elements/artifact'
 import { OpenInChat } from '@/components/ai-elements/open-in-chat'
 import { ContextMeter } from '@/components/ai-elements/context-meter'
+import { Actions, Action } from '@/components/ai-elements/actions'
+import { Copy, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PaperPlaneIcon, MagicWandIcon } from '@radix-ui/react-icons'
 import { usePRDStore } from '@/lib/stores/usePRDStore'
@@ -22,66 +23,98 @@ import { OutputsPhase } from './phases/OutputsPhase'
 
 type Phase = 'intro' | 'audience' | 'confirmIdea' | 'features' | 'providers' | 'stack' | 'integrations' | 'summary' | 'outputs' | 'final'
 
-function PRDMessage({ message, isPRDArtifact, shouldAutoCollapse }: {
+function PRDMessage({ message, isPRDArtifact, shouldAutoCollapse, index }: {
   message: { id: string; role: 'user' | 'assistant'; content: string; images?: string[] }
   isPRDArtifact: boolean
   shouldAutoCollapse: boolean
+  index: number
 }) {
   const [isCollapsed, setIsCollapsed] = useState(shouldAutoCollapse)
+  const [isHovering, setIsHovering] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     setIsCollapsed(shouldAutoCollapse)
   }, [shouldAutoCollapse])
 
   // Extract PRD content from message
-  const prdContent = isPRDArtifact ? message.content.replace(/✅ \*\*PRD Generated\*\*\n\n/, '') : ''
+  const prdContent = isPRDArtifact ? message.content.replace(/✅ \*\*PRD Generated\*\*\n\n/g, '').replace(/✅ \*\*PRD Generated\*\*\n/g, '').replace('✅ **PRD Generated**\n\n', '').replace('✅ **PRD Generated**\n', '') : ''
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(message.content)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
-    <div className="group">
+    <div
+      className="group relative pb-10 animate-in fade-in slide-in-from-bottom-4"
+      style={{ animationDelay: `${index * 100}ms`, animationDuration: '400ms', animationFillMode: 'both' }}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+    >
       {isPRDArtifact ? (
-        <Message from={message.role}>
-          <MessageAvatar name="AI" className="bg-black border-2 border-gray-700 text-gray-400" />
-          <MessageContent>
-            <Artifact
-              title="Product Requirements Document"
-              type="prd"
-              content={prdContent}
-              actions={
-                <>
-                  <OpenInChat content={prdContent} platform="v0" />
-                </>
-              }
-            />
-          </MessageContent>
-        </Message>
+        <>
+          <Message from={message.role}>
+            <MessageAvatar name="AI" className="bg-black border-2 border-gray-700 text-gray-400" />
+            <MessageContent>
+              <Artifact
+                title="Product Requirements Document"
+                type="prd"
+                content={prdContent}
+                actions={
+                  <>
+                    <OpenInChat content={prdContent} platform="v0" />
+                  </>
+                }
+              />
+            </MessageContent>
+          </Message>
+          {/* Hover actions */}
+          <div className={`absolute left-12 bottom-2 transition-opacity ${isHovering ? 'opacity-100' : 'opacity-0'}`}>
+            <Actions>
+              <Action label={copied ? 'Copied!' : 'Copy message'} onClick={handleCopy}>
+                {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+              </Action>
+            </Actions>
+          </div>
+        </>
       ) : (
-        <Message from={message.role}>
-        {message.role === 'assistant' && <MessageAvatar name="AI" className="bg-black border-2 border-gray-700 text-gray-400" />}
-        <MessageContent
-          variant="contained"
-          className={message.role === 'user'
-            ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
-            : 'bg-black text-white border border-gray-700'}
-          data-role={message.role}
-        >
-          {message.images && message.images.length > 0 && (
-            <div className="flex gap-2 mb-2 flex-wrap">
-              {message.images.map((img, idx) => (
-                <img key={idx} src={img} alt="" className="max-w-xs h-40 object-cover rounded border border-gray-700" />
-              ))}
-            </div>
-          )}
-          <Response>{message.content}</Response>
-        </MessageContent>
-      </Message>
+        <>
+          <Message from={message.role}>
+            {message.role === 'assistant' && <MessageAvatar name="AI" className="bg-black border-2 border-gray-700 text-gray-400" />}
+            <MessageContent
+              variant="contained"
+              className={message.role === 'user'
+                ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
+                : 'bg-black text-white border border-gray-700'}
+              data-role={message.role}
+            >
+              {message.images && message.images.length > 0 && (
+                <div className="flex gap-2 mb-2 flex-wrap">
+                  {message.images.map((img, idx) => (
+                    <img key={idx} src={img} alt="" className="max-w-xs h-40 object-cover rounded border border-gray-700" />
+                  ))}
+                </div>
+              )}
+              <Response>{message.content}</Response>
+            </MessageContent>
+          </Message>
+          {/* Hover actions */}
+          <div className={`absolute ${message.role === 'assistant' ? 'left-12' : 'right-12'} bottom-2 transition-opacity ${isHovering ? 'opacity-100' : 'opacity-0'}`}>
+            <Actions>
+              <Action label={copied ? 'Copied!' : 'Copy message'} onClick={handleCopy}>
+                {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+              </Action>
+            </Actions>
+          </div>
+        </>
       )}
     </div>
   )
 }
 
 export default function ConversationalPRDBuilder() {
-  const { messages, send, status, error, setMessages } = useStreamingChat('/api/chat-plain')
-
   // Zustand store - all state management
   const phase = usePRDStore(state => state.phase)
   const setPhase = usePRDStore(state => state.setPhase)
@@ -91,6 +124,7 @@ export default function ConversationalPRDBuilder() {
   const finalFollowupDone = usePRDStore(state => state.finalFollowupDone)
   const setFinalFollowupDone = usePRDStore(state => state.setFinalFollowupDone)
   const saveToDatabase = usePRDStore(state => state.saveToDatabase)
+  const projectId = usePRDStore(state => state.projectId)
   const initialIntent = usePRDStore(state => state.initialIntent)
   const loadFromDatabase = usePRDStore(state => state.loadFromDatabase)
   const loadProjectSuggestions = usePRDStore(state => state.loadProjectSuggestions)
@@ -101,6 +135,8 @@ export default function ConversationalPRDBuilder() {
   const shouldShowSuggestions = usePRDStore(state => state.shouldShowSuggestions())
   const isFreshProject = usePRDStore(state => state.isFreshProject())
   const setHasLoadedSession = usePRDStore(state => state.setHasLoadedSession)
+  const hasLoadedSession = usePRDStore(state => state.hasLoadedSession)
+  const reset = usePRDStore(state => state.reset)
 
   // Local UI state (transient, not persisted)
   const [input, setInput] = useState('')
@@ -113,76 +149,57 @@ export default function ConversationalPRDBuilder() {
   const endRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const searchParams = useSearchParams()
-  const loadedSidRef = useRef<string | null>(null)
-  const loadSeqRef = useRef<number>(0)
-  const isLoadingRef = useRef<boolean>(false)
   const pendingSaveRef = useRef<number | null>(null)
-  const hasLoadedOnMountRef = useRef<boolean>(false)
 
-  // Load session strictly from the URL ONCE on mount; ignore late/out-of-order responses
+  // URL is the single source of truth - sync store with URL immediately
   useEffect(() => {
-    // Only run this effect on mount, not when searchParams updates from our own URL write
-    if (hasLoadedOnMountRef.current) return
-    hasLoadedOnMountRef.current = true
+    const urlSessionId = searchParams.get('session')
 
-    const sid = searchParams.get('session')
-    if (!sid) {
-      // Fresh PRD: load suggestions
+    // URL has no session but store does - clear store immediately
+    if (!urlSessionId && sessionId) {
+      reset()
       setHasLoadedSession(false)
       loadProjectSuggestions()
-      if (typeof window !== 'undefined') {
-        try { localStorage.removeItem('last_prd_session') } catch {}
-      }
       return
     }
-    if (loadedSidRef.current === sid) return
-    loadedSidRef.current = sid
-    const seq = ++loadSeqRef.current
-    isLoadingRef.current = true
-    setIsLoadingSession(true)
-    setLoadError(null)
-    ;(async () => {
-      try {
-        await loadFromDatabase(sid)
-        // Ignore if another load started since
-        if (loadSeqRef.current !== seq) return
-        setIsLoadingSession(false)
-      } catch (err) {
-        // If session doesn't exist (404), show error and allow retry
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load session'
-        console.error('Failed to load session:', errorMessage)
-        setLoadError(`Unable to load session: ${errorMessage}`)
-        setIsLoadingSession(false)
 
-        // Don't auto-redirect - let user see the error
-        setTimeout(() => {
-          if (typeof window !== 'undefined') {
+    // URL has session that differs from store - load it
+    if (urlSessionId && urlSessionId !== sessionId) {
+      setIsLoadingSession(true)
+      setLoadError(null)
+      loadFromDatabase(urlSessionId)
+        .then(() => setIsLoadingSession(false))
+        .catch(err => {
+          console.error('Failed to load session:', err)
+          setLoadError('Failed to load session')
+          setIsLoadingSession(false)
+          setTimeout(() => {
             window.history.replaceState({}, '', '/builder/prd-builder')
+            reset()
             setHasLoadedSession(false)
-            setLoadError(null)
             loadProjectSuggestions()
-          }
-        }, 3000)
-      }
-      finally {
-        isLoadingRef.current = false
-      }
-    })()
-  }, [searchParams, loadFromDatabase, loadProjectSuggestions, setHasLoadedSession])
+          }, 2000)
+        })
+      return
+    }
 
-  // When we get a sessionId, persist it to URL and localStorage for reload continuity
+    // Fresh mount with no session - load suggestions
+    if (!urlSessionId && !sessionId) {
+      setHasLoadedSession(false)
+      loadProjectSuggestions()
+    }
+  }, [searchParams, sessionId, reset, setHasLoadedSession, loadFromDatabase, loadProjectSuggestions])
+
+  // Only write sessionId to URL when we transition FROM intro (i.e., user starts working)
   useEffect(() => {
-    if (!sessionId) return
-    try {
-      const url = new URL(window.location.href)
-      if (url.searchParams.get('session') !== sessionId) {
-        url.searchParams.set('session', sessionId)
-        // Use replaceState to avoid triggering a re-render that hides suggestions prematurely
-        window.history.replaceState({}, '', url.toString())
-      }
-      localStorage.setItem('last_prd_session', sessionId)
-    } catch {}
-  }, [sessionId])
+    if (!sessionId || phase === 'intro') return
+
+    const url = new URL(window.location.href)
+    if (url.searchParams.get('session') !== sessionId) {
+      url.searchParams.set('session', sessionId)
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [sessionId, phase])
 
   // Progress
   const phaseLabels: Record<Phase, string> = {
@@ -205,9 +222,8 @@ export default function ConversationalPRDBuilder() {
     setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100)
   }, [storeMessages.length, phase])
 
-  // Debounced save wrapper (blocks while loading)
+  // Debounced save wrapper
   const requestSave = () => {
-    if (isLoadingRef.current) return
     if (pendingSaveRef.current) {
       window.clearTimeout(pendingSaveRef.current)
       pendingSaveRef.current = null
@@ -218,10 +234,13 @@ export default function ConversationalPRDBuilder() {
     }, 500)
   }
 
-  // Auto-save on phase change (skip intro phase to avoid creating empty sessions)
+  // Auto-save on phase change at key milestones (skip intro to avoid empty sessions)
   useEffect(() => {
-    if (phase === 'intro') return
-    requestSave()
+    // Only save when transitioning TO these phases (meaningful progress made)
+    const shouldSavePhases: Phase[] = ['features', 'stack', 'summary', 'outputs', 'final']
+    if (shouldSavePhases.includes(phase)) {
+      requestSave()
+    }
   }, [phase])
 
   // Save when the tab is hidden or unloading
@@ -253,8 +272,8 @@ export default function ConversationalPRDBuilder() {
 
   // Final follow-up & mark completion
   useEffect(() => {
-    const last = messages[messages.length - 1] as any
-    if (phase === 'final' && status === 'ready' && !finalFollowupDone && last?.role === 'assistant' && last?.content?.length > 50) {
+    const last = storeMessages[storeMessages.length - 1] as any
+    if (phase === 'final' && !isChatStreaming && !finalFollowupDone && last?.role === 'assistant' && last?.content?.length > 50) {
       addMessages([{
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -272,10 +291,16 @@ export default function ConversationalPRDBuilder() {
         } catch {}
       })()
     }
-  }, [phase, status, messages, finalFollowupDone, addMessages, setFinalFollowupDone])
+  }, [phase, storeMessages, finalFollowupDone, addMessages, setFinalFollowupDone])
 
   const refineOneLiner = (idea: string) => {
-    const clean = idea.replace(/\s+/g, ' ').replace(/^I\s+want\s+to\s+build\s+/i, '').replace(/^I\s+need\s+to\s+create\s+/i, '').trim()
+    const clean = idea
+      .replace(/\s+/g, ' ')
+      .replace(/^I\s+want\s+to\s+build\s+(a\s+)?/i, '')
+      .replace(/^I\s+need\s+to\s+create\s+(a\s+)?/i, '')
+      .replace(/^Build\s+(a\s+)?/i, '')
+      .replace(/^Create\s+(a\s+)?/i, '')
+      .trim()
     const words = clean.split(' ')
     const trimmed = words.length > 14 ? words.slice(0, 14).join(' ') : clean
     return trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
@@ -431,9 +456,9 @@ export default function ConversationalPRDBuilder() {
     }
   }
 
-  const hasAnyMessages = (messages.length > 0) || (storeMessages.length > 0)
+  const hasAnyMessages = storeMessages.length > 0
   // Deduplicate messages by id to avoid React key warnings and filter out empty streaming placeholders
-  const allMessages = storeMessages.length > 0 ? storeMessages : messages
+  const allMessages = storeMessages
   const seen = new Set<string>()
   const displayMessages: Array<{ id: string; role: 'user' | 'assistant'; content: string; images?: string[] }> = (allMessages as any[])
     .filter((m: any) => {
@@ -476,10 +501,10 @@ export default function ConversationalPRDBuilder() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto h-[calc(100vh-8rem)] flex flex-col">
+    <div className="h-full flex flex-col w-full">
       {/* Header */}
-      <div className={`sticky top-16 md:top-20 z-20 bg-black/95 backdrop-blur border-b border-gray-800 transition-all duration-300 ${!hasAnyMessages ? 'py-12' : 'py-4'}`}>
-        <div className={`${!hasAnyMessages ? 'text-center' : 'flex items-center justify-between'} max-w-5xl mx-auto px-4 transition-all duration-300`}>
+      <div className={`flex-none bg-black border-b border-gray-800 transition-all duration-300 ${!hasAnyMessages ? 'py-12' : 'py-4'}`}>
+        <div className={`${!hasAnyMessages ? 'text-center' : 'flex items-center justify-between'} w-full px-12 transition-all duration-300`}>
           <div className={!hasAnyMessages ? '' : 'flex items-center gap-4'}>
             <h1 className={`font-bold text-white transition-all duration-300 ${!hasAnyMessages ? 'text-4xl mb-2' : 'text-2xl'}`}>
               PRD Builder
@@ -503,9 +528,26 @@ export default function ConversationalPRDBuilder() {
         </div>
       </div>
 
-      <Conversation className="flex-1 mb-6">
-        <ConversationContent className="space-y-6">
-          {/* Empty state removed - just show quick-start cards */}
+      <Conversation className="flex-1 overflow-auto pb-6">
+        <ConversationContent className="space-y-8 px-12 py-8">
+          {/* Quick-start cards - MOVED HERE from bottom */}
+          {shouldShowSuggestions && projectSuggestions.length > 0 && (
+            <div className="mb-6">
+              <p className="text-sm text-gray-400 mb-4 text-center">Quick start with these examples:</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {projectSuggestions.map((item, idx) => (
+                  <button
+                    key={idx}
+                    className="text-left p-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-orange-500 hover:bg-gray-800 transition-all text-sm text-gray-300 group"
+                    onClick={() => handleSuggestedPrompt(`I want to build a ${item.text}`)}
+                  >
+                    <span className="text-lg mb-1 block">{item.emoji}</span>
+                    <span className="group-hover:text-white transition-colors">{item.text}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Thinking indicator */}
           {isChatStreaming && (
@@ -528,43 +570,43 @@ export default function ConversationalPRDBuilder() {
             const hasFollowupAfter = idx < displayMessages.length - 1
             // Auto-collapse PRD if there are messages after it
             const shouldCollapse = isPRDArtifact && hasFollowupAfter
-            
+
             return (
-              <PRDMessage 
-                key={m.id} 
-                message={m} 
+              <PRDMessage
+                key={m.id}
+                message={m}
                 isPRDArtifact={isPRDArtifact}
                 shouldAutoCollapse={shouldCollapse}
+                index={idx}
               />
             )
           })}
 
-          {/* Phase components */}
-          {phase === 'audience' && <AudiencePhase />}
-          {phase === 'confirmIdea' && <ConfirmIdeaPhase />}
-          {phase === 'features' && <FeaturesPhase />}
-          {phase === 'providers' && <ProvidersPhase />}
-          {phase === 'integrations' && <IntegrationsPhase />}
-          {phase === 'summary' && <SummaryPhase />}
-          {phase === 'outputs' && <OutputsPhase />}
+          {/* Phase components - animate after messages */}
+          {(() => {
+            const phaseDelay = displayMessages.length * 100
+            return (
+              <>
+                {phase === 'audience' && <AudiencePhase animationDelay={phaseDelay} />}
+                {phase === 'confirmIdea' && <ConfirmIdeaPhase animationDelay={phaseDelay} />}
+                {phase === 'features' && <FeaturesPhase animationDelay={phaseDelay} />}
+                {phase === 'providers' && <ProvidersPhase animationDelay={phaseDelay} />}
+                {phase === 'integrations' && <IntegrationsPhase animationDelay={phaseDelay} />}
+                {phase === 'summary' && <SummaryPhase animationDelay={phaseDelay} />}
+                {phase === 'outputs' && <OutputsPhase animationDelay={phaseDelay} />}
+              </>
+            )
+          })()}
 
-          {/* Error display */}
-          {error && (
-            <div className="p-5 rounded-xl border border-red-500/50 bg-red-900/20">
-              <div className="text-sm text-red-300">
-                {(() => {
-                  try {
-                    const parsed = JSON.parse((error as any)?.message || '{}')
-                    if (parsed?.error?.type === 'authentication_error') {
-                      return (
-                        <span>
-                          OAuth token expired. Please re-login. Run <code className="bg-gray-800 px-1 py-0.5 rounded">/login</code> then retry.
-                        </span>
-                      )
-                    }
-                  } catch {}
-                  return String((error as any)?.message || error)
-                })()}
+          {/* Task indicator */}
+          {currentTask && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300">
+                <svg className="w-4 h-4 animate-spin text-orange-400" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>{currentTask.label}</span>
               </div>
             </div>
           )}
@@ -574,40 +616,8 @@ export default function ConversationalPRDBuilder() {
         </ConversationContent>
       </Conversation>
 
-      {/* Quick-start cards */}
-      {shouldShowSuggestions && projectSuggestions.length > 0 && (
-        <div className="mb-6 px-4">
-          <p className="text-sm text-gray-400 mb-4 text-center">Quick start with these examples:</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {projectSuggestions.map((item, idx) => (
-            <button
-                key={idx}
-              className="text-left p-4 bg-gray-800/50 border border-gray-700 rounded-xl hover:border-orange-500 hover:bg-gray-800 transition-all text-sm text-gray-300 group"
-                onClick={() => handleSuggestedPrompt(`I want to build a ${item.text}`)}
-            >
-                <span className="text-lg mb-1 block">{item.emoji}</span>
-                <span className="group-hover:text-white transition-colors">{item.text}</span>
-            </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Task indicator */}
-      {currentTask && (
-        <div className="mb-4 px-4">
-          <div className="flex items-center gap-2 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300">
-            <svg className="w-4 h-4 animate-spin text-orange-400" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <span>{currentTask.label}</span>
-          </div>
-        </div>
-      )}
-
       {/* Input form */}
-      <div className="sticky bottom-0 bg-black border-t border-gray-800 pt-6 px-4 pb-4">
+      <div className="flex-none bg-black border-t border-gray-800 pt-4 px-12 pb-4">
         {uploadedImages.length > 0 && (
           <div className="flex gap-2 mb-3 flex-wrap">
             {uploadedImages.map(img => (
@@ -655,13 +665,13 @@ export default function ConversationalPRDBuilder() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={phase === 'intro' ? 'Describe your project idea in your own words…' : 'Type a message, paste an image, or ask me to search…'}
-              disabled={status === 'streaming' || isChatStreaming}
+              disabled={isChatStreaming}
               className="flex-1 resize-none bg-transparent border-none outline-none text-white placeholder:text-gray-500 min-h-[60px] max-h-[200px] disabled:opacity-50"
               rows={2}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()
-                  if ((input?.trim() || uploadedImages.length > 0) && status !== 'streaming' && !isChatStreaming) onSubmit(e as any)
+                  if ((input?.trim() || uploadedImages.length > 0) && !isChatStreaming) onSubmit(e as any)
                 }
               }}
               onPaste={(e) => {
@@ -683,7 +693,7 @@ export default function ConversationalPRDBuilder() {
             />
             <Button
               type="submit"
-              disabled={(!input?.trim() && uploadedImages.length === 0) || status === 'streaming' || isChatStreaming}
+              disabled={(!input?.trim() && uploadedImages.length === 0) || isChatStreaming}
               className="rounded-xl h-11 w-11 p-0 flex items-center justify-center bg-orange-500 hover:bg-orange-600 shrink-0"
             >
               <PaperPlaneIcon className="w-5 h-5" />

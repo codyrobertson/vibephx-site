@@ -15,7 +15,7 @@ export function CodeSnippetCard({ title, fileName, code, icon }: CodeSnippetCard
   const displayCode = code.split('\n').slice(0, 10).join('\n')
   
   return (
-    <Card className="w-80 h-64 bg-gray-900/95 border-gray-700 hover:border-orange-500/50 transition-all duration-300 hover:scale-105 group overflow-hidden">
+    <Card className="w-80 h-64 bg-gray-900/95 border-gray-700 hover:border-orange-500/50 transition-colors duration-300 group overflow-hidden">
       <div className="p-4 h-full flex flex-col">
         {/* Header */}
         <div className="flex items-center gap-2 mb-3 min-h-0">

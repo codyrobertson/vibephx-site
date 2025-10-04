@@ -114,6 +114,9 @@ model PRDSession {
   acceptanceCriteria String[]
   prdGeneratedAt     DateTime?
 
+  // Tech stack details (AI-generated, project-specific)
+  techStackDetails   Json?    // Cached bespoke tech explanations
+
   // Metadata
   phase       String   @default("intro")
   messages    Json     @default("[]")

@@ -194,21 +194,21 @@ Return ONLY the 4 features, nothing else.`
   }
 }
 
-export function inferConnectors(features: string[]): Array<{ id: string; title: string; description: string }> {
-  const picks: Array<{ id: string; title: string; description: string }> = []
-  const push = (id: string, title: string, description: string) => {
+export function inferConnectors(features: string[]): Array<{ id: string; title: string; description: string; category: string }> {
+  const picks: Array<{ id: string; title: string; description: string; category: string }> = []
+  const push = (id: string, title: string, description: string, category: string) => {
     if (!picks.find(p => p.id === id) && picks.length < 3) {
-      picks.push({ id, title, description })
+      picks.push({ id, title, description, category })
     }
   }
   const text = features.join(' ').toLowerCase()
-  if (/email|verify|notification/.test(text)) push('email', 'Email', 'Verification + transactional messages')
-  if (/calendar|booking|schedule/.test(text)) push('calendar', 'Calendar', 'Scheduling and availability')
-  if (/pay|stripe|checkout|bill/.test(text)) push('payments', 'Payments', 'Collect payments or deposits')
-  if (/auth|login|user/.test(text)) push('auth', 'Auth', 'Accounts and secure sessions')
-  if (/upload|file|image|storage/.test(text)) push('file_storage', 'File storage', 'Upload and retrieve assets')
-  if (/analytics|track|event/.test(text)) push('analytics', 'Analytics', 'Track events and funnels')
-  if (picks.length === 0) push('analytics', 'Analytics', 'Track key events to learn fast')
+  if (/email|verify|notification/.test(text)) push('resend', 'Resend Email', 'Verification + transactional messages', 'email')
+  if (/calendar|booking|schedule/.test(text)) push('calendar', 'Calendar', 'Scheduling and availability', 'misc')
+  if (/pay|stripe|checkout|bill/.test(text)) push('stripe', 'Stripe Payments', 'Collect payments or deposits', 'payments')
+  if (/auth|login|user/.test(text)) push('auth', 'Auth', 'Accounts and secure sessions', 'auth')
+  if (/upload|file|image|storage/.test(text)) push('uploadthing', 'UploadThing', 'Upload and retrieve assets', 'storage')
+  if (/analytics|track|event/.test(text)) push('analytics', 'Analytics', 'Track events and funnels', 'analytics')
+  if (picks.length === 0) push('analytics', 'Analytics', 'Track key events to learn fast', 'analytics')
   return picks
 }
 

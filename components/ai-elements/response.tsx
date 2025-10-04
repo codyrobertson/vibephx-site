@@ -1,13 +1,55 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { type ComponentProps, memo } from "react";
+import { type ComponentProps, memo, ReactNode } from "react";
 import { Streamdown } from "streamdown";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { MermaidRenderer } from './MermaidRenderer';
+import { LogoText } from '@/components/content/LogoText';
+import { SERVICE_LOGO_MAP } from '@/lib/content/logo-mapper';
 
 type ResponseProps = ComponentProps<typeof Streamdown>;
+
+/**
+ * Process text to inject logos next to service mentions
+ */
+function processTextWithLogos(text: string | ReactNode): ReactNode {
+  if (typeof text !== 'string') return text
+
+  const serviceNames = Object.keys(SERVICE_LOGO_MAP)
+  // Sort by length descending to match longer names first
+  const sortedNames = serviceNames.sort((a, b) => b.length - a.length)
+
+  let parts: ReactNode[] = [text]
+
+  for (const serviceName of sortedNames) {
+    const newParts: ReactNode[] = []
+
+    for (const part of parts) {
+      if (typeof part !== 'string') {
+        newParts.push(part)
+        continue
+      }
+
+      // Use word boundary regex
+      const regex = new RegExp(`(\\b${serviceName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b)`, 'gi')
+      const segments = part.split(regex)
+
+      segments.forEach((segment, i) => {
+        if (segment.toLowerCase() === serviceName.toLowerCase()) {
+          newParts.push(<LogoText key={`${serviceName}-${i}`} service={serviceName} />)
+        } else if (segment) {
+          newParts.push(segment)
+        }
+      })
+    }
+
+    parts = newParts
+  }
+
+  return <>{parts}</>
+}
 
 export const Response = memo(
   ({ className, ...props }: ResponseProps) => (
@@ -17,6 +59,12 @@ export const Response = memo(
         className
       )}
       components={{
+        p: ({ children, ...pProps }: any) => {
+          return <p className="leading-relaxed" {...pProps}>{processTextWithLogos(children)}</p>
+        },
+        li: ({ children, ...liProps }: any) => {
+          return <li className="leading-relaxed" {...liProps}>{processTextWithLogos(children)}</li>
+        },
         code: ({ node, inline, className, children, ...codeProps }: any) => {
           const match = /language-(\w+)/.exec(className || '')
           const language = match ? match[1] : 'typescript'

@@ -20,7 +20,11 @@
       "WebFetch(domain:sdk.vercel.ai)",
       "Bash(npx ai-elements@latest add:*)",
       "Bash(yes)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import { PHASE_COMPLETION_MAP, canCompletePRD } from '@/lib/prd/completion-tracker'
+import type { PRDPhase } from '@/lib/prd/completion-tracker'
 
 export type Phase =
   | 'intro'
@@ -61,6 +63,8 @@ interface PRDState {
   // Computed state
   isFreshProject: () => boolean
   shouldShowSuggestions: () => boolean
+  completionProgress: () => number
+  isCompleted: () => boolean
 
   // Actions
   setSessionId: (id: string) => void
@@ -161,8 +165,16 @@ export const usePRDStore = create<PRDState>()(
         // Only show suggestions if:
         // 1. We're in intro phase
         // 2. No messages exist
-        // 3. We haven't loaded a session (prevents flickering during load)
-        return state.phase === 'intro' && state.messages.length === 0 && !state.hasLoadedSession
+        // Show for both fresh PRDs and empty draft sessions
+        return state.phase === 'intro' && state.messages.length === 0
+      },
+      completionProgress: () => {
+        const state = get()
+        return PHASE_COMPLETION_MAP[state.phase as PRDPhase] || 0
+      },
+      isCompleted: () => {
+        const state = get()
+        return state.phase === 'final' && !!state.sda && state.featuresMvp.length > 0 && !!state.selectedStack
       },
       
       // User data
@@ -204,7 +216,19 @@ export const usePRDStore = create<PRDState>()(
       // Persistence
       saveToDatabase: async () => {
         const state = get()
-        
+
+        // Only save to database if we have meaningful data
+        // Require at least sda OR (featuresMvp + selectedStack) to avoid empty sessions
+        const hasMeaningfulData = state.sda ||
+          (state.featuresMvp.length > 0 && state.selectedStack) ||
+          state.phase === 'final'
+
+        if (!hasMeaningfulData && !state.sessionId) {
+          // Skip database save for empty sessions, but still cache locally
+          console.log('[PRD Save] Skipping database save - no meaningful data yet')
+          return
+        }
+
         // Cache session to localStorage for instant resume
         if (state.sessionId && typeof window !== 'undefined') {
           try {
@@ -255,8 +279,8 @@ export const usePRDStore = create<PRDState>()(
           }
         }
         
-        // Auto-create project if doesn't exist
-        if (!state.projectId && state.initialIntent) {
+        // Auto-create project if doesn't exist and has meaningful data
+        if (!state.projectId && state.initialIntent && hasMeaningfulData) {
           try {
             // Generate a concise AI title
             let aiTitle = state.sda || state.initialIntent
@@ -343,6 +367,24 @@ export const usePRDStore = create<PRDState>()(
 
           if (data.session?.id && !state.sessionId) {
             set({ sessionId: data.session.id })
+          }
+
+          // Mark PRD as completed if we're in final phase and meet completion requirements
+          const currentSessionId = data.session?.id || state.sessionId
+          if (currentSessionId && get().isCompleted() && state.phase === 'final') {
+            try {
+              const completeRes = await fetch(`/api/prd/${currentSessionId}/complete`, {
+                method: 'POST'
+              })
+              if (completeRes.ok) {
+                console.log('[PRD Save] Marked PRD as completed')
+              } else {
+                console.error('[PRD Save] Failed to mark completed:', await completeRes.text())
+              }
+            } catch (err) {
+              console.error('[PRD Save] Failed to mark completed:', err)
+              // Don't throw - save was successful, completion is just metadata
+            }
           }
         } catch (err) {
           console.error('[PRD Save] Error:', err)

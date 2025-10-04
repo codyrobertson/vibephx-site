@@ -1,15 +1,17 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, Suspense } from 'react'
 import { usePathname } from 'next/navigation'
 import { useUser, useStackApp } from '@stackframe/stack'
 import createIcon from 'blockies-ts'
+import { ChevronDown } from 'lucide-react'
+import { AdminMenuItem } from './AdminMenuItem'
 
 export default function SimpleUserMenu() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
-  
+
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -53,9 +55,9 @@ export default function SimpleUserMenu() {
           className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 hover:border-gray-500 rounded-lg transition-colors"
         >
           {blockieDataUrl ? (
-            <img 
-              src={blockieDataUrl} 
-              alt="User Avatar" 
+            <img
+              src={blockieDataUrl}
+              alt="User Avatar"
               className="w-6 h-6 rounded-full"
             />
           ) : (
@@ -66,6 +68,7 @@ export default function SimpleUserMenu() {
           <span className="hidden sm:inline text-sm font-medium">
             {user.displayName || user.primaryEmail?.split('@')[0] || 'User'}
           </span>
+          <ChevronDown className="w-4 h-4 text-gray-400" />
         </button>
         
         {isOpen && (
@@ -110,12 +113,15 @@ export default function SimpleUserMenu() {
                   Dashboard
                 </a>
                 <a
-                  href="/builder"
+                  href="/builder/prd-builder"
                   className="block px-4 py-2 text-sm text-white hover:bg-gray-800 transition-colors"
                   onClick={() => setIsOpen(false)}
                 >
-                  Builder
+                  PRD Builder
                 </a>
+                <Suspense fallback={null}>
+                  <AdminMenuItem onClose={() => setIsOpen(false)} />
+                </Suspense>
                 <button
                   onClick={handleSignOut}
                   className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-800 transition-colors"

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { usePRDStore } from '@/lib/stores/usePRDStore'
 import { generateAudienceAndMotivation, streamAudienceAndMotivation } from '@/lib/prd-ai-helpers'
 
-export function AudiencePhase() {
+export function AudiencePhase({ animationDelay = 0 }: { animationDelay?: number }) {
   const {
     initialIntent,
     audience,
@@ -55,8 +55,15 @@ export function AudiencePhase() {
   }
 
   const handleContinue = () => {
-    const refined = initialIntent.replace(/\s+/g, ' ').trim()
-    const words = refined.split(' ').slice(0, 14).join(' ')
+    // Clean the intent: remove common prefixes like "I want to build", "I need to create", etc.
+    const cleaned = initialIntent
+      .replace(/\s+/g, ' ')
+      .replace(/^I\s+want\s+to\s+build\s+(a\s+)?/i, '')
+      .replace(/^I\s+need\s+to\s+create\s+(a\s+)?/i, '')
+      .replace(/^Build\s+(a\s+)?/i, '')
+      .replace(/^Create\s+(a\s+)?/i, '')
+      .trim()
+    const words = cleaned.split(' ').slice(0, 14).join(' ')
     const sda = audience ? `${words} for ${audience}` : words
     setSda(sda.charAt(0).toUpperCase() + sda.slice(1))
 
@@ -77,7 +84,10 @@ export function AudiencePhase() {
   }
 
   return (
-    <div className="mt-4 p-4 rounded-xl border border-gray-800 bg-gray-900">
+    <div
+      className="mt-4 p-4 rounded-xl border border-gray-800 bg-gray-900 animate-in fade-in slide-in-from-bottom-4"
+      style={{ animationDelay: `${animationDelay}ms`, animationDuration: '400ms', animationFillMode: 'both' }}
+    >
       <div className="mb-4">
         <div className="text-white font-semibold text-lg mb-1">Who & Why</div>
         <div className="text-gray-400 text-sm">Help me understand your target audience and motivation</div>

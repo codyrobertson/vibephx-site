@@ -15,5 +15,10 @@ export default async function BuilderLayout({
   // Cached per request to improve performance
   await getCachedUser()
 
-  return <>{children}</>
+  // Full-screen layout - start below navbar, fill rest of viewport
+  return (
+    <div className="fixed top-16 md:top-20 bottom-0 left-0 right-0 overflow-hidden bg-black">
+      {children}
+    </div>
+  )
 }

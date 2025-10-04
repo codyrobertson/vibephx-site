@@ -4,7 +4,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 
 export type ChatMessage = { id: string; role: 'user' | 'assistant'; content: string }
 
-export function useStreamingChat(api: string = '/api/chat-plain') {
+export function useStreamingChat(api: string = '/api/chat-plain', additionalBody?: Record<string, any>) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [status, setStatus] = useState<'ready' | 'streaming'>('ready')
   const [error, setError] = useState<Error | null>(null)
@@ -30,7 +30,7 @@ export function useStreamingChat(api: string = '/api/chat-plain') {
       const res = await fetch(api, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: messagesToSend }),
+        body: JSON.stringify({ messages: messagesToSend, ...additionalBody }),
         signal: controller.signal,
       })
 
@@ -55,7 +55,7 @@ export function useStreamingChat(api: string = '/api/chat-plain') {
       setStatus('ready')
       controllerRef.current = null
     }
-  }, [api, status])
+  }, [api, status, additionalBody])
 
   const stop = useCallback(() => {
     controllerRef.current?.abort()

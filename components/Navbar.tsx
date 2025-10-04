@@ -3,14 +3,17 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { MagicWandIcon } from '@radix-ui/react-icons'
+import { LayoutDashboard, FilePlus } from 'lucide-react'
 import Image from 'next/image'
 import { useBuilder } from './builder/BuilderContext'
 import UserMenuWrapper from './auth/UserMenuWrapper'
+import { AdminNavLink } from './AdminNavLink'
+import { Suspense } from 'react'
 
 export default function Navbar() {
   const pathname = usePathname()
   const isBuilderPage = pathname === '/builder'
-  
+
   let builderProgress = null
   try {
     const builder = useBuilder()
@@ -40,7 +43,7 @@ export default function Navbar() {
             {isBuilderPage && (
               <div className="flex items-center gap-2">
                 <MagicWandIcon className="w-5 h-5 text-blue-400" />
-                <span className="text-lg font-semibold">AI Project Builder</span>
+                <span className="text-lg font-semibold">PRD Builder</span>
                 {builderProgress && (
                   <span className="hidden sm:block text-sm text-gray-400 ml-2">
                     Step {builderProgress.currentStep + 1}/{builderProgress.totalSteps}
@@ -52,15 +55,28 @@ export default function Navbar() {
             {/* Right - Navigation Links */}
             <div className="flex items-center gap-4">
               {!isBuilderPage && (
-                <Link 
-                  href="/dashboard"
-                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-black font-semibold rounded-lg transition-colors"
-                >
-                  Dashboard
-                </Link>
+                <>
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors"
+                  >
+                    <LayoutDashboard className="w-5 h-5" />
+                    <span className="font-medium hidden sm:inline">Dashboard</span>
+                  </Link>
+                  <Link
+                    href="/builder/prd-builder"
+                    className="flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors"
+                  >
+                    <FilePlus className="w-5 h-5" />
+                    <span className="font-medium hidden sm:inline">Create PRD</span>
+                  </Link>
+                  <Suspense fallback={null}>
+                    <AdminNavLink />
+                  </Suspense>
+                </>
               )}
               {isBuilderPage && (
-                <Link 
+                <Link
                   href="/"
                   className="px-4 py-2 border border-gray-600 hover:border-gray-400 text-white rounded-lg transition-colors"
                 >

@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism'
+import { Bookmark, BookmarkCheck } from 'lucide-react'
+import { usePRDStore } from '@/lib/stores/usePRDStore'
 
 interface ArtifactProps extends React.HTMLAttributes<HTMLDivElement> {
   title: string
@@ -12,6 +14,8 @@ interface ArtifactProps extends React.HTMLAttributes<HTMLDivElement> {
   content: string
   language?: string
   actions?: React.ReactNode
+  projectId?: string
+  enableBookmarking?: boolean
 }
 
 export function Artifact({
@@ -20,16 +24,51 @@ export function Artifact({
   content,
   language = 'typescript',
   actions,
+  projectId,
+  enableBookmarking = false,
   className,
   ...props
 }: ArtifactProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [copied, setCopied] = useState(false)
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [bookmarking, setBookmarking] = useState(false)
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(content)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleBookmark = async () => {
+    if (!projectId || bookmarking) return
+
+    setBookmarking(true)
+    try {
+      const documentType = type === 'prd' ? 'PRD' : type === 'code' ? 'CODE' : type === 'markdown' ? 'MARKDOWN' : 'TEXT'
+
+      const res = await fetch(`/api/projects/${projectId}/documents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: documentType,
+          title: title,
+          content: content,
+          isBookmarked: true,
+          generatedBy: 'AI Assistant',
+          tags: [type]
+        })
+      })
+
+      if (res.ok) {
+        setIsBookmarked(true)
+        setTimeout(() => setIsBookmarked(false), 3000) // Reset after 3 seconds
+      }
+    } catch (error) {
+      console.error('Failed to bookmark artifact:', error)
+    } finally {
+      setBookmarking(false)
+    }
   }
 
   return (
@@ -60,6 +99,32 @@ export function Artifact({
         </div>
         <div className="flex items-center gap-2">
           {actions}
+          {enableBookmarking && projectId && (
+            <button
+              onClick={handleBookmark}
+              disabled={bookmarking}
+              className={`text-xs transition-colors px-2 py-1 rounded hover:bg-gray-700/50 ${
+                isBookmarked
+                  ? 'text-orange-500'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+              title={isBookmarked ? 'Saved to project' : 'Save to project'}
+            >
+              {isBookmarked ? (
+                <>
+                  <BookmarkCheck className="w-3 h-3 inline mr-1" />
+                  Saved
+                </>
+              ) : bookmarking ? (
+                'Saving...'
+              ) : (
+                <>
+                  <Bookmark className="w-3 h-3 inline mr-1" />
+                  Save
+                </>
+              )}
+            </button>
+          )}
           <button
             onClick={handleCopy}
             className="text-xs text-gray-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-gray-700/50"

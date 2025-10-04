@@ -1,54 +1,127 @@
 import { stackServerApp } from '@/stack'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import Image from 'next/image'
 import { formatDistanceToNow } from 'date-fns'
 import { Button } from '@/components/ui/button'
+import { FilePlus } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 60 // Revalidate every 60 seconds
 
 export default async function DashboardPage() {
   const user = await stackServerApp.getUser({ or: 'redirect' })
-  
-  const projects = await prisma.project.findMany({
-    where: { userId: user.id },
-    include: {
-      prdSessions: {
-        orderBy: { updatedAt: 'desc' },
-        take: 1
+
+  // Parallelize all database queries for maximum performance
+  const [projects, userWithProfile, llmStats, workshops] = await Promise.all([
+    // Query 1: Projects with latest session
+    prisma.project.findMany({
+      where: { userId: user.id },
+      include: {
+        prdSessions: {
+          orderBy: { updatedAt: 'desc' },
+          take: 1,
+          select: {
+            id: true,
+            phase: true,
+            sda: true,
+            initialIntent: true,
+            updatedAt: true
+          }
+        }
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 50 // Limit to recent 50 projects
+    }),
+
+    // Query 2: User with profile and credits (combined query)
+    prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        creditsBalance: true,
+        profile: {
+          select: {
+            onboardingCompleted: true
+          }
+        }
       }
-    },
-    orderBy: { updatedAt: 'desc' }
-  })
+    }),
 
-  const profile = await prisma.userProfile.findUnique({
-    where: { userId: user.id }
-  })
+    // Query 3: LLM statistics
+    prisma.lLMLog.aggregate({
+      where: { userId: user.id },
+      _sum: { totalTokens: true, costUsd: true },
+      _count: true
+    }),
 
-  const llmStats = await prisma.lLMLog.aggregate({
-    where: { userId: user.id },
-    _sum: { totalTokens: true, costUsd: true },
-    _count: true
-  })
+    // Query 4: Workshops with attendance
+    prisma.workshop.findMany({
+      where: {
+        attendees: {
+          some: {
+            userId: user.id
+          }
+        }
+      },
+      include: {
+        attendees: {
+          where: {
+            userId: user.id
+          },
+          select: {
+            id: true,
+            creditsAwarded: true,
+            creditsApplied: true
+          }
+        }
+      },
+      orderBy: { date: 'desc' },
+      take: 20 // Limit to recent 20 workshops
+    })
+  ])
+
+  // Extract profile from combined query
+  const profile = userWithProfile?.profile
+
+  console.log('[DASHBOARD] User ID:', user.id)
+  console.log('[DASHBOARD] Workshops found:', workshops.length)
+  console.log('[DASHBOARD] Workshops:', JSON.stringify(workshops, null, 2))
 
   return (
     <div className="min-h-screen bg-black py-12">
       <div className="container mx-auto px-4">
+        {/* Profile Incomplete Banner */}
+        {!profile?.onboardingCompleted && (
+          <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-white font-medium">Complete your profile to unlock all features</p>
+                <p className="text-gray-400 text-sm">Set your preferences and get personalized project recommendations</p>
+              </div>
+            </div>
+            <Link href="/onboarding">
+              <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500/10">
+                Complete Profile
+              </Button>
+            </Link>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold text-white mb-2">Dashboard</h1>
             <p className="text-gray-400">Your projects and PRD sessions</p>
           </div>
           <div className="flex gap-3">
-            {!profile?.onboardingCompleted && (
-              <Link href="/onboarding">
-                <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500/10">
-                  Complete Onboarding
-                </Button>
-              </Link>
-            )}
             <Link href="/builder/prd-builder">
               <Button className="bg-orange-500 hover:bg-orange-600">
-                New PRD
+                <FilePlus className="w-4 h-4" />
+                Create PRD
               </Button>
             </Link>
           </div>
@@ -69,13 +142,13 @@ export default async function DashboardPage() {
             <div className="text-2xl font-bold text-white">${(llmStats._sum.costUsd || 0).toFixed(4)}</div>
           </div>
           <div className="p-4 rounded-xl border border-gray-800 bg-gray-900/50">
-            <div className="text-xs text-gray-400 mb-1">Profile</div>
-            <div className="text-sm text-white">{profile?.onboardingCompleted ? '✓ Complete' : 'Incomplete'}</div>
+            <div className="text-xs text-gray-400 mb-1">Credits Balance</div>
+            <div className="text-2xl font-bold text-white">${(userWithProfile?.creditsBalance || 0).toFixed(2)}</div>
           </div>
         </div>
 
         {/* Projects Table */}
-        <div className="rounded-xl border border-gray-800 bg-gray-900/30 overflow-hidden">
+        <div className="rounded-xl border border-gray-800 bg-gray-900/30 overflow-hidden mb-8">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -93,6 +166,7 @@ export default async function DashboardPage() {
                       <div className="text-gray-400 mb-4">No projects yet</div>
                       <Link href="/builder/prd-builder">
                         <Button className="bg-orange-500 hover:bg-orange-600">
+                          <FilePlus className="w-4 h-4" />
                           Create Your First PRD
                         </Button>
                       </Link>
@@ -126,18 +200,104 @@ export default async function DashboardPage() {
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
                             <Link href={latestSession ? `/builder/prd-builder?session=${latestSession.id}` : `/builder/prd-builder`}>
-                              <Button variant="outline" className="border-gray-700 text-gray-300 hover:border-orange-500">
+                              <Button variant="outline" className="border-gray-700 text-gray-300 hover:bg-white/10 hover:border-white">
                                 Continue
                               </Button>
                             </Link>
                             {canView && (
                               <Link href={`/projects/${project.id}`}>
-                                <Button variant="outline" className="border-gray-700 text-gray-300 hover:border-orange-500">
+                                <Button className="bg-white text-black hover:bg-gray-200">
                                   View
                                 </Button>
                               </Link>
                             )}
                           </div>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Workshops Table */}
+        <div className="rounded-xl border border-gray-800 bg-gray-900/30 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-800">
+            <h2 className="text-xl font-bold text-white">Workshop Attendance</h2>
+            <p className="text-sm text-gray-400 mt-1">Your attended workshops and earned credits</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-800">
+                  <th className="text-left px-6 py-4 text-xs font-medium text-gray-400 uppercase tracking-wider">Workshop</th>
+                  <th className="text-left px-6 py-4 text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
+                  <th className="text-left px-6 py-4 text-xs font-medium text-gray-400 uppercase tracking-wider">Location</th>
+                  <th className="text-left px-6 py-4 text-xs font-medium text-gray-400 uppercase tracking-wider">Credits Awarded</th>
+                  <th className="text-left px-6 py-4 text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {workshops.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center">
+                      <Image
+                        src="/workshop-one-medal.png"
+                        alt="Workshop Medal"
+                        width={80}
+                        height={80}
+                        className="mx-auto mb-4 opacity-30"
+                      />
+                      <div className="text-gray-400">No workshops attended yet</div>
+                    </td>
+                  </tr>
+                ) : (
+                  workshops.map((workshop) => {
+                    const attendance = workshop.attendees[0]
+                    return (
+                      <tr key={workshop.id} className="border-b border-gray-800 hover:bg-gray-900/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-start gap-3">
+                            <Image
+                              src="/workshop-one-medal.png"
+                              alt="Workshop Medal"
+                              width={40}
+                              height={40}
+                              className="flex-shrink-0 mt-1"
+                            />
+                            <div className="flex-1">
+                              <div className="text-white font-medium">{workshop.title}</div>
+                              {workshop.description && (
+                                <div className="text-sm text-gray-400 mt-1">{workshop.description}</div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-300">
+                          {new Date(workshop.date).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-400">
+                          {workshop.location || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-green-400 font-semibold">
+                            ${attendance.creditsAwarded.toFixed(2)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            attendance.creditsApplied
+                              ? 'bg-green-900 text-green-300'
+                              : 'bg-yellow-900 text-yellow-300'
+                          }`}>
+                            {attendance.creditsApplied ? 'Applied' : 'Pending'}
+                          </span>
                         </td>
                       </tr>
                     )

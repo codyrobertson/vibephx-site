@@ -5,7 +5,11 @@ import { stackServerApp } from '@/stack'
 import Navbar from '@/components/Navbar'
 import './globals.css'
 
-const geist = Geist({ subsets: ['latin'] })
+const geist = Geist({
+  subsets: ['latin'],
+  variable: '--font-geist',
+  display: 'swap'
+})
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.vibecodephx.com'),
@@ -170,7 +174,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${geist.className} bg-black text-white`}>
+      <body className={`${geist.variable} font-sans bg-black text-white antialiased`}>
         <StackProvider app={stackServerApp}>
           <StackTheme>
             <Navbar />
