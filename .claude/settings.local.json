@@ -24,7 +24,8 @@
       "Bash(npx prisma migrate dev:*)",
       "Bash(npx prisma:*)",
       "Bash(npx tsx:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(gh browse:*)"
     ],
     "deny": [],
     "ask": []
