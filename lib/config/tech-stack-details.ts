@@ -7,7 +7,7 @@ export interface TechDetail {
   id: string
   name: string
   logo: string
-  category: 'editor' | 'ui' | 'hosting' | 'database' | 'integration'
+  category: 'editor' | 'ui' | 'frontend' | 'hosting' | 'deployment' | 'database' | 'integration' | 'language'
   description: string
   whatItIs: string
   howItsUsed: string[]
@@ -361,7 +361,7 @@ export const techStackDetails: Record<string, TechDetail> = {
     id: 'next.js',
     name: 'Next.js',
     logo: 'https://nextjs.org/favicon.ico',
-    category: 'ui',
+    category: 'frontend',
     description: 'React framework for production',
     whatItIs: 'Next.js is a React framework that enables server-side rendering, static site generation, and provides an excellent developer experience with built-in routing and API routes.',
     howItsUsed: [
@@ -382,7 +382,7 @@ export const techStackDetails: Record<string, TechDetail> = {
     id: 'react',
     name: 'React',
     logo: 'https://react.dev/favicon.ico',
-    category: 'ui',
+    category: 'frontend',
     description: 'JavaScript library for building UIs',
     whatItIs: 'React is a declarative, component-based JavaScript library for building user interfaces, maintained by Meta and a community of developers.',
     howItsUsed: [
@@ -445,7 +445,7 @@ export const techStackDetails: Record<string, TechDetail> = {
     id: 'typescript',
     name: 'TypeScript',
     logo: 'https://www.typescriptlang.org/favicon.ico',
-    category: 'ui',
+    category: 'language',
     description: 'Typed superset of JavaScript',
     whatItIs: 'TypeScript is a strongly typed programming language that builds on JavaScript, giving you better tooling at any scale.',
     howItsUsed: [
@@ -634,7 +634,7 @@ export const techStackDetails: Record<string, TechDetail> = {
     id: 'aws',
     name: 'AWS',
     logo: 'https://aws.amazon.com/favicon.ico',
-    category: 'hosting',
+    category: 'deployment',
     description: 'Amazon Web Services cloud platform',
     whatItIs: 'AWS is Amazon\'s comprehensive cloud computing platform offering compute, storage, database, and other services.',
     howItsUsed: [
@@ -655,7 +655,7 @@ export const techStackDetails: Record<string, TechDetail> = {
     id: 'cloudflare',
     name: 'Cloudflare',
     logo: 'https://www.cloudflare.com/favicon.ico',
-    category: 'hosting',
+    category: 'deployment',
     description: 'Web infrastructure and security',
     whatItIs: 'Cloudflare provides CDN, DDoS protection, DNS, and serverless computing at the edge of the network.',
     howItsUsed: [
@@ -697,7 +697,7 @@ export const techStackDetails: Record<string, TechDetail> = {
     id: 'docker',
     name: 'Docker',
     logo: 'https://www.docker.com/favicon.ico',
-    category: 'hosting',
+    category: 'deployment',
     description: 'Container platform',
     whatItIs: 'Docker is a platform for developing, shipping, and running applications in containers.',
     howItsUsed: [

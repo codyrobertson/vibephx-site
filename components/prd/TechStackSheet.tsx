@@ -89,17 +89,23 @@ export function TechStackSheet({ open, onOpenChange, tech, projectId }: TechStac
   const categoryLabels: Record<typeof tech.category, string> = {
     editor: 'Development Tool',
     ui: 'UI Framework',
+    frontend: 'Frontend Framework',
     hosting: 'Hosting Platform',
+    deployment: 'Deployment Platform',
     database: 'Database',
-    integration: 'Integration'
+    integration: 'Integration',
+    language: 'Programming Language'
   }
 
   const categoryColors: Record<typeof tech.category, string> = {
     editor: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
     ui: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    frontend: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
     hosting: 'bg-green-500/10 text-green-400 border-green-500/20',
+    deployment: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
     database: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-    integration: 'bg-pink-500/10 text-pink-400 border-pink-500/20'
+    integration: 'bg-pink-500/10 text-pink-400 border-pink-500/20',
+    language: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
   }
 
   return (
