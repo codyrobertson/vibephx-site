@@ -12,6 +12,60 @@ export const revalidate = 60 // Revalidate every 60 seconds
 export default async function DashboardPage() {
   const user = await stackServerApp.getUser({ or: 'redirect' })
 
+  // Auto-sync user IDs if mismatch detected (workshop attendance fix)
+  const prismaUser = await prisma.user.findUnique({
+    where: { email: user.primaryEmail || '' }
+  })
+
+  if (prismaUser && prismaUser.id !== user.id) {
+    console.log('[AUTO-SYNC] User ID mismatch detected, syncing...')
+    console.log('[AUTO-SYNC] Stack Auth ID:', user.id, 'Prisma ID:', prismaUser.id)
+
+    try {
+      // Update all workshop attendance records
+      await prisma.workshopAttendance.updateMany({
+        where: { userId: prismaUser.id },
+        data: { userId: user.id }
+      })
+
+      // Update all projects
+      await prisma.project.updateMany({
+        where: { userId: prismaUser.id },
+        data: { userId: user.id }
+      })
+
+      // Update profile
+      await prisma.userProfile.updateMany({
+        where: { userId: prismaUser.id },
+        data: { userId: user.id }
+      })
+
+      // Delete old user record
+      await prisma.user.deleteMany({
+        where: { id: prismaUser.id }
+      })
+
+      // Create/update user record with Stack Auth ID
+      await prisma.user.upsert({
+        where: { id: user.id },
+        create: {
+          id: user.id,
+          email: user.primaryEmail || '',
+          name: user.displayName,
+          creditsBalance: prismaUser.creditsBalance
+        },
+        update: {
+          email: user.primaryEmail || '',
+          name: user.displayName
+        }
+      })
+
+      console.log('[AUTO-SYNC] Successfully synced user IDs')
+    } catch (error) {
+      console.error('[AUTO-SYNC] Failed to sync:', error)
+    }
+  }
+
   // Parallelize all database queries for maximum performance
   const [projects, userWithProfile, llmStats, workshops] = await Promise.all([
     // Query 1: Projects with latest session
