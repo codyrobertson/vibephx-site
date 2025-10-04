@@ -313,21 +313,23 @@ export default async function DashboardPage() {
                     return (
                       <tr key={workshop.id} className="border-b border-gray-800 hover:bg-gray-900/50 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="flex items-start gap-3">
-                            <Image
-                              src="/workshop-one-medal.png"
-                              alt="Workshop Medal"
-                              width={40}
-                              height={40}
-                              className="flex-shrink-0 mt-1"
-                            />
-                            <div className="flex-1">
-                              <div className="text-white font-medium">{workshop.title}</div>
-                              {workshop.description && (
-                                <div className="text-sm text-gray-400 mt-1">{workshop.description}</div>
-                              )}
+                          <Link href={`/workshops/${workshop.id}`} className="block group">
+                            <div className="flex items-start gap-3">
+                              <Image
+                                src="/workshop-one-medal.png"
+                                alt="Workshop Medal"
+                                width={40}
+                                height={40}
+                                className="flex-shrink-0 mt-1"
+                              />
+                              <div className="flex-1">
+                                <div className="text-white font-medium group-hover:text-orange-500 transition-colors">{workshop.title}</div>
+                                {workshop.description && (
+                                  <div className="text-sm text-gray-400 mt-1">{workshop.description}</div>
+                                )}
+                              </div>
                             </div>
-                          </div>
+                          </Link>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-300">
                           {new Date(workshop.date).toLocaleDateString('en-US', {

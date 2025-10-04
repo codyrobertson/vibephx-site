@@ -26,7 +26,17 @@
       "Bash(npx tsx:*)",
       "Bash(npm uninstall:*)",
       "Bash(gh browse:*)",
-      "Bash(timeout 5 curl -N -X POST https://www.vibecodephx.com/api/prd/inference )"
+      "Bash(timeout 5 curl -N -X POST https://www.vibecodephx.com/api/prd/inference )",
+      "Bash(timeout:*)",
+      "Bash(vercel env ls:*)",
+      "Bash(vercel env pull:*)",
+      "Bash(source:*)",
+      "Bash(vercel env rm:*)",
+      "Bash(echo \"$OPENROUTER_API_KEY\")",
+      "Bash(vercel env add:*)",
+      "Bash(vercel ls:*)",
+      "Bash(vercel logs:*)",
+      "Bash(printf \"%s\" \"$OPENROUTER_API_KEY\")"
     ],
     "deny": [],
     "ask": []

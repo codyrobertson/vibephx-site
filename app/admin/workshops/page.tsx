@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Plus, Users, Calendar, DollarSign, Trash2 } from 'lucide-react'
+import { Plus, Users, Calendar, DollarSign, Trash2, Upload, FileText, Download, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
+
+interface WorkshopFile {
+  name: string
+  url: string
+  size: number
+  type: string
+  uploadedAt: string
+}
 
 interface Workshop {
   id: string
@@ -11,6 +20,7 @@ interface Workshop {
   date: string
   location: string | null
   credits: number
+  files?: WorkshopFile[]
   attendees: {
     id: string
     userId: string
@@ -59,6 +69,10 @@ export default function AdminWorkshopsPage() {
   const [bulkEmails, setBulkEmails] = useState('')
   const [bulkCredits, setBulkCredits] = useState('20')
   const [bulkResults, setBulkResults] = useState<any>(null)
+
+  // File uploads
+  const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({})
+  const [deletingFiles, setDeletingFiles] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     // Fetch both in parallel for better performance
@@ -287,6 +301,56 @@ export default function AdminWorkshopsPage() {
       alert('Failed to sync user. Please try again.')
     } finally {
       setSyncing(false)
+    }
+  }
+
+  const handleFileUpload = async (workshopId: string, file: File) => {
+    setUploadingFiles(prev => ({ ...prev, [workshopId]: true }))
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await fetch(`/api/admin/workshops/${workshopId}/files`, {
+        method: 'POST',
+        body: formData
+      })
+
+      if (res.ok) {
+        fetchWorkshops()
+      } else {
+        const data = await res.json()
+        alert(`Failed to upload file: ${data.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Failed to upload file:', error)
+      alert('Failed to upload file. Please try again.')
+    } finally {
+      setUploadingFiles(prev => ({ ...prev, [workshopId]: false }))
+    }
+  }
+
+  const handleDeleteFile = async (workshopId: string, fileName: string) => {
+    if (!confirm(`Delete file "${fileName}"?`)) return
+
+    const deleteKey = `${workshopId}-${fileName}`
+    setDeletingFiles(prev => ({ ...prev, [deleteKey]: true }))
+    try {
+      const res = await fetch(
+        `/api/admin/workshops/${workshopId}/files?name=${encodeURIComponent(fileName)}`,
+        { method: 'DELETE' }
+      )
+
+      if (res.ok) {
+        fetchWorkshops()
+      } else {
+        const data = await res.json()
+        alert(`Failed to delete file: ${data.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Failed to delete file:', error)
+      alert('Failed to delete file. Please try again.')
+    } finally {
+      setDeletingFiles(prev => ({ ...prev, [deleteKey]: false }))
     }
   }
 
@@ -643,7 +707,12 @@ export default function AdminWorkshopsPage() {
                 <div className="p-6 border-b border-gray-800">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold text-white mb-2">{workshop.title}</h3>
+                      <Link href={`/workshops/${workshop.id}`} className="group">
+                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-orange-500 transition-colors flex items-center gap-2">
+                          {workshop.title}
+                          <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </h3>
+                      </Link>
                       {workshop.description && (
                         <p className="text-gray-400 mb-3">{workshop.description}</p>
                       )}
@@ -692,6 +761,88 @@ export default function AdminWorkshopsPage() {
                       </Button>
                     </div>
                   </div>
+                </div>
+
+                {/* Files Section */}
+                <div className="p-6 border-b border-gray-800 bg-gray-900/20">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wider">
+                      Workshop Files
+                    </h4>
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            handleFileUpload(workshop.id, file)
+                            e.target.value = ''
+                          }
+                        }}
+                        disabled={uploadingFiles[workshop.id]}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700"
+                        disabled={uploadingFiles[workshop.id]}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          const input = e.currentTarget.previousElementSibling as HTMLInputElement
+                          input?.click()
+                        }}
+                      >
+                        <Upload className="w-4 h-4" />
+                        {uploadingFiles[workshop.id] ? 'Uploading...' : 'Upload File'}
+                      </Button>
+                    </label>
+                  </div>
+
+                  {workshop.files && workshop.files.length > 0 ? (
+                    <div className="space-y-2">
+                      {workshop.files.map((file, index) => {
+                        const deleteKey = `${workshop.id}-${file.name}`
+                        return (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800/70 transition-colors"
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <FileText className="w-5 h-5 text-orange-500 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white font-medium truncate">{file.name}</p>
+                                <p className="text-xs text-gray-400">
+                                  {new Date(file.uploadedAt).toLocaleDateString()} •{' '}
+                                  {(file.size / 1024).toFixed(1)} KB
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={file.url}
+                                download={file.name}
+                                className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-950/50 rounded transition-colors"
+                                title="Download"
+                              >
+                                <Download className="w-4 h-4" />
+                              </a>
+                              <button
+                                onClick={() => handleDeleteFile(workshop.id, file.name)}
+                                disabled={deletingFiles[deleteKey]}
+                                className="p-2 text-red-400 hover:text-red-300 hover:bg-red-950/50 rounded transition-colors disabled:opacity-50"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm text-center py-4">No files uploaded yet</p>
+                  )}
                 </div>
 
                 {/* Attendees List */}
