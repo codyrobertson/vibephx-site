@@ -3,6 +3,8 @@
  * All calls go through the inference gate for logging
  */
 
+import { callInference } from './resilient-inference'
+
 export async function generateAudienceAndMotivation(
   initialIntent: string,
   projectId?: string,
@@ -43,6 +45,7 @@ MOTIVATION: [sentence]`
 }
 
 // Streaming version: emits partial audience/motivation as they are generated
+// Now uses resilient fallback to non-stream if streaming fails
 export async function streamAudienceAndMotivation(
   initialIntent: string,
   onUpdate: (partial: { audience?: string; motivation?: string }) => void,
@@ -55,25 +58,9 @@ MOTIVATION: <one concise sentence for why to build now>
 
 Idea: "${initialIntent}"`
 
-  const res = await fetch('/api/prd/inference', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      messages: [{ role: 'user', content: prompt }],
-      purpose: 'autofill_audience_stream',
-      projectId,
-      sessionId,
-      stream: true
-    })
-  })
-
-  if (!res.ok || !res.body) throw new Error('Failed to stream')
-
-  const reader = res.body.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
   let audience = ''
   let motivation = ''
+  let buffer = ''
 
   const emit = () => {
     onUpdate({
@@ -82,34 +69,42 @@ Idea: "${initialIntent}"`
     })
   }
 
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-
-    // Try to parse partials line-by-line
-    const lines = buffer.split('\n')
-    for (let i = 0; i < lines.length - 1; i++) {
-      const line = lines[i].trim()
-      if (line.toUpperCase().startsWith('AUDIENCE:')) {
-        audience = line.replace(/^[Aa][Uu][Dd][Ii][Ee][Nn][Cc][Ee]:\s*/, '').trim()
+  const parseLines = (text: string) => {
+    const lines = text.split('\n')
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (trimmed.toUpperCase().startsWith('AUDIENCE:')) {
+        audience = trimmed.replace(/^[Aa][Uu][Dd][Ii][Ee][Nn][Cc][Ee]:\s*/, '').trim()
         emit()
       }
-      if (line.toUpperCase().startsWith('MOTIVATION:')) {
-        motivation = line.replace(/^[Mm][Oo][Tt][Ii][Vv][Aa][Tt][Ii][Oo][Nn]:\s*/, '').trim()
+      if (trimmed.toUpperCase().startsWith('MOTIVATION:')) {
+        motivation = trimmed.replace(/^[Mm][Oo][Tt][Ii][Vv][Aa][Tt][Ii][Oo][Nn]:\s*/, '').trim()
         emit()
       }
     }
-    buffer = lines[lines.length - 1]
   }
 
-  // Final parse for the tail
-  const audMatch = buffer.match(/AUDIENCE:\s*(.+?)(?:\n|$)/i)
-  const motMatch = buffer.match(/MOTIVATION:\s*(.+?)(?:\n|$)/i)
-  if (audMatch) audience = audMatch[1].trim()
-  if (motMatch) motivation = motMatch[1].trim()
-  emit()
-  return { audience: audience || '—', motivation: motivation || '—' }
+  try {
+    const result = await callInference(
+      [{ role: 'user', content: prompt }],
+      {
+        purpose: 'autofill_audience_stream',
+        projectId,
+        sessionId,
+        onChunk: (chunk) => {
+          buffer = chunk
+          parseLines(chunk)
+        }
+      }
+    )
+
+    // Final parse
+    parseLines(result.content)
+    return { audience: audience || '—', motivation: motivation || '—' }
+  } catch (err) {
+    console.error('[streamAudienceAndMotivation] failed:', err)
+    return { audience: '—', motivation: '—' }
+  }
 }
 
 export async function generateMVPFeatures(
@@ -148,49 +143,41 @@ Example:
 
 Return ONLY the 4 features, nothing else.`
 
-  const res = await fetch('/api/prd/inference', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      messages: [{ role: 'user', content: prompt }],
-      purpose: 'feature_suggestions',
-      projectId,
-      sessionId,
-      stream: true
-    })
-  })
-
-  if (!res.ok || !res.body) throw new Error('Failed to generate features')
-
-  const reader = res.body.getReader()
-  const decoder = new TextDecoder()
   let buffer = ''
+  const emittedFeatures = new Set<string>()
 
-  while (true) {
-    const { value, done } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-
-    // Parse features incrementally as they complete (line by line)
-    const lines = buffer.split('\n')
-    for (let i = 0; i < lines.length - 1; i++) {
+  const parseFeatures = (text: string) => {
+    const lines = text.split('\n')
+    for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim()
       if (line.startsWith('- ')) {
         const feature = line.slice(2).trim()
-        if (feature && !existingFeatures.includes(feature)) {
+        if (feature && !existingFeatures.includes(feature) && !emittedFeatures.has(feature)) {
+          emittedFeatures.add(feature)
           onFeature(feature)
         }
       }
     }
-    buffer = lines[lines.length - 1]
   }
 
-  // Process final line
-  if (buffer.trim().startsWith('- ')) {
-    const feature = buffer.trim().slice(2).trim()
-    if (feature && !existingFeatures.includes(feature)) {
-      onFeature(feature)
-    }
+  try {
+    const result = await callInference(
+      [{ role: 'user', content: prompt }],
+      {
+        purpose: 'feature_suggestions',
+        projectId,
+        sessionId,
+        onChunk: (chunk) => {
+          buffer = chunk
+          parseFeatures(chunk)
+        }
+      }
+    )
+
+    // Final parse
+    parseFeatures(result.content)
+  } catch (err) {
+    console.error('[generateMVPFeatures] failed:', err)
   }
 }
 

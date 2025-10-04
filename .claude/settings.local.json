@@ -25,7 +25,8 @@
       "Bash(npx prisma:*)",
       "Bash(npx tsx:*)",
       "Bash(npm uninstall:*)",
-      "Bash(gh browse:*)"
+      "Bash(gh browse:*)",
+      "Bash(timeout 5 curl -N -X POST https://www.vibecodephx.com/api/prd/inference )"
     ],
     "deny": [],
     "ask": []

@@ -7,6 +7,30 @@ import { OpenInChat } from '@/components/ai-elements/open-in-chat'
 import { Actions, Action } from '@/components/ai-elements/actions'
 import { Copy, RefreshCw, Bookmark, Download } from 'lucide-react'
 
+function buildEnrichedPrompt(pd: any) {
+  const { projectName, audience, motivation, features, stack, database, integrations } = pd
+  return `You are a brutally pragmatic product coach + senior architect writing a ONE-DAY MVP PRD.
+
+Project: ${projectName}
+Audience: ${audience}
+Why now: ${motivation}
+MVP: ${(features || []).join(', ') || '—'}
+Stack: ${stack || 'Modern web (Next.js + Vercel)'} | DB: ${database || 'Postgres'} | Integrations: ${(integrations || []).join(', ') || 'None'}
+
+# ${projectName} — MVP PRD
+## 1. Summary
+## 2. Goals / Non-Goals
+## 3. User Stories
+## 4. MVP Scope
+## 5. Out of Scope
+## 6. Acceptance Criteria
+## 7. Data Model & API Design
+## 8. Data & Integration Strategy
+## 9. Implementation Guide (time-boxed)
+## 10. Risks & Mitigations
+## 11. Success Metrics & Post-MVP Roadmap`
+}
+
 async function streamEnrichedPRD(
   projectData: {
     projectName: string
@@ -21,22 +45,52 @@ async function streamEnrichedPRD(
   },
   onChunk: (text: string) => void
 ): Promise<void> {
-  const res = await fetch('/api/prd/generate-enriched', {
+  const baseReq: RequestInit = {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(projectData)
-  })
-  if (!res.ok || !res.body) throw new Error('Failed to stream enriched PRD')
-  const reader = res.body.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-    onChunk(buffer)
+    cache: 'no-store',
   }
-  onChunk(buffer)
+
+  // 1) Try streaming first
+  try {
+    const res = await fetch('/api/prd/generate-enriched', {
+      ...baseReq,
+      body: JSON.stringify(projectData),
+    })
+    if (!res.ok) throw new Error(`enriched http ${res.status}`)
+    if (!res.body) throw new Error('enriched: no body')
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      onChunk(buffer)     // live update
+    }
+    return
+  } catch (err) {
+    console.warn('[PRD] enriched stream failed, falling back:', err)
+  }
+
+  // 2) Fallback to non-stream via /api/prd/inference
+  const prompt = buildEnrichedPrompt(projectData)
+  const res2 = await fetch('/api/prd/inference', {
+    ...baseReq,
+    body: JSON.stringify({
+      messages: [{ role: 'user', content: prompt }],
+      stream: false,
+      purpose: 'generate_enriched_prd',
+      projectId: projectData.projectId,
+      sessionId: projectData.sessionId,
+    }),
+  })
+  if (!res2.ok) {
+    const t = await res2.text().catch(() => '')
+    throw new Error(`fallback http ${res2.status} ${t}`)
+  }
+  const data = await res2.json()
+  onChunk(String(data.content ?? ''))
 }
 
 export function OutputsPhase({ animationDelay = 0 }: { animationDelay?: number }) {
