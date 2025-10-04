@@ -69,116 +69,130 @@ export function canCompletePRD(sessionData: {
 
 /**
  * Mark PRD session as completed
- * Uses database transaction for atomicity
+ * Uses minimal batch transaction for serverless reliability
  * Returns the updated session
  */
 export async function markPRDCompleted(sessionId: string) {
-  return await prisma.$transaction(async (tx) => {
-    // Get session with project
-    const session = await tx.pRDSession.findUnique({
-      where: { id: sessionId },
-      include: { project: true }
-    })
+  // 1) Read session outside transaction (fast, no lock)
+  const session = await prisma.pRDSession.findUnique({
+    where: { id: sessionId },
+    include: { project: true }
+  })
 
-    if (!session) {
-      throw new Error(`Session ${sessionId} not found`)
-    }
+  if (!session) {
+    throw new Error(`Session ${sessionId} not found`)
+  }
 
-    // Validate completion requirements
-    if (!canCompletePRD(session)) {
-      throw new Error('Session does not meet completion requirements')
-    }
+  // Validate completion requirements
+  if (!canCompletePRD(session)) {
+    throw new Error('Session does not meet completion requirements')
+  }
 
-    // Update session
-    const updatedSession = await tx.pRDSession.update({
-      where: { id: sessionId },
-      data: {
-        completed: true,
-        completedAt: new Date(),
-        phase: 'final'
-      }
-    })
+  const now = new Date()
 
-    // Update associated project if exists
-    if (session.projectId) {
-      await tx.project.update({
-        where: { id: session.projectId },
+  // 2) Minimal atomic batch (no long callback)
+  const [updatedSession] = await prisma.$transaction(
+    [
+      prisma.pRDSession.update({
+        where: { id: sessionId },
         data: {
-          status: 'COMPLETED',
-          completedAt: new Date(),
-          lastPRDAt: new Date(),
-          prdCount: { increment: 1 }
+          completed: true,
+          completedAt: now,
+          phase: 'final'
         }
-      })
-    }
-
-    // Generate tech details in the background only if not already cached
-    // This runs async and stores results in session.techStackDetails
-    if (!session.techStackDetails || Object.keys(session.techStackDetails as any).length === 0) {
-      generateAllTechDetails(
-        {
-          sda: session.sda || undefined,
-          initialIntent: session.initialIntent,
-          audience: session.audience || undefined,
-          motivation: session.motivation || undefined,
-          featuresMvp: session.featuresMvp,
-          selectedStack: session.selectedStack || undefined,
-          dbChoice: session.dbChoice || undefined,
-          integrations: session.integrations
-        },
-        session.userId,
-        session.projectId || undefined
-      ).then(async (techDetails) => {
-        // Store the generated details in the session
-        await prisma.pRDSession.update({
-          where: { id: sessionId },
+      }),
+      ...(session.projectId ? [
+        prisma.project.update({
+          where: { id: session.projectId },
           data: {
-            techStackDetails: techDetails as any // Prisma Json type
+            status: 'COMPLETED',
+            completedAt: now,
+            lastPRDAt: now,
+            prdCount: { increment: 1 }
           }
         })
-        console.log(`✅ Tech details generated for session ${sessionId}`)
-      }).catch((error) => {
-        console.error(`❌ Failed to generate tech details for session ${sessionId}:`, error)
-      })
+      ] : [])
+    ],
+    {
+      isolationLevel: 'ReadCommitted',
+      timeout: 10000,
+      maxWait: 5000
     }
+  )
 
-    return updatedSession
-  })
+  // 3) Generate tech details in background (non-blocking)
+  if (!session.techStackDetails || Object.keys(session.techStackDetails as any).length === 0) {
+    generateAllTechDetails(
+      {
+        sda: session.sda || undefined,
+        initialIntent: session.initialIntent,
+        audience: session.audience || undefined,
+        motivation: session.motivation || undefined,
+        featuresMvp: session.featuresMvp,
+        selectedStack: session.selectedStack || undefined,
+        dbChoice: session.dbChoice || undefined,
+        integrations: session.integrations
+      },
+      session.userId,
+      session.projectId || undefined
+    ).then(async (techDetails) => {
+      await prisma.pRDSession.update({
+        where: { id: sessionId },
+        data: {
+          techStackDetails: techDetails as any
+        }
+      })
+      console.log(`✅ Tech details generated for session ${sessionId}`)
+    }).catch((error) => {
+      console.error(`❌ Failed to generate tech details for session ${sessionId}:`, error)
+    })
+  }
+
+  return updatedSession
 }
 
 /**
  * Mark PRD session as in progress (generating)
  * Updates project status to GENERATING
+ * Uses minimal batch transaction for serverless reliability
  */
 export async function markPRDGenerating(sessionId: string) {
-  return await prisma.$transaction(async (tx) => {
-    const session = await tx.pRDSession.findUnique({
-      where: { id: sessionId }
-    })
-
-    if (!session) {
-      throw new Error(`Session ${sessionId} not found`)
-    }
-
-    // Update session phase
-    await tx.pRDSession.update({
-      where: { id: sessionId },
-      data: { phase: 'outputs' }
-    })
-
-    // Update project status if exists
-    if (session.projectId) {
-      await tx.project.update({
-        where: { id: session.projectId },
-        data: {
-          status: 'GENERATING',
-          prdGeneratedAt: new Date()
-        }
-      })
-    }
-
-    return session
+  // 1) Read session outside transaction
+  const session = await prisma.pRDSession.findUnique({
+    where: { id: sessionId }
   })
+
+  if (!session) {
+    throw new Error(`Session ${sessionId} not found`)
+  }
+
+  const now = new Date()
+
+  // 2) Minimal atomic batch
+  await prisma.$transaction(
+    [
+      prisma.pRDSession.update({
+        where: { id: sessionId },
+        data: { phase: 'outputs' }
+      }),
+      ...(session.projectId ? [
+        prisma.project.update({
+          where: { id: session.projectId },
+          data: {
+            status: 'GENERATING',
+            prdGeneratedAt: now
+          }
+        })
+      ] : [])
+    ],
+    {
+      isolationLevel: 'ReadCommitted',
+      timeout: 10000,
+      maxWait: 5000
+    }
+  )
+
+  return session
 }
 
 /**
