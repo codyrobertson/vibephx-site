@@ -49,7 +49,7 @@ Be conversational, helpful, and proactive about generating documents when asked.
       generateDocument: tool({
         description: 'Generate and save a comprehensive document (guide, tutorial, spec, etc.) to the user\'s project. Use this whenever the user asks you to create written content.',
         parameters: generateDocumentSchema,
-        execute: async (params) => {
+        execute: async (params: z.infer<typeof generateDocumentSchema>) => {
           if (!user || !projectId) {
             throw new Error('User must be logged in and have an active project')
           }
