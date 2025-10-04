@@ -1,22 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { callLLM, streamLLM } from '@/lib/inference-gate'
+import { stackServerApp } from '@/stack'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// Minimal GET handler for debugging
+// Test: imports added back
 export async function GET() {
   return NextResponse.json({
     status: 'ok',
-    message: 'Inference endpoint is responding',
+    message: 'Inference endpoint with imports is responding',
     timestamp: new Date().toISOString()
   })
 }
 
-// Minimal POST handler for debugging
+// Test: imports added back
 export async function POST(req: NextRequest) {
   return NextResponse.json({
     status: 'ok',
-    message: 'POST endpoint is responding',
+    message: 'POST endpoint with imports is responding',
     timestamp: new Date().toISOString()
   })
 }
