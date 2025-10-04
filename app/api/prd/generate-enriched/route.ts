@@ -5,6 +5,14 @@ import { stackServerApp } from '@/stack'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+// GET handler to verify route exists
+export async function GET() {
+  return NextResponse.json({
+    message: 'Generate enriched endpoint is active. Use POST to make requests.',
+    methods: ['POST']
+  })
+}
+
 /**
  * Enriched PRD generation with web search
  * Searches for best practices and examples before generating

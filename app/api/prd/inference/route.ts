@@ -5,6 +5,14 @@ import { stackServerApp } from '@/stack'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+// GET handler to verify route exists
+export async function GET() {
+  return NextResponse.json({
+    message: 'Inference endpoint is active. Use POST to make requests.',
+    methods: ['POST']
+  })
+}
+
 /**
  * Gated LLM inference endpoint
  * All AI calls go through this for logging and cost tracking
