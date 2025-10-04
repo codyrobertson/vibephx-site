@@ -166,15 +166,13 @@ export function OutputsPhase({ animationDelay = 0 }: { animationDelay?: number }
               <Action label={copied ? 'Copied!' : 'Copy to clipboard'} onClick={handleCopy}>
                 <Copy className="size-4" />
               </Action>
-              {projectId ? (
-                <Action label={bookmarked ? 'Saved!' : 'Save to project'} onClick={handleBookmark}>
-                  <Bookmark className={bookmarked ? 'size-4 fill-current' : 'size-4'} />
-                </Action>
-              ) : (
-                <Action label="No project ID" onClick={() => console.log('No projectId available')} disabled>
-                  <Bookmark className="size-4 opacity-50" />
-                </Action>
-              )}
+              <Action
+                label={bookmarked ? 'Saved!' : projectId ? 'Save to project' : 'No project'}
+                onClick={handleBookmark}
+                disabled={!projectId || !markdown}
+              >
+                <Bookmark className={bookmarked ? 'size-4 fill-current' : 'size-4'} />
+              </Action>
               <Action label="Download" onClick={handleDownload}>
                 <Download className="size-4" />
               </Action>
