@@ -371,16 +371,28 @@ export default function AdminWorkshopsPage() {
 
   const handleHeaderImageUpload = async (file: File) => {
     setUploadingHeaderImage(true)
+    if (!selectedWorkshop) return
+
     try {
-      // Convert to base64
-      const bytes = await file.arrayBuffer()
-      const buffer = Buffer.from(bytes)
-      const base64 = buffer.toString('base64')
-      const dataUrl = `data:${file.type};base64,${base64}`
-      setEditHeaderImage(dataUrl)
+      // Upload to Vercel Blob via dedicated endpoint
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await fetch(`/api/admin/workshops/${selectedWorkshop.id}/header-image`, {
+        method: 'POST',
+        body: formData
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setEditHeaderImage(data.url)
+      } else {
+        const data = await res.json()
+        alert(`Failed to upload image: ${data.error || 'Unknown error'}`)
+      }
     } catch (error) {
-      console.error('Failed to process image:', error)
-      alert('Failed to process image. Please try again.')
+      console.error('Failed to upload image:', error)
+      alert('Failed to upload image. Please try again.')
     } finally {
       setUploadingHeaderImage(false)
     }
@@ -391,6 +403,7 @@ export default function AdminWorkshopsPage() {
     if (!selectedWorkshop) return
 
     try {
+      // Only update content - header image is already uploaded
       const res = await fetch(`/api/admin/workshops/${selectedWorkshop.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },

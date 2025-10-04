@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stackServerApp } from '@/stack'
 import { prisma } from '@/lib/prisma'
+import { put, del } from '@vercel/blob'
 
 // POST - Upload file for workshop
 export async function POST(
   req: NextRequest,
-  { params }: { params: { workshopId: string } }
+  { params }: { params: Promise<{ workshopId: string }> }
 ) {
   try {
     const user = await stackServerApp.getUser()
@@ -13,20 +14,22 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { workshopId } = await params
+
     const formData = await req.formData()
     const file = formData.get('file') as File
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Convert file to base64 data URL for storage
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    const base64 = buffer.toString('base64')
-    const dataUrl = `data:${file.type};base64,${base64}`
+    // Upload to Vercel Blob
+    const blob = await put(`workshops/${workshopId}/${file.name}`, file, {
+      access: 'public',
+      addRandomSuffix: false
+    })
 
     const workshop = await prisma.workshop.findUnique({
-      where: { id: params.workshopId },
+      where: { id: workshopId },
       select: { files: true }
     })
 
@@ -37,14 +40,14 @@ export async function POST(
     const existingFiles = (workshop.files as any[]) || []
     const newFile = {
       name: file.name,
-      url: dataUrl,
+      url: blob.url,
       size: file.size,
       type: file.type,
       uploadedAt: new Date().toISOString()
     }
 
     await prisma.workshop.update({
-      where: { id: params.workshopId },
+      where: { id: workshopId },
       data: {
         files: [...existingFiles, newFile]
       }
@@ -63,13 +66,15 @@ export async function POST(
 // DELETE - Remove file from workshop
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { workshopId: string } }
+  { params }: { params: Promise<{ workshopId: string }> }
 ) {
   try {
     const user = await stackServerApp.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const { workshopId } = await params
 
     const { searchParams } = new URL(req.url)
     const fileName = searchParams.get('name')
@@ -79,7 +84,7 @@ export async function DELETE(
     }
 
     const workshop = await prisma.workshop.findUnique({
-      where: { id: params.workshopId },
+      where: { id: workshopId },
       select: { files: true }
     })
 
@@ -88,10 +93,21 @@ export async function DELETE(
     }
 
     const existingFiles = (workshop.files as any[]) || []
+    const fileToDelete = existingFiles.find((f: any) => f.name === fileName)
     const updatedFiles = existingFiles.filter((f: any) => f.name !== fileName)
 
+    // Delete from Vercel Blob if it's a blob URL
+    if (fileToDelete && fileToDelete.url && fileToDelete.url.includes('vercel-storage.com')) {
+      try {
+        await del(fileToDelete.url)
+      } catch (blobError) {
+        console.error('Failed to delete from blob storage:', blobError)
+        // Continue anyway - we still want to remove it from the database
+      }
+    }
+
     await prisma.workshop.update({
-      where: { id: params.workshopId },
+      where: { id: workshopId },
       data: { files: updatedFiles }
     })
 
