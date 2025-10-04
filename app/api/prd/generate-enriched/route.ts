@@ -3,6 +3,7 @@ import { streamLLM } from '@/lib/inference-gate'
 import { stackServerApp } from '@/stack'
 
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 /**
  * Enriched PRD generation with web search
