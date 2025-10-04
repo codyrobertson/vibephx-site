@@ -1,3 +1,4 @@
+// app/api/prd/inference/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { callLLM, streamLLM } from '@/lib/inference-gate'
 import { stackServerApp } from '@/stack'
@@ -5,97 +6,63 @@ import { stackServerApp } from '@/stack'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-/**
- * Gated LLM inference endpoint
- * All AI calls go through this for logging and cost tracking
- */
+// Health
+export async function GET() {
+  return NextResponse.json({ status: 'ok', message: 'inference live', ts: Date.now() })
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const user = await stackServerApp.getUser()
-    const userId = user?.id || 'anonymous'
+    const user = await stackServerApp.getUser().catch(() => null)
+    const userId = user?.id ?? 'anonymous'
 
-    const body = await req.json()
+    // tolerate empty body
+    let body: any = {}
+    try { body = await req.json() } catch {}
+
     const {
-      model = 'anthropic/claude-3.5-sonnet',
+      model = 'anthropic/claude-4.5-sonnet',
       provider = 'openrouter',
-      messages,
-      purpose,
+      messages = [],
+      purpose = 'general',
       projectId,
       sessionId,
-      stream = false,
+      stream = true,
       maxTokens,
       temperature
     } = body
 
-    if (!messages || !Array.isArray(messages)) {
-      return NextResponse.json({ error: 'messages required' }, { status: 400 })
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return NextResponse.json({ error: 'messages required (array)' }, { status: 400 })
     }
 
-    if (stream) {
-      // Streaming response
-      const encoder = new TextEncoder()
-      const customReadable = new ReadableStream({
-        start: async (controller) => {
-          try {
-            await streamLLM(
-              {
-                model,
-                provider,
-                messages,
-                purpose: purpose || 'general',
-                userId,
-                projectId,
-                sessionId,
-                maxTokens,
-                temperature
-              },
-              (chunk) => {
-                controller.enqueue(encoder.encode(chunk))
-              }
-            )
-            controller.close()
-          } catch (err: any) {
-            controller.error(err)
-          }
-        }
-      })
-
-      return new Response(customReadable, {
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Cache-Control': 'no-cache'
-        }
-      })
-    } else {
-      // Non-streaming response
-      const result = await callLLM({
-        model,
-        provider,
-        messages,
-        purpose: purpose || 'general',
-        userId,
-        projectId,
-        sessionId,
-        maxTokens,
-        temperature
-      })
-
-      return NextResponse.json({
-        content: result.content,
-        usage: {
-          promptTokens: result.promptTokens,
-          completionTokens: result.completionTokens,
-          totalTokens: result.totalTokens
-        },
-        cost: result.costUsd,
-        durationMs: result.durationMs
-      })
+    if (!stream) {
+      const r = await callLLM({ model, provider, messages, purpose, userId, projectId, sessionId, maxTokens, temperature })
+      return NextResponse.json({ content: r.content, usage: { promptTokens: r.promptTokens, completionTokens: r.completionTokens, totalTokens: r.totalTokens }, cost: r.costUsd, durationMs: r.durationMs })
     }
-  } catch (error: any) {
-    console.error('Inference error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Inference failed' },
-      { status: 500 }
-    )
+
+    const encoder = new TextEncoder()
+    const readable = new ReadableStream({
+      start: async (controller) => {
+        try {
+          await streamLLM(
+            { model, provider, messages, purpose, userId, projectId, sessionId, maxTokens, temperature },
+            (chunk) => controller.enqueue(encoder.encode(chunk))
+          )
+          controller.close()
+        } catch (err) {
+          controller.error(err)
+        }
+      }
+    })
+
+    return new Response(readable, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform'
+      }
+    })
+  } catch (err: any) {
+    return NextResponse.json({ error: err?.message ?? 'inference failed' }, { status: 500 })
   }
 }
