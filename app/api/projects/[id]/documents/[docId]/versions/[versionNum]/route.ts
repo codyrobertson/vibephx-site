@@ -99,7 +99,7 @@ export async function POST(
         title: currentDoc.title,
         content: currentDoc.content,
         changeMessage: `Auto-save before restoring version ${versionToRestore}`,
-        createdBy: user.email || user.id
+        createdBy: user.id
       }
     })
 
@@ -112,7 +112,7 @@ export async function POST(
         title: versionDoc.title,
         content: versionDoc.content,
         changeMessage: `Restored from version ${versionToRestore}`,
-        createdBy: user.email || user.id,
+        createdBy: user.id,
         restoredFrom: versionToRestore
       }
     })

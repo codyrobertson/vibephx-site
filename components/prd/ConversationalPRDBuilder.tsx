@@ -582,21 +582,14 @@ export default function ConversationalPRDBuilder() {
             )
           })}
 
-          {/* Phase components - animate after messages */}
-          {(() => {
-            const phaseDelay = displayMessages.length * 100
-            return (
-              <>
-                {phase === 'audience' && <AudiencePhase animationDelay={phaseDelay} />}
-                {phase === 'confirmIdea' && <ConfirmIdeaPhase animationDelay={phaseDelay} />}
-                {phase === 'features' && <FeaturesPhase animationDelay={phaseDelay} />}
-                {phase === 'providers' && <ProvidersPhase animationDelay={phaseDelay} />}
-                {phase === 'integrations' && <IntegrationsPhase animationDelay={phaseDelay} />}
-                {phase === 'summary' && <SummaryPhase animationDelay={phaseDelay} />}
-                {phase === 'outputs' && <OutputsPhase animationDelay={phaseDelay} />}
-              </>
-            )
-          })()}
+          {/* Phase components */}
+          {phase === 'audience' && <AudiencePhase />}
+          {phase === 'confirmIdea' && <ConfirmIdeaPhase />}
+          {phase === 'features' && <FeaturesPhase />}
+          {phase === 'providers' && <ProvidersPhase />}
+          {phase === 'integrations' && <IntegrationsPhase />}
+          {phase === 'summary' && <SummaryPhase />}
+          {phase === 'outputs' && <OutputsPhase />}
 
           {/* Task indicator */}
           {currentTask && (

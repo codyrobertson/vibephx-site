@@ -361,7 +361,7 @@ export const techStackDetails: Record<string, TechDetail> = {
     id: 'next.js',
     name: 'Next.js',
     logo: 'https://nextjs.org/favicon.ico',
-    category: 'frontend',
+    category: 'ui',
     description: 'React framework for production',
     whatItIs: 'Next.js is a React framework that enables server-side rendering, static site generation, and provides an excellent developer experience with built-in routing and API routes.',
     howItsUsed: [
@@ -382,7 +382,7 @@ export const techStackDetails: Record<string, TechDetail> = {
     id: 'react',
     name: 'React',
     logo: 'https://react.dev/favicon.ico',
-    category: 'frontend',
+    category: 'ui',
     description: 'JavaScript library for building UIs',
     whatItIs: 'React is a declarative, component-based JavaScript library for building user interfaces, maintained by Meta and a community of developers.',
     howItsUsed: [
@@ -403,7 +403,7 @@ export const techStackDetails: Record<string, TechDetail> = {
     id: 'tailwind',
     name: 'Tailwind CSS',
     logo: 'https://tailwindcss.com/favicon.ico',
-    category: 'frontend',
+    category: 'ui',
     description: 'Utility-first CSS framework',
     whatItIs: 'Tailwind CSS is a utility-first CSS framework that provides low-level utility classes to build custom designs without writing CSS.',
     howItsUsed: [
@@ -424,7 +424,7 @@ export const techStackDetails: Record<string, TechDetail> = {
     id: 'shadcn ui',
     name: 'Shadcn UI',
     logo: 'https://ui.shadcn.com/favicon.ico',
-    category: 'frontend',
+    category: 'ui',
     description: 'Beautifully designed components',
     whatItIs: 'Shadcn UI is a collection of re-usable components built with Radix UI and Tailwind CSS that you can copy and paste into your apps.',
     howItsUsed: [
@@ -441,52 +441,11 @@ export const techStackDetails: Record<string, TechDetail> = {
     ],
     tags: ['UI', 'Components', 'Radix', 'Tailwind', 'Accessible']
   },
-  'vercel': {
-    id: 'vercel',
-    name: 'Vercel',
-    logo: 'https://vercel.com/favicon.ico',
-    category: 'deployment',
-    description: 'Frontend cloud platform',
-    whatItIs: 'Vercel is a cloud platform for static sites and serverless functions that integrates seamlessly with Next.js and other frameworks.',
-    howItsUsed: [
-      'Deploy frontend applications',
-      'Host serverless functions',
-      'Automatic HTTPS and CDN',
-      'Preview deployments for PRs',
-      'Edge network distribution'
-    ],
-    links: [
-      { label: 'Vercel Docs', url: 'https://vercel.com/docs' },
-      { label: 'Deployment', url: 'https://vercel.com/docs/deployments' },
-      { label: 'Edge Functions', url: 'https://vercel.com/docs/functions/edge-functions' }
-    ],
-    tags: ['Deployment', 'Hosting', 'Serverless', 'CDN']
-  },
-  'v0': {
-    id: 'v0',
-    name: 'v0',
-    logo: 'https://v0.dev/favicon.ico',
-    category: 'editor',
-    description: 'AI-powered UI generation',
-    whatItIs: 'v0 is an AI-powered tool by Vercel that generates UI components from text descriptions using generative AI.',
-    howItsUsed: [
-      'Generate UI components from prompts',
-      'Create React components',
-      'Export Shadcn UI code',
-      'Iterate on designs',
-      'Rapid prototyping'
-    ],
-    links: [
-      { label: 'v0.dev', url: 'https://v0.dev' },
-      { label: 'Documentation', url: 'https://v0.dev/docs' }
-    ],
-    tags: ['AI', 'UI Generation', 'Components', 'Vercel']
-  },
   'typescript': {
     id: 'typescript',
     name: 'TypeScript',
     logo: 'https://www.typescriptlang.org/favicon.ico',
-    category: 'language',
+    category: 'ui',
     description: 'Typed superset of JavaScript',
     whatItIs: 'TypeScript is a strongly typed programming language that builds on JavaScript, giving you better tooling at any scale.',
     howItsUsed: [
@@ -544,48 +503,6 @@ export const techStackDetails: Record<string, TechDetail> = {
       { label: 'SQL Commands', url: 'https://www.postgresql.org/docs/current/sql-commands.html' }
     ],
     tags: ['Database', 'SQL', 'Relational', 'Open Source']
-  },
-  'supabase': {
-    id: 'supabase',
-    name: 'Supabase',
-    logo: 'https://supabase.com/favicon.ico',
-    category: 'database',
-    description: 'Open-source Firebase alternative',
-    whatItIs: 'Supabase is an open-source Firebase alternative providing Postgres database, authentication, instant APIs, and real-time subscriptions.',
-    howItsUsed: [
-      'PostgreSQL database hosting',
-      'Auto-generated REST APIs',
-      'Real-time subscriptions',
-      'Authentication and authorization',
-      'Storage for files'
-    ],
-    links: [
-      { label: 'Supabase Docs', url: 'https://supabase.com/docs' },
-      { label: 'Database', url: 'https://supabase.com/docs/guides/database' },
-      { label: 'Auth', url: 'https://supabase.com/docs/guides/auth' }
-    ],
-    tags: ['Database', 'Backend', 'BaaS', 'PostgreSQL', 'Real-time']
-  },
-  'stripe': {
-    id: 'stripe',
-    name: 'Stripe',
-    logo: 'https://stripe.com/favicon.ico',
-    category: 'integration',
-    description: 'Payment processing platform',
-    whatItIs: 'Stripe is a technology company that builds economic infrastructure for the internet, enabling online payment processing.',
-    howItsUsed: [
-      'Accept credit card payments',
-      'Subscription billing',
-      'Payment links',
-      'Checkout sessions',
-      'Webhook event handling'
-    ],
-    links: [
-      { label: 'Stripe Docs', url: 'https://stripe.com/docs' },
-      { label: 'API Reference', url: 'https://stripe.com/docs/api' },
-      { label: 'Webhooks', url: 'https://stripe.com/docs/webhooks' }
-    ],
-    tags: ['Payments', 'Billing', 'Subscriptions', 'E-commerce']
   },
   'clerk': {
     id: 'clerk',
@@ -717,7 +634,7 @@ export const techStackDetails: Record<string, TechDetail> = {
     id: 'aws',
     name: 'AWS',
     logo: 'https://aws.amazon.com/favicon.ico',
-    category: 'deployment',
+    category: 'hosting',
     description: 'Amazon Web Services cloud platform',
     whatItIs: 'AWS is Amazon\'s comprehensive cloud computing platform offering compute, storage, database, and other services.',
     howItsUsed: [
@@ -738,7 +655,7 @@ export const techStackDetails: Record<string, TechDetail> = {
     id: 'cloudflare',
     name: 'Cloudflare',
     logo: 'https://www.cloudflare.com/favicon.ico',
-    category: 'deployment',
+    category: 'hosting',
     description: 'Web infrastructure and security',
     whatItIs: 'Cloudflare provides CDN, DDoS protection, DNS, and serverless computing at the edge of the network.',
     howItsUsed: [
@@ -780,7 +697,7 @@ export const techStackDetails: Record<string, TechDetail> = {
     id: 'docker',
     name: 'Docker',
     logo: 'https://www.docker.com/favicon.ico',
-    category: 'deployment',
+    category: 'hosting',
     description: 'Container platform',
     whatItIs: 'Docker is a platform for developing, shipping, and running applications in containers.',
     howItsUsed: [

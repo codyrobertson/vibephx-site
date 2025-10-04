@@ -30,16 +30,9 @@ export async function GET(
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // Check if document has an embedding
-    if (!sourceDoc.embedding) {
-      return NextResponse.json({
-        related: [],
-        message: 'Document has no embedding for similarity search'
-      })
-    }
-
     // Use pgvector to find similar documents
     // Exclude the source document itself
+    // If source document has no embedding, query will return empty results
     const relatedDocs = await prisma.$queryRaw`
       SELECT
         id,
@@ -52,12 +45,13 @@ export async function GET(
         tags,
         "createdAt",
         "updatedAt",
-        1 - (embedding <=> ${sourceDoc.embedding}::vector) as similarity
+        1 - (embedding <=> (SELECT embedding FROM project_documents WHERE id = ${docId})::vector) as similarity
       FROM project_documents
       WHERE "projectId" = ${projectId}
         AND id != ${docId}
         AND embedding IS NOT NULL
-      ORDER BY embedding <=> ${sourceDoc.embedding}::vector
+        AND (SELECT embedding FROM project_documents WHERE id = ${docId}) IS NOT NULL
+      ORDER BY embedding <=> (SELECT embedding FROM project_documents WHERE id = ${docId})::vector
       LIMIT ${limit}
     `
 

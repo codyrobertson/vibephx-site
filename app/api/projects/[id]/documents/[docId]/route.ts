@@ -86,7 +86,7 @@ export async function PATCH(
           title: title || existing.title,
           content: content || existing.content,
           changeMessage: changeMessage || 'Document updated',
-          createdBy: user.email || user.id
+          createdBy: user.id
         }
       })
     }
