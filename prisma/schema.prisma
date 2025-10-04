@@ -296,7 +296,11 @@ model Workshop {
   date        DateTime
   location    String?
   credits     Float    @default(20) // Credits awarded per attendance
-  files       Json?    // Array of {name, url, uploadedAt}
+  files       Json?    // Array of {name, url, size, type, uploadedAt}
+
+  // Customizable content
+  content     String?  @db.Text // Rich content about the workshop
+  headerImage String?  @db.Text // Header image URL or base64
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

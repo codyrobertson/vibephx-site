@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Plus, Users, Calendar, DollarSign, Trash2, Upload, FileText, Download, ExternalLink } from 'lucide-react'
+import { Plus, Users, Calendar, DollarSign, Trash2, Upload, FileText, Download, ExternalLink, Edit } from 'lucide-react'
 import Link from 'next/link'
 
 interface WorkshopFile {
@@ -21,6 +21,8 @@ interface Workshop {
   location: string | null
   credits: number
   files?: WorkshopFile[]
+  content?: string | null
+  headerImage?: string | null
   attendees: {
     id: string
     userId: string
@@ -50,6 +52,7 @@ export default function AdminWorkshopsPage() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [selectedWorkshop, setSelectedWorkshop] = useState<Workshop | null>(null)
   const [showAddAttendee, setShowAddAttendee] = useState(false)
+  const [showEditWorkshop, setShowEditWorkshop] = useState(false)
   const [bulkMode, setBulkMode] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<any>(null)
@@ -73,6 +76,11 @@ export default function AdminWorkshopsPage() {
   // File uploads
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({})
   const [deletingFiles, setDeletingFiles] = useState<Record<string, boolean>>({})
+
+  // Edit workshop form
+  const [editContent, setEditContent] = useState('')
+  const [editHeaderImage, setEditHeaderImage] = useState('')
+  const [uploadingHeaderImage, setUploadingHeaderImage] = useState(false)
 
   useEffect(() => {
     // Fetch both in parallel for better performance
@@ -351,6 +359,60 @@ export default function AdminWorkshopsPage() {
       alert('Failed to delete file. Please try again.')
     } finally {
       setDeletingFiles(prev => ({ ...prev, [deleteKey]: false }))
+    }
+  }
+
+  const handleEditWorkshop = (workshop: Workshop) => {
+    setSelectedWorkshop(workshop)
+    setEditContent(workshop.content || '')
+    setEditHeaderImage(workshop.headerImage || '')
+    setShowEditWorkshop(true)
+  }
+
+  const handleHeaderImageUpload = async (file: File) => {
+    setUploadingHeaderImage(true)
+    try {
+      // Convert to base64
+      const bytes = await file.arrayBuffer()
+      const buffer = Buffer.from(bytes)
+      const base64 = buffer.toString('base64')
+      const dataUrl = `data:${file.type};base64,${base64}`
+      setEditHeaderImage(dataUrl)
+    } catch (error) {
+      console.error('Failed to process image:', error)
+      alert('Failed to process image. Please try again.')
+    } finally {
+      setUploadingHeaderImage(false)
+    }
+  }
+
+  const handleUpdateWorkshop = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedWorkshop) return
+
+    try {
+      const res = await fetch(`/api/admin/workshops/${selectedWorkshop.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: editContent || null,
+          headerImage: editHeaderImage || null
+        })
+      })
+
+      if (res.ok) {
+        fetchWorkshops()
+        setShowEditWorkshop(false)
+        setSelectedWorkshop(null)
+        setEditContent('')
+        setEditHeaderImage('')
+      } else {
+        const data = await res.json()
+        alert(`Failed to update workshop: ${data.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Failed to update workshop:', error)
+      alert('Failed to update workshop. Please try again.')
     }
   }
 
@@ -691,6 +753,110 @@ export default function AdminWorkshopsPage() {
           </div>
         )}
 
+        {/* Edit Workshop Modal */}
+        {showEditWorkshop && selectedWorkshop && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold text-white mb-4">Edit Workshop Content</h2>
+              <p className="text-gray-400 mb-6">Workshop: {selectedWorkshop.title}</p>
+
+              <form onSubmit={handleUpdateWorkshop} className="space-y-6">
+                {/* Header Image */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Header Image
+                  </label>
+                  {editHeaderImage && (
+                    <div className="mb-3">
+                      <img
+                        src={editHeaderImage}
+                        alt="Header preview"
+                        className="w-full h-48 object-cover rounded-lg border border-gray-700"
+                      />
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <label className="cursor-pointer flex-1">
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            handleHeaderImageUpload(file)
+                            e.target.value = ''
+                          }
+                        }}
+                        disabled={uploadingHeaderImage}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        disabled={uploadingHeaderImage}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          const input = e.currentTarget.previousElementSibling as HTMLInputElement
+                          input?.click()
+                        }}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {uploadingHeaderImage ? 'Processing...' : 'Upload Image'}
+                      </Button>
+                    </label>
+                    {editHeaderImage && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setEditHeaderImage('')}
+                        className="border-red-600 text-red-400 hover:bg-red-950"
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Workshop Content
+                  </label>
+                  <textarea
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    placeholder="Describe what this workshop was about, key learnings, outcomes, etc."
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500 min-h-[300px]"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    You can use line breaks for formatting. This content will be displayed on the workshop detail page.
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700">
+                    Save Changes
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setShowEditWorkshop(false)
+                      setSelectedWorkshop(null)
+                      setEditContent('')
+                      setEditHeaderImage('')
+                    }}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Workshops List */}
         <div className="space-y-6">
           {workshops.length === 0 ? (
@@ -743,6 +909,14 @@ export default function AdminWorkshopsPage() {
                       </div>
                     </div>
                     <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleEditWorkshop(workshop)}
+                        variant="outline"
+                        className="border-blue-600 text-blue-400 hover:bg-blue-950"
+                      >
+                        <Edit className="w-4 h-4" />
+                        Edit Content
+                      </Button>
                       <Button
                         onClick={() => {
                           setSelectedWorkshop(workshop)

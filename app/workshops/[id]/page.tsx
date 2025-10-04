@@ -37,6 +37,18 @@ export default async function WorkshopDetailPage({ params }: { params: Promise<{
         </Link>
 
         <div className="rounded-xl border border-gray-800 bg-gray-900/30 overflow-hidden">
+          {/* Header Image */}
+          {workshop.headerImage && (
+            <div className="w-full h-64 md:h-80 relative">
+              <img
+                src={workshop.headerImage}
+                alt={workshop.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent" />
+            </div>
+          )}
+
           {/* Header */}
           <div className="p-8 border-b border-gray-800">
             <div className="flex items-start gap-6">
@@ -78,6 +90,16 @@ export default async function WorkshopDetailPage({ params }: { params: Promise<{
               </div>
             </div>
           </div>
+
+          {/* Content Section */}
+          {workshop.content && (
+            <div className="p-8 border-b border-gray-800">
+              <h2 className="text-xl font-bold text-white mb-4">About This Workshop</h2>
+              <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
+                {workshop.content}
+              </div>
+            </div>
+          )}
 
           {/* Files Section */}
           {files.length > 0 && (
