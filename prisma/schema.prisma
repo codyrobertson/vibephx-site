@@ -28,6 +28,7 @@ model User {
   projects           Project[]
   profile            UserProfile?
   workshopAttendance WorkshopAttendance[]
+  activities         UserActivity[]
 
   @@index([email])
   @@index([createdAt])
@@ -472,4 +473,83 @@ enum JobStatus {
   COMPLETED
   FAILED
   CANCELLED
+}
+
+// User Activity Tracking
+model UserActivity {
+  id        String   @id @default(cuid())
+  userId    String
+
+  // Event details
+  eventType     String   // e.g., 'page_view', 'project_created', 'prd_completed', 'document_saved'
+  eventCategory String   // e.g., 'navigation', 'project', 'prd', 'document', 'workshop'
+  eventName     String   // Human-readable event name
+
+  // Context
+  path          String?  // URL path where event occurred
+  referrer      String?  // Previous page
+  userAgent     String?  // Browser/device info
+
+  // Data
+  properties    Json?    // Additional event properties
+  metadata      Json?    // Session metadata (device, browser, location, etc.)
+
+  // Performance
+  duration      Int?     // Time spent on page/action (ms)
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, eventType, createdAt])
+  @@index([eventType, createdAt])
+  @@index([eventCategory, createdAt])
+  @@map("user_activity")
+}
+
+enum ActivityEventType {
+  // Navigation
+  PAGE_VIEW
+  PAGE_EXIT
+
+  // Authentication
+  SIGN_IN
+  SIGN_OUT
+  SIGN_UP
+
+  // Onboarding
+  ONBOARDING_STARTED
+  ONBOARDING_COMPLETED
+  ONBOARDING_SKIPPED
+
+  // Projects
+  PROJECT_CREATED
+  PROJECT_VIEWED
+  PROJECT_UPDATED
+  PROJECT_DELETED
+
+  // PRD
+  PRD_SESSION_STARTED
+  PRD_SESSION_COMPLETED
+  PRD_GENERATED
+
+  // Documents
+  DOCUMENT_CREATED
+  DOCUMENT_VIEWED
+  DOCUMENT_UPDATED
+  DOCUMENT_BOOKMARKED
+
+  // Workshops
+  WORKSHOP_REGISTERED
+  WORKSHOP_ATTENDED
+
+  // Resources
+  RESOURCE_VIEWED
+  BLOG_POST_VIEWED
+
+  // Builder
+  TEMPLATE_SELECTED
+  STACK_SELECTED
+  DOWNLOAD_INITIATED
 }
