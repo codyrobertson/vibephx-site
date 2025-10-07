@@ -10,7 +10,7 @@ export async function generateFeaturedImage(technology: string, title: string): 
   const prompt = `A modern, professional featured image for a technical article about ${technology}. Clean design, tech-focused, vibrant colors matching a developer blog aesthetic. Include subtle geometric patterns and the text "${technology}" in a modern sans-serif font. No people, photorealistic quality, 16:9 aspect ratio.`
 
   try {
-    // Generate image with DALL-E via OpenRouter
+    // Generate image with gpt-image-1 via OpenRouter (more cost-effective)
     const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
       method: 'POST',
       headers: {
@@ -18,11 +18,10 @@ export async function generateFeaturedImage(technology: string, title: string): 
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'openai/dall-e-3',
+        model: 'gpt-image-1',
         prompt,
         n: 1,
-        size: '1792x1024',
-        quality: 'standard'
+        size: '1792x1024'
       })
     })
 

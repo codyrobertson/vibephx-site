@@ -325,14 +325,23 @@ Verify:
 ## Cost Estimates
 
 Per article generation:
-- **Exa API**: ~$0.02-0.05 (search + findSimilar)
-- **Claude 3.5 Sonnet**: ~$0.15-0.30 (8K tokens)
-- **DALL-E 3**: ~$0.04 (1792x1024)
-- **Total**: ~$0.21-0.39 per article
+- **Exa API**: ~$0.02-0.03 (neural search + findSimilar + content)
+  - Neural search (10 results): $0.005
+  - FindSimilar: $0.005
+  - Content retrieval (10-15 pieces): $0.01-0.015
+  - Deep research if needed: $0.005
+- **Claude 3.5 Sonnet**: ~$0.15 (10k input + 8k output tokens)
+  - Via OpenRouter: ~$3/M input, ~$15/M output
+- **gpt-image-1**: ~$0.02 (1792x1024, cost-effective alternative)
+- **Total**: ~$0.19-0.20 per article
 
-Cron job (3 articles every 6 hours):
-- **Daily**: ~$2.50
-- **Monthly**: ~$75
+Cron job (3 articles every 6 hours = 12 articles/day):
+- **Daily**: ~$2.40
+- **Monthly**: ~$72
+
+Costs with Exa gate (using keyword search for some queries):
+- **Optimized**: ~$0.15-0.17 per article
+- **Monthly (12/day)**: ~$54-60
 
 ## Future Enhancements
 

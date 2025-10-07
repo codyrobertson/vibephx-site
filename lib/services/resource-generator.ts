@@ -62,18 +62,17 @@ export class ResourceGenerator {
     let allContent = ''
     let confidence = 0
 
-    // Step 1: Initial search
+    // Step 1: Initial search (using keyword to save costs)
     console.log(`[Resource Generator] Searching for: ${technology}`)
-    const searchResults = await exa.search(`${technology} for web developers tutorial guide`, {
+    const searchResults = await exa.search(`${technology} for web developers tutorial guide beginner`, {
       num_results: 10,
-      use_autoprompt: true,
-      type: 'keyword',
+      type: 'keyword', // $2.50/1k vs $5/1k for neural
       contents: {
         text: true,
       }
     })
 
-    toolsUsed.push('exa.search')
+    toolsUsed.push('exa.search.keyword')
     allContent += JSON.stringify(searchResults.results, null, 2)
 
     // Calculate initial confidence
