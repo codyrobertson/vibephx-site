@@ -3,25 +3,45 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import {
-  FileText, Calendar, Settings, ExternalLink, TrendingUp,
-  DollarSign, CheckCircle, Clock, AlertCircle, Zap, Database, Bot
+  FileText, Calendar, ExternalLink, TrendingUp,
+  DollarSign, CheckCircle, Clock, Zap, Database, Bot, Users,
+  FolderKanban, Brain, FileCode, GraduationCap, Activity, Sparkles,
+  Target, ArrowUpRight, ArrowDownRight
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { PageHeader } from '@/components/ui/page-header'
+import { StatCard } from '@/components/ui/stat-card'
+import { Button } from '@/components/ui/button'
+
+interface Analytics {
+  overview: any
+  users: any
+  projects: any
+  inference: any
+  generations: any
+  documents: any
+  workshops: any
+  resources: any
+}
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<any>(null)
+  const [analytics, setAnalytics] = useState<Analytics | null>(null)
+  const [resourceStats, setResourceStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/admin/stats')
-      .then(res => res.json())
-      .then(data => {
-        setStats(data)
+    Promise.all([
+      fetch('/api/admin/analytics').then(res => res.json()),
+      fetch('/api/admin/stats').then(res => res.json()),
+    ])
+      .then(([analyticsData, resourceData]) => {
+        setAnalytics(analyticsData)
+        setResourceStats(resourceData)
         setLoading(false)
       })
       .catch(err => {
-        console.error('Failed to load stats:', err)
+        console.error('Failed to load dashboard data:', err)
         setLoading(false)
       })
   }, [])
@@ -29,7 +49,18 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="min-h-screen bg-black py-20 flex items-center justify-center">
-        <div className="text-orange-500">Loading dashboard...</div>
+        <div className="text-orange-500 flex items-center gap-2">
+          <Sparkles className="w-5 h-5 animate-spin" />
+          Loading command center...
+        </div>
+      </div>
+    )
+  }
+
+  if (!analytics) {
+    return (
+      <div className="min-h-screen bg-black py-20 flex items-center justify-center">
+        <div className="text-red-500">Failed to load dashboard data</div>
       </div>
     )
   }
@@ -37,274 +68,379 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-black py-20">
       <div className="container mx-auto px-4 max-w-7xl">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Command Center</h1>
-          <p className="text-gray-400">Overview of your content generation and site management</p>
-        </div>
-
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card className="border-gray-800 bg-gradient-to-br from-gray-900/50 to-gray-900/30">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
-                <Bot className="w-4 h-4" />
-                AI Articles Generated
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">{stats?.topics?.completed || 0}</div>
-              <p className="text-xs text-gray-500 mt-1">
-                {stats?.topics?.queued || 0} queued • {stats?.topics?.generating || 0} generating
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-gray-800 bg-gradient-to-br from-green-900/20 to-gray-900/30">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
-                <CheckCircle className="w-4 h-4" />
-                Success Rate
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-400">{stats?.quality?.successRate || 0}%</div>
-              <p className="text-xs text-gray-500 mt-1">
-                Avg confidence: {((stats?.quality?.avgConfidence || 0) * 100).toFixed(0)}%
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-gray-800 bg-gradient-to-br from-orange-900/20 to-gray-900/30">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Pending Review
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-orange-400">{stats?.drafts?.pending || 0}</div>
-              <p className="text-xs text-gray-500 mt-1">
-                {stats?.drafts?.approved || 0} approved • {stats?.drafts?.published || 0} published
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-gray-800 bg-gradient-to-br from-blue-900/20 to-gray-900/30">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
-                <DollarSign className="w-4 h-4" />
-                Est. Total Cost
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-blue-400">${stats?.costs?.estimatedTotal?.toFixed(2) || '0.00'}</div>
-              <p className="text-xs text-gray-500 mt-1">
-                ${stats?.costs?.perArticle} per article
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions & Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Quick Actions */}
-          <div className="lg:col-span-1">
-            <h2 className="text-xl font-bold text-white mb-4">Quick Actions</h2>
-            <div className="space-y-3">
+        <PageHeader
+          title="Command Center"
+          description="Comprehensive analytics for your application, inference usage, and content generation"
+          actions={
+            <>
               <a href="/admin/cms" target="_blank" rel="noopener noreferrer">
-                <Card className="border-gray-800 bg-gray-900/30 hover:border-orange-500 transition-colors cursor-pointer">
-                  <CardHeader className="p-4">
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-orange-500" />
-                      <div className="flex-1">
-                        <CardTitle className="text-sm text-white">Content CMS</CardTitle>
-                        <CardDescription className="text-xs">Review AI drafts</CardDescription>
-                      </div>
-                      <ExternalLink className="w-4 h-4 text-gray-400" />
-                    </div>
-                  </CardHeader>
-                </Card>
+                <Button variant="outline" size="sm">
+                  <FileText className="w-4 h-4 mr-2" />
+                  CMS
+                </Button>
               </a>
-
-              <Link href="/admin/workshops">
-                <Card className="border-gray-800 bg-gray-900/30 hover:border-orange-500 transition-colors cursor-pointer">
-                  <CardHeader className="p-4">
-                    <div className="flex items-center gap-3">
-                      <Calendar className="w-5 h-5 text-orange-500" />
-                      <div className="flex-1">
-                        <CardTitle className="text-sm text-white">Workshops</CardTitle>
-                        <CardDescription className="text-xs">Manage events</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
-              </Link>
-
               <a href="http://localhost:5556" target="_blank" rel="noopener noreferrer">
-                <Card className="border-gray-800 bg-gray-900/30 hover:border-purple-500 transition-colors cursor-pointer">
-                  <CardHeader className="p-4">
-                    <div className="flex items-center gap-3">
-                      <Database className="w-5 h-5 text-purple-500" />
-                      <div className="flex-1">
-                        <CardTitle className="text-sm text-white">Database</CardTitle>
-                        <CardDescription className="text-xs">Prisma Studio</CardDescription>
-                      </div>
-                      <ExternalLink className="w-4 h-4 text-gray-400" />
-                    </div>
-                  </CardHeader>
-                </Card>
+                <Button variant="outline" size="sm">
+                  <Database className="w-4 h-4 mr-2" />
+                  Database
+                </Button>
               </a>
-            </div>
+            </>
+          }
+        />
+
+        {/* Overview Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <StatCard
+            title="Total Users"
+            value={analytics.overview.totalUsers}
+            description={`+${analytics.users.new7d} this week`}
+            icon={Users}
+            gradient="blue"
+            trend={{
+              value: analytics.users.growthRate,
+              isPositive: analytics.users.growthRate > 0
+            }}
+          />
+          <StatCard
+            title="Total Projects"
+            value={analytics.overview.totalProjects}
+            description={`${analytics.projects.completed} completed`}
+            icon={FolderKanban}
+            gradient="purple"
+          />
+          <StatCard
+            title="Inference Requests"
+            value={analytics.overview.totalInferenceRequests}
+            description={`${analytics.inference.last24h} in last 24h`}
+            icon={Brain}
+            gradient="orange"
+          />
+          <StatCard
+            title="Total Cost"
+            value={`$${analytics.overview.totalCost}`}
+            description={`$${analytics.inference.costs.monthlyProjection}/mo projected`}
+            icon={DollarSign}
+            gradient="green"
+          />
+        </div>
+
+        {/* Inference Analytics */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+            <Brain className="w-6 h-6 text-orange-500" />
+            AI Inference Analytics
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <StatCard
+              title="Success Rate"
+              value={`${analytics.inference.successRate}%`}
+              description={`${analytics.inference.errors} errors`}
+              icon={CheckCircle}
+              gradient="green"
+            />
+            <StatCard
+              title="Total Tokens"
+              value={(analytics.inference.tokens.total / 1000000).toFixed(2) + 'M'}
+              description={`${analytics.inference.tokens.avgPerRequest.toLocaleString()} avg/request`}
+              icon={Activity}
+              gradient="blue"
+            />
+            <StatCard
+              title="Avg Cost/Request"
+              value={`$${analytics.inference.costs.avgPerRequest}`}
+              description="Per inference call"
+              icon={DollarSign}
+              gradient="orange"
+            />
+            <StatCard
+              title="Daily Projection"
+              value={`$${analytics.inference.costs.dailyProjection}`}
+              description="Based on current usage"
+              icon={TrendingUp}
+              gradient="purple"
+            />
           </div>
 
-          {/* Recent Drafts */}
-          <div className="lg:col-span-2">
-            <h2 className="text-xl font-bold text-white mb-4">Recent AI-Generated Drafts</h2>
+          {/* Model & Purpose Breakdown */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card className="border-gray-800 bg-gray-900/30">
-              <CardContent className="p-4">
-                {stats?.drafts?.recent && stats.drafts.recent.length > 0 ? (
-                  <div className="space-y-3">
-                    {stats.drafts.recent.slice(0, 5).map((draft: any) => (
-                      <div
-                        key={draft.id}
-                        className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium text-white truncate">
-                              {draft.technology}
-                            </p>
-                            <Badge
-                              variant="outline"
-                              className={
-                                draft.status === 'PENDING' ? 'border-orange-500 text-orange-400' :
-                                draft.status === 'APPROVED' ? 'border-green-500 text-green-400' :
-                                draft.status === 'PUBLISHED' ? 'border-blue-500 text-blue-400' :
-                                'border-gray-600 text-gray-400'
-                              }
-                            >
-                              {draft.status}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-gray-500 truncate mt-1">
-                            {draft.wordCount} words • {(draft.confidenceScore * 100).toFixed(0)}% confidence
-                          </p>
-                        </div>
-                        <div className="text-xs text-gray-500 ml-4">
-                          {new Date(draft.createdAt).toLocaleDateString()}
-                        </div>
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-orange-500" />
+                  Usage by Model
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {analytics.inference.byModel.slice(0, 5).map((model: any) => (
+                    <div key={model.model} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
+                      <div>
+                        <p className="text-sm font-medium text-white">{model.model}</p>
+                        <p className="text-xs text-gray-500">{model.requests.toLocaleString()} requests</p>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Bot className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                    <p>No drafts generated yet</p>
-                    <p className="text-xs mt-1">Queue topics to start generating</p>
-                  </div>
-                )}
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-orange-400">${model.cost}</p>
+                        <p className="text-xs text-gray-500">{(model.tokens / 1000).toFixed(0)}k tokens</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-gray-800 bg-gray-900/30">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Target className="w-5 h-5 text-blue-500" />
+                  Usage by Purpose
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {analytics.inference.byPurpose.slice(0, 5).map((purpose: any) => (
+                    <div key={purpose.purpose} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
+                      <div>
+                        <p className="text-sm font-medium text-white capitalize">{purpose.purpose.replace(/_/g, ' ')}</p>
+                        <p className="text-xs text-gray-500">{purpose.requests.toLocaleString()} requests</p>
+                      </div>
+                      <p className="text-sm font-semibold text-blue-400">${purpose.cost}</p>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </div>
         </div>
 
-        {/* Generation Jobs */}
+        {/* Projects & PRD Analytics */}
         <div className="mb-8">
-          <h2 className="text-xl font-bold text-white mb-4">Recent Generation Jobs</h2>
+          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+            <FolderKanban className="w-6 h-6 text-purple-500" />
+            Projects & PRD Sessions
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <StatCard
+              title="Total Projects"
+              value={analytics.projects.total}
+              description={`${analytics.projects.new7d} this week`}
+              icon={FolderKanban}
+              gradient="purple"
+            />
+            <StatCard
+              title="Completed"
+              value={analytics.projects.completed}
+              description={`${analytics.projects.completionRate}% completion rate`}
+              icon={CheckCircle}
+              gradient="green"
+            />
+            <StatCard
+              title="PRD Sessions"
+              value={analytics.projects.prd.total}
+              description={`${analytics.projects.prd.new7d} this week`}
+              icon={FileText}
+              gradient="orange"
+            />
+            <StatCard
+              title="PRD Completed"
+              value={analytics.projects.prd.completed}
+              description={`${analytics.projects.prd.completionRate}% completion`}
+              icon={CheckCircle}
+              gradient="blue"
+            />
+            <StatCard
+              title="Documents"
+              value={analytics.documents.total}
+              description={`${analytics.documents.bookmarked} bookmarked`}
+              icon={FileCode}
+              gradient="gray"
+            />
+          </div>
+        </div>
+
+        {/* Resource Generation & Workshops */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Resource Generation */}
+          <div>
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <Bot className="w-5 h-5 text-orange-500" />
+              AI Resource Generation
+            </h2>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <StatCard
+                title="Total Drafts"
+                value={analytics.resources.drafts.total}
+                description={`${analytics.resources.drafts.pending} pending`}
+                icon={FileText}
+                gradient="orange"
+              />
+              <StatCard
+                title="Published"
+                value={analytics.resources.drafts.published}
+                description={`${analytics.resources.topics.queued} queued`}
+                icon={CheckCircle}
+                gradient="green"
+              />
+            </div>
+            <Card className="border-gray-800 bg-gray-900/30">
+              <CardHeader>
+                <CardTitle className="text-white text-sm">Recent Generation Jobs</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {analytics.resources.recentJobs && analytics.resources.recentJobs.length > 0 ? (
+                  <div className="space-y-2">
+                    {analytics.resources.recentJobs.slice(0, 3).map((job: any) => (
+                      <div key={job.id} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            job.status === 'COMPLETED' ? 'bg-green-500' :
+                            job.status === 'RUNNING' ? 'bg-yellow-500 animate-pulse' :
+                            'bg-red-500'
+                          }`} />
+                          <div>
+                            <p className="text-xs font-medium text-white">{job.status}</p>
+                            <p className="text-xs text-gray-500">{job.succeeded}/{job.processed} succeeded</p>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500">{new Date(job.startedAt).toLocaleTimeString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-4">No recent jobs</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Workshops */}
+          <div>
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <GraduationCap className="w-5 h-5 text-blue-500" />
+              Workshops & Credits
+            </h2>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <StatCard
+                title="Total Workshops"
+                value={analytics.workshops.total}
+                description="Events created"
+                icon={Calendar}
+                gradient="blue"
+              />
+              <StatCard
+                title="Total Attendance"
+                value={analytics.workshops.totalAttendance}
+                description={`${analytics.workshops.avgAttendancePerWorkshop} avg/workshop`}
+                icon={Users}
+                gradient="purple"
+              />
+            </div>
+            <Card className="border-gray-800 bg-gray-900/30">
+              <CardHeader>
+                <CardTitle className="text-white text-sm">Credits Distributed</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-green-400">${analytics.workshops.creditsDistributed}</div>
+                <p className="text-xs text-gray-500 mt-1">Total workshop credits awarded</p>
+              </CardContent>
+            </Card>
+            <Link href="/admin/workshops" className="mt-4 block">
+              <Button variant="outline" size="sm" className="w-full">
+                <Calendar className="w-4 h-4 mr-2" />
+                Manage Workshops
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Recent AI Drafts */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <Bot className="w-5 h-5 text-orange-500" />
+            Recent AI-Generated Drafts
+          </h2>
           <Card className="border-gray-800 bg-gray-900/30">
             <CardContent className="p-4">
-              {stats?.jobs?.recent && stats.jobs.recent.length > 0 ? (
+              {resourceStats?.drafts?.recent && resourceStats.drafts.recent.length > 0 ? (
                 <div className="space-y-3">
-                  {stats.jobs.recent.map((job: any) => (
+                  {resourceStats.drafts.recent.slice(0, 5).map((draft: any) => (
                     <div
-                      key={job.id}
+                      key={draft.id}
                       className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-2 h-2 rounded-full ${
-                          job.status === 'COMPLETED' ? 'bg-green-500' :
-                          job.status === 'RUNNING' ? 'bg-yellow-500 animate-pulse' :
-                          'bg-red-500'
-                        }`} />
-                        <div>
-                          <p className="text-sm font-medium text-white">
-                            {job.type.replace('_', ' ').toUpperCase()}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-white truncate">
+                            {draft.technology}
                           </p>
-                          <p className="text-xs text-gray-500">
-                            {job.itemsSucceeded}/{job.itemsProcessed} succeeded • {job.itemsFailed} failed
-                            {job.durationMs && ` • ${(job.durationMs / 1000).toFixed(1)}s`}
-                          </p>
+                          <Badge
+                            variant="outline"
+                            className={
+                              draft.status === 'PENDING' ? 'border-orange-500 text-orange-400' :
+                              draft.status === 'APPROVED' ? 'border-green-500 text-green-400' :
+                              draft.status === 'PUBLISHED' ? 'border-blue-500 text-blue-400' :
+                              'border-gray-600 text-gray-400'
+                            }
+                          >
+                            {draft.status}
+                          </Badge>
                         </div>
+                        <p className="text-xs text-gray-500 truncate mt-1">
+                          {draft.wordCount} words • {(draft.confidenceScore * 100).toFixed(0)}% confidence
+                        </p>
                       </div>
-                      <div className="text-xs text-gray-500">
-                        {new Date(job.startedAt).toLocaleString()}
+                      <div className="text-xs text-gray-500 ml-4">
+                        {new Date(draft.createdAt).toLocaleDateString()}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  <Zap className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                  <p>No generation jobs yet</p>
-                  <p className="text-xs mt-1">Jobs will appear here after cron runs</p>
+                  <Bot className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                  <p>No drafts generated yet</p>
+                  <p className="text-xs mt-1">Queue topics to start generating</p>
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* System Status */}
+        {/* Users & Onboarding */}
         <div>
-          <h2 className="text-xl font-bold text-white mb-4">System Status</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="border-gray-800 bg-gray-900/30">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">Queue Health</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  {stats?.topics?.queued > 0 ? (
-                    <>
-                      <TrendingUp className="w-5 h-5 text-green-500" />
-                      <span className="text-sm text-green-400">Active</span>
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="w-5 h-5 text-yellow-500" />
-                      <span className="text-sm text-yellow-400">Empty Queue</span>
-                    </>
-                  )}
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  {stats?.topics?.queued || 0} topics ready to process
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-gray-800 bg-gray-900/30">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">Avg Quality</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white">
-                  {stats?.quality?.avgWordCount || 0}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">words per article</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-gray-800 bg-gray-900/30">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">Monthly Projection</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white">
-                  ${stats?.costs?.monthlyEstimate?.toFixed(2) || '0.00'}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">for queued topics</p>
-              </CardContent>
-            </Card>
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <Users className="w-5 h-5 text-blue-500" />
+            Users & Onboarding
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <StatCard
+              title="New This Week"
+              value={analytics.users.new7d}
+              description="User signups"
+              icon={Users}
+              gradient="blue"
+            />
+            <StatCard
+              title="New This Month"
+              value={analytics.users.new30d}
+              description="Last 30 days"
+              icon={TrendingUp}
+              gradient="green"
+            />
+            <StatCard
+              title="Onboarding Rate"
+              value={`${analytics.users.onboarding.completionRate}%`}
+              description={`${analytics.users.onboarding.completed}/${analytics.users.onboarding.total} completed`}
+              icon={CheckCircle}
+              gradient="purple"
+            />
+            <StatCard
+              title="Growth Rate"
+              value={`${analytics.users.growthRate > 0 ? '+' : ''}${analytics.users.growthRate.toFixed(1)}%`}
+              description="User growth"
+              icon={analytics.users.growthRate > 0 ? ArrowUpRight : ArrowDownRight}
+              gradient={analytics.users.growthRate > 0 ? 'green' : 'red'}
+            />
           </div>
         </div>
       </div>
