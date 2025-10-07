@@ -14,7 +14,7 @@ export function AdminNavLink() {
   if (!isAdmin) return null
 
   return (
-    <Link href="/admin/workshops">
+    <Link href="/admin">
       <Button
         variant="ghost"
         size="sm"

@@ -16,7 +16,7 @@ export function AdminMenuItem({ onClose }: AdminMenuItemProps) {
 
   return (
     <a
-      href="/admin/workshops"
+      href="/admin"
       className="block px-4 py-2 text-sm text-orange-400 hover:bg-gray-800 transition-colors"
       onClick={onClose}
     >
