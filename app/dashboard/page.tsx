@@ -139,7 +139,6 @@ export default async function DashboardPage() {
 
   console.log('[DASHBOARD] User ID:', user.id)
   console.log('[DASHBOARD] Workshops found:', workshops.length)
-  console.log('[DASHBOARD] Workshops:', JSON.stringify(workshops, null, 2))
 
   return (
     <div className="min-h-screen bg-black py-12">

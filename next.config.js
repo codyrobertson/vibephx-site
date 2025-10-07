@@ -7,6 +7,14 @@ const nextConfig = {
   },
   // Allow cross-origin requests from local network for development
   allowedDevOrigins: ['192.168.68.73:3003'],
+  async rewrites() {
+    return [
+      {
+        source: '/admin/cms',
+        destination: '/admin/cms/index.html',
+      },
+    ]
+  },
   images: {
     remotePatterns: [
       {

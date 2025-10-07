@@ -3,6 +3,7 @@
 import { useUser } from '@stackframe/stack'
 import Link from 'next/link'
 import { Settings } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function AdminNavLink() {
   const user = useUser()
@@ -13,12 +14,15 @@ export function AdminNavLink() {
   if (!isAdmin) return null
 
   return (
-    <Link
-      href="/admin/workshops"
-      className="flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors"
-    >
-      <Settings className="w-5 h-5" />
-      <span className="font-medium">Admin</span>
+    <Link href="/admin/workshops">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="flex items-center gap-2 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
+      >
+        <Settings className="w-4 h-4" />
+        <span className="font-medium">Admin</span>
+      </Button>
     </Link>
   )
 }

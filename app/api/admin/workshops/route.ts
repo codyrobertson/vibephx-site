@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { stackServerApp } from '@/stack'
 import { prisma } from '@/lib/prisma'
 
+// Sanitize workshop files to remove base64 data
+function sanitizeWorkshopFiles(workshop: any) {
+  if (workshop.files && Array.isArray(workshop.files)) {
+    workshop.files = workshop.files.map((file: any) => ({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      uploadedAt: file.uploadedAt,
+      // Only include URL if it's not base64
+      url: file.url && !file.url.includes('base64') ? file.url : undefined
+    })).filter((file: any) => file.url) // Remove files without valid URLs
+  }
+  return workshop
+}
+
 // GET - Fetch all workshops with attendees
 export async function GET(req: NextRequest) {
   try {
@@ -28,6 +43,9 @@ export async function GET(req: NextRequest) {
         date: true,
         location: true,
         credits: true,
+        content: true,
+        headerImage: true,
+        files: true,
         attendees: {
           select: {
             id: true,
@@ -57,7 +75,10 @@ export async function GET(req: NextRequest) {
     console.log(`[PERF] Database query took ${Date.now() - dbStart}ms`)
     console.log(`[PERF] Total request took ${Date.now() - startTime}ms`)
 
-    return NextResponse.json({ workshops })
+    // Sanitize workshops to remove base64 data
+    const sanitizedWorkshops = workshops.map(sanitizeWorkshopFiles)
+
+    return NextResponse.json({ workshops: sanitizedWorkshops })
   } catch (error) {
     console.error('Failed to fetch workshops:', error)
     return NextResponse.json(
@@ -102,7 +123,7 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    return NextResponse.json({ workshop })
+    return NextResponse.json({ workshop: sanitizeWorkshopFiles(workshop) })
   } catch (error) {
     console.error('Failed to create workshop:', error)
     return NextResponse.json(

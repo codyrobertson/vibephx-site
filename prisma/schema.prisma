@@ -338,3 +338,138 @@ model WorkshopAttendance {
   @@index([workshopId])
   @@map("workshop_attendance")
 }
+
+// Resource Article Generation System
+model ResourceDraft {
+  id          String   @id @default(cuid())
+
+  // Topic information
+  technology  String   // e.g., "Stripe", "Vercel", "OpenAI API"
+  slug        String   @unique // URL-friendly version
+
+  // Generated content
+  title       String
+  description String
+  content     String   @db.Text
+  tags        String[]
+  complexity  String   // 'beginner', 'intermediate', 'advanced'
+
+  // Image
+  featuredImage    String? // URL or path to generated/fetched image
+  imagePrompt      String? // Prompt used for image generation
+
+  // Metadata
+  author           String   @default("Vibe Code PHX")
+  wordCount        Int
+  externalLinks    Int      @default(0)
+  codeExamples     Int      @default(0)
+  confidenceScore  Float    // 0.0 to 1.0
+
+  // Research metadata
+  researchToolsUsed String[] // ['exa.search', 'exa.research', 'exa.findSimilar']
+  researchData      Json?    // Store raw research results
+
+  // Status tracking
+  status           DraftStatus @default(PENDING)
+  generatedBy      String      @default("automated") // 'automated' or userId
+  reviewedBy       String?     // Admin who reviewed
+  publishedAt      DateTime?
+  rejectedAt       DateTime?
+  rejectionReason  String?
+
+  // Email notification
+  adminNotified    Boolean  @default(false)
+  notifiedAt       DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([technology])
+  @@index([slug])
+  @@map("resource_drafts")
+}
+
+model ResourceTopic {
+  id          String   @id @default(cuid())
+
+  // Topic details
+  technology  String   @unique // Technology to research and write about
+  priority    Int      @default(0) // Higher = more important
+
+  // Scheduling
+  scheduledFor DateTime? // When to generate this topic
+
+  // Generation tracking
+  status          TopicStatus @default(QUEUED)
+  generationStartedAt DateTime?
+  generationCompletedAt DateTime?
+
+  // Results
+  draftId         String? // Link to generated draft if successful
+  errorMessage    String?
+  attemptCount    Int     @default(0)
+  lastAttemptAt   DateTime?
+
+  // Metadata
+  addedBy         String  @default("system") // Who queued this topic
+  notes           String? // Admin notes about why this topic matters
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, scheduledFor])
+  @@index([priority])
+  @@map("resource_topics")
+}
+
+model GenerationJob {
+  id          String   @id @default(cuid())
+
+  // Job details
+  type        String   // 'resource_article', 'blog_post', etc.
+  status      JobStatus @default(RUNNING)
+
+  // Results
+  itemsProcessed  Int     @default(0)
+  itemsSucceeded  Int     @default(0)
+  itemsFailed     Int     @default(0)
+
+  // Timing
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  durationMs      Int?
+
+  // Error tracking
+  errors          Json?    // Array of error objects
+
+  // Metadata
+  triggeredBy     String   @default("cron") // 'cron', 'manual', userId
+  metadata        Json?    // Additional job-specific data
+
+  @@index([type, status, startedAt])
+  @@map("generation_jobs")
+}
+
+enum DraftStatus {
+  PENDING       // Generated, awaiting review
+  APPROVED      // Admin approved, ready to publish
+  PUBLISHED     // Published to site
+  REJECTED      // Admin rejected
+  FAILED        // Generation failed
+}
+
+enum TopicStatus {
+  QUEUED        // Waiting to be generated
+  GENERATING    // Currently being generated
+  COMPLETED     // Successfully generated
+  FAILED        // Generation failed
+  SKIPPED       // Manually skipped
+}
+
+enum JobStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}

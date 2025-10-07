@@ -6,7 +6,7 @@ import SimpleUserMenu from './SimpleUserMenu'
 function UserMenuFallback() {
   return (
     <div className="flex items-center gap-4">
-      <div className="w-8 h-8 bg-gray-800 rounded-full animate-pulse"></div>
+      <div className="px-3 py-2 bg-gray-900/50 border border-gray-700 rounded-lg w-32 h-12 animate-pulse"></div>
     </div>
   )
 }

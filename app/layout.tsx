@@ -3,6 +3,7 @@ import { Geist } from 'next/font/google'
 import { StackProvider, StackTheme } from '@stackframe/stack'
 import { stackServerApp } from '@/stack'
 import Navbar from '@/components/Navbar'
+import { Suspense } from 'react'
 import './globals.css'
 
 const geist = Geist({
@@ -177,7 +178,16 @@ export default function RootLayout({
       <body className={`${geist.variable} font-sans bg-black text-white antialiased`}>
         <StackProvider app={stackServerApp}>
           <StackTheme>
-            <Navbar />
+            <Suspense fallback={
+              <div className="fixed top-0 left-0 right-0 z-50 border-b border-gray-800 bg-black/95 backdrop-blur supports-[backdrop-filter]:bg-black/80">
+                <div className="container flex h-16 md:h-20 items-center justify-between px-4">
+                  <div className="h-8 w-32 bg-gray-800 rounded animate-pulse" />
+                  <div className="h-8 w-24 bg-gray-800 rounded animate-pulse" />
+                </div>
+              </div>
+            }>
+              <Navbar />
+            </Suspense>
             <main className="pt-16 md:pt-20">
               {children}
             </main>

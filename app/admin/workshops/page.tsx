@@ -4,6 +4,14 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Plus, Users, Calendar, DollarSign, Trash2, Upload, FileText, Download, ExternalLink, Edit } from 'lucide-react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+import '@uiw/react-md-editor/markdown-editor.css'
+import '@uiw/react-markdown-preview/markdown.css'
+
+const MDEditor = dynamic(
+  () => import('@uiw/react-md-editor').then((mod) => mod.default),
+  { ssr: false }
+)
 
 interface WorkshopFile {
   name: string
@@ -834,17 +842,105 @@ export default function AdminWorkshopsPage() {
                 {/* Content */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Workshop Content
+                    Workshop Content (Markdown)
                   </label>
-                  <textarea
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    placeholder="Describe what this workshop was about, key learnings, outcomes, etc."
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-blue-500 min-h-[300px]"
-                  />
+                  <div data-color-mode="dark">
+                    <MDEditor
+                      value={editContent}
+                      onChange={(value) => setEditContent(value || '')}
+                      preview="edit"
+                      height={400}
+                      style={{
+                        backgroundColor: 'rgb(31 41 55)',
+                        border: '1px solid rgb(55 65 81)',
+                        borderRadius: '0.5rem'
+                      }}
+                    />
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    You can use line breaks for formatting. This content will be displayed on the workshop detail page.
+                    You can use Markdown formatting. Preview will be shown on the workshop detail page.
                   </p>
+                </div>
+
+                {/* Workshop Files */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-sm font-medium text-gray-300">
+                      Workshop Files
+                    </label>
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            handleFileUpload(selectedWorkshop.id, file)
+                            e.target.value = ''
+                          }
+                        }}
+                        disabled={uploadingFiles[selectedWorkshop.id]}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={uploadingFiles[selectedWorkshop.id]}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          const input = e.currentTarget.previousElementSibling as HTMLInputElement
+                          input?.click()
+                        }}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {uploadingFiles[selectedWorkshop.id] ? 'Uploading...' : 'Upload File'}
+                      </Button>
+                    </label>
+                  </div>
+
+                  {selectedWorkshop.files && (selectedWorkshop.files as any[]).length > 0 ? (
+                    <div className="space-y-2">
+                      {(selectedWorkshop.files as any[]).map((file: any, index: number) => {
+                        const deleteKey = `${selectedWorkshop.id}-${file.name}`
+                        return (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700"
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <FileText className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white text-sm font-medium truncate">{file.name}</p>
+                                <p className="text-xs text-gray-400">
+                                  {new Date(file.uploadedAt).toLocaleDateString()} • {(file.size / 1024).toFixed(1)} KB
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDeleteFile(selectedWorkshop.id, file.name)}
+                              disabled={deletingFiles[deleteKey]}
+                              className="border-red-600 text-red-400 hover:bg-red-950 ml-2 flex-shrink-0"
+                            >
+                              {deletingFiles[deleteKey] ? (
+                                'Deleting...'
+                              ) : (
+                                <>
+                                  <Trash2 className="w-4 h-4" />
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-gray-800/30 border border-gray-700 rounded-lg text-center">
+                      <p className="text-sm text-gray-400">No files uploaded yet</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-3">
@@ -986,9 +1082,9 @@ export default function AdminWorkshopsPage() {
                     </label>
                   </div>
 
-                  {workshop.files && workshop.files.length > 0 ? (
+                  {workshop.files && (workshop.files as any[]).length > 0 ? (
                     <div className="space-y-2">
-                      {workshop.files.map((file, index) => {
+                      {(workshop.files as any[]).map((file, index) => {
                         const deleteKey = `${workshop.id}-${file.name}`
                         return (
                           <div

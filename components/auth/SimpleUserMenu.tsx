@@ -33,7 +33,7 @@ export default function SimpleUserMenu() {
   // Don't render on server or while loading
   if (!mounted) {
     return (
-      <div className="px-4 py-2 bg-gray-800 rounded-lg w-20 h-10 animate-pulse" />
+      <div className="px-3 py-2 bg-gray-900/50 border border-gray-700 rounded-lg w-32 h-12 animate-pulse" />
     )
   }
 
@@ -52,23 +52,23 @@ export default function SimpleUserMenu() {
       <div className="relative">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 hover:border-gray-500 rounded-lg transition-colors"
+          className="flex items-center gap-3 px-3 py-2 bg-gray-900/50 hover:bg-gray-800/80 text-white border border-gray-700 hover:border-gray-600 rounded-lg transition-all"
         >
           {blockieDataUrl ? (
             <img
               src={blockieDataUrl}
               alt="User Avatar"
-              className="w-6 h-6 rounded-full"
+              className="w-8 h-8 rounded-full ring-2 ring-gray-700"
             />
           ) : (
-            <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center ring-2 ring-gray-700 text-white font-semibold">
               {user.displayName ? user.displayName[0].toUpperCase() : 'U'}
             </div>
           )}
           <span className="hidden sm:inline text-sm font-medium">
             {user.displayName || user.primaryEmail?.split('@')[0] || 'User'}
           </span>
-          <ChevronDown className="w-4 h-4 text-gray-400" />
+          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </button>
         
         {isOpen && (
@@ -80,17 +80,17 @@ export default function SimpleUserMenu() {
             />
             
             {/* Dropdown */}
-            <div className="absolute right-0 top-full mt-2 w-56 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50">
-              <div className="p-3 border-b border-gray-700">
+            <div className="absolute right-0 top-full mt-2 w-64 bg-gray-900 border border-gray-700 rounded-lg shadow-2xl z-50 overflow-hidden">
+              <div className="p-4 border-b border-gray-800 bg-gray-800/50">
                 <div className="flex items-center gap-3">
                   {blockieDataUrl ? (
-                    <img 
-                      src={blockieDataUrl} 
-                      alt="User Avatar" 
-                      className="w-8 h-8 rounded-full"
+                    <img
+                      src={blockieDataUrl}
+                      alt="User Avatar"
+                      className="w-10 h-10 rounded-full ring-2 ring-gray-700"
                     />
                   ) : (
-                    <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                    <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center ring-2 ring-gray-700 text-white font-semibold">
                       {user.displayName ? user.displayName[0].toUpperCase() : 'U'}
                     </div>
                   )}
@@ -104,17 +104,17 @@ export default function SimpleUserMenu() {
                   </div>
                 </div>
               </div>
-              <div className="py-1">
+              <div className="py-2">
                 <a
                   href="/dashboard"
-                  className="block px-4 py-2 text-sm text-white hover:bg-gray-800 transition-colors"
+                  className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-800/50 transition-colors"
                   onClick={() => setIsOpen(false)}
                 >
                   Dashboard
                 </a>
                 <a
                   href="/builder/prd-builder"
-                  className="block px-4 py-2 text-sm text-white hover:bg-gray-800 transition-colors"
+                  className="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-800/50 transition-colors"
                   onClick={() => setIsOpen(false)}
                 >
                   PRD Builder
@@ -122,9 +122,11 @@ export default function SimpleUserMenu() {
                 <Suspense fallback={null}>
                   <AdminMenuItem onClose={() => setIsOpen(false)} />
                 </Suspense>
+              </div>
+              <div className="border-t border-gray-800">
                 <button
                   onClick={handleSignOut}
-                  className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-800 transition-colors"
+                  className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
                 >
                   Sign Out
                 </button>
@@ -152,7 +154,7 @@ export default function SimpleUserMenu() {
   return (
     <a
       href="/auth/signin"
-      className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-black font-semibold rounded-lg transition-colors"
+      className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-orange-500/20"
     >
       Sign In
     </a>

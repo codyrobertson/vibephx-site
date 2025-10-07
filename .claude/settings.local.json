@@ -36,7 +36,13 @@
       "Bash(vercel env add:*)",
       "Bash(vercel ls:*)",
       "Bash(vercel logs:*)",
-      "Bash(printf \"%s\" \"$OPENROUTER_API_KEY\")"
+      "Bash(printf \"%s\" \"$OPENROUTER_API_KEY\")",
+      "Bash(npx:*)",
+      "Bash(printf \"n\\nn\\nn\\n\")",
+      "Bash(yes n)",
+      "Bash(test:*)",
+      "Bash(tree:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

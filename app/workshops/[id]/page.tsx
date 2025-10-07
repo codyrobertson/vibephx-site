@@ -1,35 +1,116 @@
-import { prisma } from '@/lib/prisma'
-import { notFound } from 'next/navigation'
-import { Calendar, MapPin, DollarSign, Download, FileText } from 'lucide-react'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { Calendar, MapPin, DollarSign, Download, FileText, Eye, X } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
+import ReactMarkdown from 'react-markdown'
 
-export default async function WorkshopDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const workshop = await prisma.workshop.findUnique({
-    where: { id },
-    include: {
-      attendees: {
-        include: {
-          user: {
-            select: {
-              name: true,
-              email: true
-            }
-          }
-        }
-      }
+interface WorkshopFile {
+  name: string
+  url: string
+  size: number
+  type: string
+  uploadedAt: string
+}
+
+interface Workshop {
+  id: string
+  title: string
+  description: string | null
+  date: string
+  location: string | null
+  credits: number
+  content: string | null
+  headerImage: string | null
+  files: WorkshopFile[] | null
+  attendees: {
+    id: string
+    user: {
+      name: string | null
+      email: string
     }
-  })
+  }[]
+}
 
-  if (!workshop) {
-    notFound()
+export default function WorkshopDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const [workshop, setWorkshop] = useState<Workshop | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [viewingFile, setViewingFile] = useState<WorkshopFile | null>(null)
+
+  useEffect(() => {
+    async function loadWorkshop() {
+      const { id } = await params
+      const res = await fetch(`/api/workshops/${id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setWorkshop(data)
+      }
+      setLoading(false)
+    }
+    loadWorkshop()
+  }, [params])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    )
   }
 
-  const files = (workshop.files as any[]) || []
+  if (!workshop) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white">Workshop not found</div>
+      </div>
+    )
+  }
+
+  const files = workshop.files || []
+  const isImage = (file: WorkshopFile) => file.type.startsWith('image/')
+  const isPDF = (file: WorkshopFile) => file.type === 'application/pdf'
+  const isViewable = (file: WorkshopFile) => isImage(file) || isPDF(file)
 
   return (
+    <>
+      {/* File Viewer Modal */}
+      {viewingFile && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="relative max-w-6xl w-full max-h-[90vh] bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            {/* Close Button */}
+            <button
+              onClick={() => setViewingFile(null)}
+              className="absolute top-4 right-4 z-10 p-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+
+            {/* File Content */}
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-white mb-4">{viewingFile.name}</h3>
+              <div className="flex items-center justify-center bg-gray-800/50 rounded-lg overflow-hidden" style={{ minHeight: '60vh' }}>
+                {isImage(viewingFile) ? (
+                  <img
+                    src={viewingFile.url}
+                    alt={viewingFile.name}
+                    className="max-w-full max-h-[70vh] object-contain"
+                  />
+                ) : isPDF(viewingFile) ? (
+                  <iframe
+                    src={viewingFile.url}
+                    className="w-full h-[70vh]"
+                    title={viewingFile.name}
+                  />
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
     <div className="min-h-screen bg-black py-12">
       <div className="container mx-auto px-4 max-w-4xl">
         <Link href="/dashboard" className="text-orange-500 hover:text-orange-400 mb-6 inline-block">
@@ -95,8 +176,8 @@ export default async function WorkshopDetailPage({ params }: { params: Promise<{
           {workshop.content && (
             <div className="p-8 border-b border-gray-800">
               <h2 className="text-xl font-bold text-white mb-4">About This Workshop</h2>
-              <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
-                {workshop.content}
+              <div className="text-gray-300 leading-relaxed prose prose-invert prose-headings:text-white prose-a:text-orange-500 prose-strong:text-white prose-code:text-orange-400 max-w-none">
+                <ReactMarkdown>{workshop.content}</ReactMarkdown>
               </div>
             </div>
           )}
@@ -121,14 +202,25 @@ export default async function WorkshopDetailPage({ params }: { params: Promise<{
                         </p>
                       </div>
                     </div>
-                    <a
-                      href={file.url}
-                      download={file.name}
-                      className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download
-                    </a>
+                    <div className="flex items-center gap-2">
+                      {isViewable(file) && (
+                        <button
+                          onClick={() => setViewingFile(file)}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                        >
+                          <Eye className="w-4 h-4" />
+                          View
+                        </button>
+                      )}
+                      <a
+                        href={file.url}
+                        download={file.name}
+                        className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                        Download
+                      </a>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -166,5 +258,6 @@ export default async function WorkshopDetailPage({ params }: { params: Promise<{
         </div>
       </div>
     </div>
+    </>
   )
 }

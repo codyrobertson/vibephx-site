@@ -14,3 +14,8 @@ build/
 
 # CodeSync state
 .codesync/
+.env*.local
+
+# CMS uploads
+public/images/uploads/*
+!public/images/uploads/.gitkeep

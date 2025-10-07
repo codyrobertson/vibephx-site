@@ -38,3 +38,23 @@ collections:
       - { label: Tags, name: tags, widget: list }
       - { label: Featured Image, name: image, widget: image, required: false }
       - { label: Body, name: body, widget: markdown }
+
+  - name: drafts
+    label: 📝 AI-Generated Drafts
+    label_singular: Draft
+    folder: content/drafts
+    create: false
+    slug: '{{slug}}'
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { label: Title, name: title, widget: string }
+      - { label: Technology, name: technology, widget: string }
+      - { label: Description, name: description, widget: text }
+      - { label: Tags, name: tags, widget: list }
+      - { label: Complexity, name: complexity, widget: select, options: ['beginner', 'intermediate', 'advanced'] }
+      - { label: Featured Image, name: image, widget: image, required: false }
+      - { label: Body, name: body, widget: markdown }
+      - { label: Confidence Score, name: confidence, widget: number, min: 0, max: 1, step: 0.01, required: false }
+      - { label: Word Count, name: wordCount, widget: number, required: false }
+      - { label: External Links, name: externalLinks, widget: number, required: false }
