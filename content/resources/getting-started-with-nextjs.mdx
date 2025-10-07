@@ -1,0 +1,104 @@
+---
+title: "Getting Started with Next.js 15"
+date: "2025-01-10"
+description: "A comprehensive guide to building modern web applications with Next.js 15, covering App Router, Server Components, and more."
+author: "Vibe Code PHX"
+tags: ["nextjs", "react", "tutorial"]
+image: "/workshop-one-medal.png"
+---
+
+Next.js 15 introduces powerful features that make building modern web applications easier and more performant than ever.
+
+## What is Next.js?
+
+Next.js is a React framework that provides:
+
+- **Server-Side Rendering (SSR)** - Better SEO and performance
+- **Static Site Generation (SSG)** - Lightning-fast page loads
+- **API Routes** - Build your backend in the same project
+- **File-based Routing** - No need for complex routing configuration
+
+## Installation
+
+Get started with Next.js in seconds:
+
+```bash
+npx create-next-app@latest my-app
+cd my-app
+npm run dev
+```
+
+## App Router
+
+Next.js 15 uses the App Router by default, which brings:
+
+### Server Components
+
+React Server Components render on the server, reducing bundle size:
+
+```tsx
+// app/page.tsx
+export default async function HomePage() {
+  const data = await fetch('https://api.example.com/data')
+  const json = await data.json()
+
+  return <div>{json.title}</div>
+}
+```
+
+### Client Components
+
+Use 'use client' for interactive components:
+
+```tsx
+'use client'
+
+import { useState } from 'react'
+
+export default function Counter() {
+  const [count, setCount] = useState(0)
+
+  return (
+    <button onClick={() => setCount(count + 1)}>
+      Count: {count}
+    </button>
+  )
+}
+```
+
+## Routing
+
+Create routes by adding files to the `app` directory:
+
+- `app/page.tsx` → `/`
+- `app/about/page.tsx` → `/about`
+- `app/blog/[slug]/page.tsx` → `/blog/:slug`
+
+## Data Fetching
+
+Next.js 15 makes data fetching simple:
+
+```tsx
+async function getData() {
+  const res = await fetch('https://api.example.com/data', {
+    cache: 'force-cache' // Cache by default
+  })
+
+  return res.json()
+}
+
+export default async function Page() {
+  const data = await getData()
+  return <main>{data.title}</main>
+}
+```
+
+## Next Steps
+
+- Explore the [official documentation](https://nextjs.org/docs)
+- Join our Next.js workshop series
+- Check out our [Next.js project templates](/resources)
+
+---
+
+*Ready to build? Start your first Next.js project today!*

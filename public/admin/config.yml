@@ -1,0 +1,40 @@
+backend:
+  name: github
+  repo: codyrobertson/vibephx-site
+  branch: resources
+
+media_folder: public/images/uploads
+public_folder: /images/uploads
+
+collections:
+  - name: blog
+    label: Blog Posts
+    folder: content/blog
+    create: true
+    slug: '{{slug}}'
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { label: Title, name: title, widget: string }
+      - { label: Date, name: date, widget: datetime }
+      - { label: Description, name: description, widget: text }
+      - { label: Author, name: author, widget: string }
+      - { label: Tags, name: tags, widget: list }
+      - { label: Featured Image, name: image, widget: image, required: false }
+      - { label: Body, name: body, widget: markdown }
+
+  - name: resources
+    label: Learning Resources
+    folder: content/resources
+    create: true
+    slug: '{{slug}}'
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { label: Title, name: title, widget: string }
+      - { label: Date, name: date, widget: datetime }
+      - { label: Description, name: description, widget: text }
+      - { label: Author, name: author, widget: string }
+      - { label: Tags, name: tags, widget: list }
+      - { label: Featured Image, name: image, widget: image, required: false }
+      - { label: Body, name: body, widget: markdown }
