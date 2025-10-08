@@ -189,6 +189,27 @@ datasource db {
   // Optimize connection pooling
   connectionLimit = 20
 }
+
+## Fluid Compute Job: PRD Document Backfill
+
+We run the existing backfill script on a schedule using Vercel Fluid Compute.
+
+```jsonc
+{
+  "jobs": [
+    {
+      "name": "backfill-prd-documents",
+      "includeFiles": ["scripts/backfill-prd-documents.ts"],
+      "schedule": "0 2 * * *",        // nightly at 02:00 UTC
+      "runtime": "nodejs18.x",
+      "maxDuration": 600,             // up to 10 minutes
+      "memory": 512                   // increase if needed for large backfills
+    }
+  ]
+}
+```
+
+Ensure relevant environment variables (e.g. database URL, embedding API keys) are available in your Vercel project settings under this job.
 ```
 
 ## Monitoring Performance
