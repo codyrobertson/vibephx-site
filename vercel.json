@@ -1,12 +1,1 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/backfill-prd-documents",
-      "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/cron",
-      "schedule": "0 10 * * *"
-    }
-  ]
-}
+{}
